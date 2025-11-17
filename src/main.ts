@@ -1,8 +1,9 @@
+import { MotionPlugin } from '@vueuse/motion'
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router'
-import { setupVueQuery } from './plugins/vue-query'
 import './assets/main.css'
+import { setupVueQuery } from './plugins/vue-query'
+import router from './router'
 
 // Valide les variables d'environnement au démarrage
 // Lance une erreur si la configuration est invalide
@@ -12,6 +13,7 @@ const app = createApp(App)
 
 // Setup plugins
 app.use(router)
+app.use(MotionPlugin)
 setupVueQuery(app)
 
 app.mount('#app')
