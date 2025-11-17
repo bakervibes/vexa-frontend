@@ -1,6 +1,6 @@
 # Guide d'Utilisation de l'API
 
-Ce guide explique comment utiliser la fonction utilitaire API type-safe et Vue Query dans votre application.
+Ce guide explique comment utiliser la fonction utilitaire API type-safe, Vue Query et Zod dans votre application.
 
 ## Table des Matières
 
@@ -8,6 +8,7 @@ Ce guide explique comment utiliser la fonction utilitaire API type-safe et Vue Q
 - [Helpers HTTP](#helpers-http)
 - [Gestion des Erreurs](#gestion-des-erreurs)
 - [Vue Query (TanStack Query)](#vue-query-tanstack-query)
+- [Validation avec Zod](#validation-avec-zod)
 - [Composables](#composables)
 - [Exemples Pratiques](#exemples-pratiques)
 
@@ -151,6 +152,165 @@ const { mutate, isPending } = useMutation({
 
 // Utiliser la mutation
 mutate({ name: 'John', email: 'john@example.com' })
+```
+
+## Validation avec Zod
+
+Zod permet de valider les données à l'exécution avec une sécurité de type complète.
+
+### Créer un Schéma
+
+Définissez vos schémas dans `src/types/` :
+
+```typescript
+import { z } from 'zod'
+
+// Schéma de base
+export const userSchema = z.object({
+  id: z.number().int().positive('ID must be positive'),
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  email: z.string().email('Invalid email format'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  phone: z.string().optional(),
+  website: z.string().url('Invalid website URL').optional(),
+})
+
+// Schémas dérivés
+export const createUserSchema = userSchema.omit({ id: true })
+export const updateUserSchema = createUserSchema.partial()
+
+// Types inférés
+export type User = z.infer<typeof userSchema>
+export type CreateUserDto = z.infer<typeof createUserSchema>
+export type UpdateUserDto = z.infer<typeof updateUserSchema>
+```
+
+### Helpers de Validation
+
+```typescript
+// Validation avec exception
+export function validateUser(data: unknown): User {
+  return userSchema.parse(data) // Throws ZodError si invalide
+}
+
+// Validation safe (sans exception)
+export function safeValidateUser(data: unknown) {
+  return userSchema.safeParse(data) // Returns { success: boolean, data?, error? }
+}
+```
+
+### Utilisation dans les Composants
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { createUserSchema, type CreateUserDto } from '@/types/user'
+import { z } from 'zod'
+
+const formData = ref<CreateUserDto>({
+  name: '',
+  email: '',
+  username: '',
+})
+
+const formErrors = ref<Record<string, string>>({})
+
+function validateForm(): boolean {
+  formErrors.value = {}
+
+  try {
+    createUserSchema.parse(formData.value)
+    return true
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      // Convertir les erreurs Zod en objet d'erreurs
+      error.issues.forEach((issue: z.ZodIssue) => {
+        const field = issue.path[0] as string
+        formErrors.value[field] = issue.message
+      })
+    }
+    return false
+  }
+}
+
+function handleSubmit() {
+  if (!validateForm()) {
+    return // Formulaire invalide
+  }
+  // Formulaire valide, envoyer les données
+  createUser(formData.value)
+}
+</script>
+
+<template>
+  <form @submit.prevent="handleSubmit">
+    <div>
+      <input v-model="formData.name" />
+      <p v-if="formErrors.name" class="error">{{ formErrors.name }}</p>
+    </div>
+    <button type="submit">Submit</button>
+  </form>
+</template>
+```
+
+### Validation des Réponses API
+
+Validez les réponses API pour garantir l'intégrité des données :
+
+```typescript
+import { api } from '@/utils/api'
+import { userSchema, type User } from '@/types/user'
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await api<unknown[]>('/users', 'GET')
+
+      // Valider chaque utilisateur
+      return response.map((user) => {
+        const result = userSchema.safeParse(user)
+        if (!result.success) {
+          console.error('Invalid user data:', result.error)
+          throw new Error('Invalid user data from API')
+        }
+        return result.data
+      })
+    },
+  })
+}
+```
+
+### Schémas Avancés
+
+```typescript
+// Composition de schémas
+export const addressSchema = z.object({
+  street: z.string(),
+  city: z.string(),
+  zipCode: z.string().regex(/^\d{5}$/, 'Invalid zip code'),
+})
+
+export const userWithAddressSchema = userSchema.extend({
+  address: addressSchema,
+})
+
+// Transformations
+export const dateSchema = z
+  .string()
+  .transform((str) => new Date(str))
+  .pipe(z.date())
+
+// Unions et enums
+export const roleSchema = z.enum(['admin', 'user', 'guest'])
+export const userOrAdminSchema = z.union([userSchema, adminSchema])
+
+// Raffinements personnalisés
+export const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .refine((pwd) => /[A-Z]/.test(pwd), 'Password must contain uppercase')
+  .refine((pwd) => /[0-9]/.test(pwd), 'Password must contain number')
 ```
 
 ## Composables

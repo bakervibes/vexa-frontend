@@ -1,4 +1,3 @@
-import AboutPage from '@/views/AboutPage.vue'
 import HomePage from '@/views/HomePage.vue'
 import NotFoundPage from '@/views/NotFoundPage.vue'
 import type { RouteRecordRaw } from 'vue-router'
@@ -11,14 +10,6 @@ const routes: RouteRecordRaw[] = [
     component: HomePage,
     meta: {
       title: 'Home',
-    },
-  },
-  {
-    path: '/about',
-    name: 'about',
-    component: AboutPage,
-    meta: {
-      title: 'About',
     },
   },
   {

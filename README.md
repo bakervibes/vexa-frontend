@@ -1,6 +1,39 @@
-# vexa-front
+# 🚀 Starter Vue.js
 
-This template should help get you started developing with Vue 3 in Vite.
+A modern, production-ready Vue 3 starter template with TypeScript, TanStack Query, Zod validation, and Tailwind CSS.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.19.0-brightgreen)](https://nodejs.org/)
+[![Vue 3](https://img.shields.io/badge/Vue-3.5-brightgreen.svg)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
+
+## ✨ What's Inside
+
+- ⚡️ **Vue 3** with `<script setup>` syntax
+- 🔷 **TypeScript** for type safety
+- 🎨 **Tailwind CSS v4** for styling
+- 🔄 **TanStack Query** for data fetching & caching
+- ✅ **Zod** for schema validation
+- 🛣️ **Vue Router** with lazy-loaded routes
+- 📦 **Vite** for fast development & optimized builds
+- 🧹 **ESLint + Prettier** with auto-fix on commit
+- 🪝 **Husky** for Git hooks
+- 🎯 Complete **CRUD example** included
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Start development server
+pnpm dev
+```
+
+👉 **New to this template?** Check out the [Getting Started Guide](docs/GETTING_STARTED.md) for a detailed walkthrough.
 
 ## Recommended IDE Setup
 
@@ -83,6 +116,52 @@ Powerful data fetching and caching library configured with:
 - **Optimistic updates** support
 
 See [API Guide](docs/API_GUIDE.md) for detailed usage.
+
+### ✅ Zod Schema Validation
+
+Type-safe schema validation with Zod for runtime type checking and data validation:
+
+- **Schema-first approach** - Define schemas once, infer TypeScript types automatically
+- **Validation helpers** - Built-in validation functions for forms and API responses
+- **Type safety** - Full TypeScript support with autocompletion
+- **Error handling** - Clear validation error messages
+
+```typescript
+import { userSchema, createUserSchema, validateCreateUser } from '@/types/user'
+import type { User, CreateUserDto } from '@/types/user'
+
+// Define schema with validation rules
+export const userSchema = z.object({
+  id: z.number().int().positive(),
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  username: z.string().min(3).max(50),
+  phone: z.string().optional(),
+  website: z.string().url().optional(),
+})
+
+// Infer TypeScript type from schema
+type User = z.infer<typeof userSchema>
+
+// Validate data
+const user = validateCreateUser(formData) // throws ZodError if invalid
+
+// Safe validation (no throw)
+const result = safeValidateCreateUser(formData)
+if (result.success) {
+  console.log(result.data) // typed as CreateUserDto
+} else {
+  console.error(result.error.issues) // validation errors
+}
+```
+
+**Key Benefits:**
+
+- **Runtime validation** catches errors before sending to API
+- **Automatic type inference** reduces code duplication
+- **Schema composition** with `.omit()`, `.partial()`, `.extend()`
+- **Form validation** with detailed error messages
+- **API response validation** ensures data integrity
 
 ### 🌐 Type-Safe API Utility
 
@@ -167,6 +246,21 @@ The project includes VSCode settings (`.vscode/settings.json`) that:
 - **Husky**: `.husky/` - Git hooks configuration
 - **lint-staged**: `package.json` - Pre-commit file processing
 
+## 📖 Documentation
+
+- **[Getting Started Guide](docs/GETTING_STARTED.md)** - Complete setup and development guide
+- **[API Guide](docs/API_GUIDE.md)** - Detailed API usage with examples
+
+## 🎯 Example Usage
+
+Check `src/views/HomePage.vue` for a complete CRUD example with:
+
+- Form validation using Zod
+- Create, Read, Update, Delete operations
+- Search functionality
+- Error handling
+- Loading states
+
 ## Environment Variables
 
 This project uses **Zod** for type-safe environment variable validation.
@@ -230,3 +324,31 @@ If validation fails, the application will display a detailed error message indic
 - `.env.example` - Template with all required variables
 - `src/env.ts` - Zod schema and validation logic
 - `env.d.ts` - TypeScript declarations for `import.meta.env`
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+
+- Report bugs
+- Suggest new features
+- Submit pull requests
+
+Please ensure your code follows the project's code style and passes all linting checks.
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Credits
+
+Built with:
+
+- [Vue.js](https://vuejs.org/) - The Progressive JavaScript Framework
+- [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
+- [TanStack Query](https://tanstack.com/query) - Powerful asynchronous state management
+- [Zod](https://zod.dev/) - TypeScript-first schema validation
+- [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework
+
+---
+
+**Made with ❤️ by [Baker Vibes](https://github.com/bakervibes)**
