@@ -1,1 +1,6 @@
+#!/usr/bin/env sh
+# Pre-commit hook
+# 1. Run lint-staged (ESLint fix + Prettier format on staged files)
+# 2. Run full build (type-check + lint-check + build) to ensure no errors
+
 pnpm lint-staged && pnpm build

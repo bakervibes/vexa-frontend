@@ -111,3 +111,67 @@ The project includes VSCode settings (`.vscode/settings.json`) that:
 - **Prettier**: `.prettierrc.json` - Code formatting rules
 - **Husky**: `.husky/` - Git hooks configuration
 - **lint-staged**: `package.json` - Pre-commit file processing
+
+## Environment Variables
+
+This project uses **Zod** for type-safe environment variable validation.
+
+### Setup
+
+1. Copy `.env.example` to `.env`:
+
+```sh
+cp .env.example .env
+```
+
+2. Update the variables in `.env` with your configuration
+
+### Available Variables
+
+All environment variables must be prefixed with `VITE_` to be exposed to the client:
+
+| Variable                | Type      | Description              | Example                                   |
+| ----------------------- | --------- | ------------------------ | ----------------------------------------- |
+| `VITE_APP_NAME`         | `string`  | Application name         | `Vexa Front`                              |
+| `VITE_APP_VERSION`      | `string`  | Application version      | `0.0.0`                                   |
+| `VITE_API_URL`          | `string`  | API base URL             | `http://localhost:3000/api`               |
+| `VITE_API_TIMEOUT`      | `number`  | API request timeout (ms) | `30000`                                   |
+| `VITE_ENABLE_DEV_TOOLS` | `boolean` | Enable Vue DevTools      | `true`                                    |
+| `VITE_ENABLE_ANALYTICS` | `boolean` | Enable analytics         | `false`                                   |
+| `VITE_ENV`              | `enum`    | Environment              | `development`, `staging`, or `production` |
+
+### Type-Safe Usage
+
+Import validated environment variables from `src/env.ts`:
+
+```typescript
+import { env, isDevelopment, isProduction } from '@/env'
+
+// All variables are typed and validated
+const apiUrl = env.VITE_API_URL // string (URL validated)
+const timeout = env.VITE_API_TIMEOUT // number (converted from string)
+const devTools = env.VITE_ENABLE_DEV_TOOLS // boolean
+
+// Helper functions
+if (isDevelopment) {
+  console.log('Running in development mode')
+}
+```
+
+### Validation
+
+The application **validates all environment variables on startup** using Zod:
+
+- Type checking (string, number, boolean, enum)
+- URL format validation for API URLs
+- Positive number validation for timeout
+- Enum validation for environment
+
+If validation fails, the application will display a detailed error message indicating which variables are invalid.
+
+### Files
+
+- `.env` - Your local environment variables (git-ignored)
+- `.env.example` - Template with all required variables
+- `src/env.ts` - Zod schema and validation logic
+- `env.d.ts` - TypeScript declarations for `import.meta.env`
