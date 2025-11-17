@@ -53,6 +53,61 @@ pnpm lint
 pnpm format
 ```
 
+## Features
+
+### 🚀 Vue Router
+
+The project uses Vue Router for client-side navigation with:
+
+- **Lazy-loaded routes** for optimal performance
+- **Layouts** (Header, Main, Footer) for consistent UI
+- **404 handling** for unknown routes
+- **Auto document title** updates based on route meta
+
+```typescript
+// Routes are automatically code-split
+{
+  path: '/',
+  name: 'home',
+  component: () => import('@/views/HomePage.vue')
+}
+```
+
+### 🔄 TanStack Query (Vue Query)
+
+Powerful data fetching and caching library configured with:
+
+- **Smart caching** (5 min stale time, 10 min cache)
+- **Auto retry** on errors
+- **Refetch on window focus** (disabled in dev)
+- **Optimistic updates** support
+
+See [API Guide](docs/API_GUIDE.md) for detailed usage.
+
+### 🌐 Type-Safe API Utility
+
+A fully typed API utility function for making HTTP requests:
+
+```typescript
+import { api } from '@/utils/api'
+
+// Type-safe with generics
+const users = await api<User[]>('/users', 'GET')
+const newUser = await api<User>('/users', 'POST', { name: 'John' })
+
+// Or use helpers
+import { get, post, put, del } from '@/utils/api'
+const users = await get<User[]>('/users')
+```
+
+**Features:**
+
+- Type-safe responses with TypeScript generics
+- Automatic timeout handling
+- Custom `ApiError` class for error handling
+- Support for all HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Optional data and config parameters
+
 ## Code Quality & Git Hooks
 
 This project uses ESLint, Prettier, Husky, and lint-staged to ensure code quality and consistency.
