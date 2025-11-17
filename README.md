@@ -46,3 +46,68 @@ pnpm build
 ```sh
 pnpm lint
 ```
+
+### Format with [Prettier](https://prettier.io/)
+
+```sh
+pnpm format
+```
+
+## Code Quality & Git Hooks
+
+This project uses ESLint, Prettier, Husky, and lint-staged to ensure code quality and consistency.
+
+### Automatic Checks
+
+#### Pre-commit Hook
+
+Before each commit, the following checks run automatically on staged files:
+
+- **ESLint**: Fixes and validates code (with `--max-warnings 0`)
+- **Prettier**: Formats code automatically
+- ❌ Commits will be **blocked** if there are any linting errors
+
+#### Pre-push Hook
+
+Before each push, the following checks run:
+
+- **ESLint**: Full codebase validation
+- **TypeScript**: Type checking
+
+#### Build Process
+
+The `pnpm build` command runs:
+
+1. Type checking with `vue-tsc`
+2. Linting with `eslint --max-warnings 0`
+3. Build with Vite
+
+❌ Builds will **fail** if there are any linting errors or warnings.
+
+### Manual Commands
+
+```sh
+# Run ESLint with auto-fix
+pnpm lint
+
+# Run ESLint without fixing (used in CI/build)
+pnpm lint:check
+
+# Format all files with Prettier
+pnpm format
+```
+
+### VSCode Integration
+
+The project includes VSCode settings (`.vscode/settings.json`) that:
+
+- Format files on save with Prettier
+- Auto-fix ESLint issues on save
+- Validate Vue, TypeScript, and JavaScript files
+
+### Configuration Files
+
+- **ESLint**: `eslint.config.ts` - Vue 3 + TypeScript rules
+- **Prettier**: `.prettierrc.json` - Code formatting rules
+- **Husky**: `.husky/` - Git hooks configuration
+- **lint-staged**: `package.json` - Pre-commit file processing
