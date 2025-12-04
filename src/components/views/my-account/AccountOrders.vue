@@ -1,21 +1,4 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useOrderById, useUserOrders } from '@/composables/useOrders'
 import {
   OrderStatus,
@@ -25,6 +8,12 @@ import {
 } from '@/types'
 import { formatPrice } from '@/utils/lib'
 import { EyeIcon, PackageIcon, ShoppingBagIcon } from 'lucide-vue-next'
+import Button from 'primevue/button'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Dialog from 'primevue/dialog'
+import Skeleton from 'primevue/skeleton'
+import Tag from 'primevue/tag'
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
@@ -48,23 +37,23 @@ const formatDate = (date: Date | string) => {
   })
 }
 
-// Get status badge variant
-const getStatusVariant = (status: OrderStatus) => {
+// Get status badge severity
+const getStatusSeverity = (status: OrderStatus) => {
   switch (status) {
     case OrderStatus.DELIVERED:
-      return 'default'
+      return 'success'
     case OrderStatus.SHIPPED:
-      return 'secondary'
+      return 'info'
     case OrderStatus.PROCESSING:
-      return 'outline'
+      return 'warn'
     case OrderStatus.PENDING:
-      return 'outline'
+      return 'secondary'
     case OrderStatus.CANCELLED:
-      return 'destructive'
+      return 'danger'
     case OrderStatus.REFUNDED:
-      return 'destructive'
+      return 'danger'
     default:
-      return 'outline'
+      return 'secondary'
   }
 }
 
@@ -116,11 +105,15 @@ const closeModal = () => {
       v-if="isLoading"
       class="space-y-4"
     >
-      <Skeleton class="h-12 w-full" />
+      <Skeleton
+        height="3rem"
+        class="w-full"
+      />
       <Skeleton
         v-for="i in 4"
         :key="i"
-        class="h-16 w-full"
+        height="4rem"
+        class="w-full"
       />
     </div>
 
@@ -140,7 +133,7 @@ const closeModal = () => {
       </div>
       <RouterLink to="/shop">
         <Button
-          variant="outline"
+          outlined
           class="mt-2"
         >
           <ShoppingBagIcon class="mr-2 h-4 w-4" />
@@ -154,50 +147,67 @@ const closeModal = () => {
       v-else
       class="hidden md:block"
     >
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead class="w-[20%]">Number ID</TableHead>
-            <TableHead class="w-[25%]">Date</TableHead>
-            <TableHead class="w-[20%]">Status</TableHead>
-            <TableHead class="w-[20%] text-right">Price</TableHead>
-            <TableHead class="w-[15%] text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow
-            v-for="order in orders"
-            :key="order.id"
-            class="cursor-pointer hover:bg-gray-50"
-            @click="openOrderDetails(order)"
-          >
-            <TableCell class="py-5 font-medium">
-              #{{ order.orderNumber }}
-            </TableCell>
-            <TableCell class="py-5">
-              {{ formatDate(order.createdAt) }}
-            </TableCell>
-            <TableCell class="py-5">
-              <Badge :variant="getStatusVariant(order.status)">
-                {{ formatStatus(order.status) }}
-              </Badge>
-            </TableCell>
-            <TableCell class="py-5 text-right font-medium">
-              {{ formatPrice(order.totalAmount) }}
-            </TableCell>
-            <TableCell class="py-5 text-right">
-              <Button
-                variant="ghost"
-                size="sm"
-                @click.stop="openOrderDetails(order)"
-              >
-                <EyeIcon class="mr-1 h-4 w-4" />
-                View
-              </Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <DataTable
+        :value="orders"
+        :rowHover="true"
+        class="cursor-pointer"
+        @row-click="(e: { data: UserOrder }) => openOrderDetails(e.data)"
+      >
+        <Column
+          field="orderNumber"
+          header="Number ID"
+          style="width: 20%"
+        >
+          <template #body="slotProps">
+            <span class="font-medium">#{{ slotProps.data.orderNumber }}</span>
+          </template>
+        </Column>
+        <Column
+          header="Date"
+          style="width: 25%"
+        >
+          <template #body="slotProps">
+            {{ formatDate(slotProps.data.createdAt) }}
+          </template>
+        </Column>
+        <Column
+          header="Status"
+          style="width: 20%"
+        >
+          <template #body="slotProps">
+            <Tag :severity="getStatusSeverity(slotProps.data.status)">
+              {{ formatStatus(slotProps.data.status) }}
+            </Tag>
+          </template>
+        </Column>
+        <Column
+          header="Price"
+          style="width: 20%"
+          class="text-right"
+        >
+          <template #body="slotProps">
+            <span class="font-medium">
+              {{ formatPrice(slotProps.data.totalAmount) }}
+            </span>
+          </template>
+        </Column>
+        <Column
+          header="Action"
+          style="width: 15%"
+          class="text-right"
+        >
+          <template #body="slotProps">
+            <Button
+              text
+              size="small"
+              @click.stop="openOrderDetails(slotProps.data)"
+            >
+              <EyeIcon class="mr-1 h-4 w-4" />
+              View
+            </Button>
+          </template>
+        </Column>
+      </DataTable>
     </div>
 
     <!-- Orders List - Mobile -->
@@ -215,9 +225,9 @@ const closeModal = () => {
               {{ formatDate(order.createdAt) }}
             </p>
           </div>
-          <Badge :variant="getStatusVariant(order.status)">
+          <Tag :severity="getStatusSeverity(order.status)">
             {{ formatStatus(order.status) }}
-          </Badge>
+          </Tag>
         </div>
         <div class="flex items-center justify-between border-t pt-3">
           <span class="text-sm text-gray-500">Total</span>
@@ -230,167 +240,176 @@ const closeModal = () => {
 
     <!-- Order Details Modal -->
     <Dialog
-      :open="isModalOpen"
-      @update:open="(open) => !open && closeModal()"
+      v-model:visible="isModalOpen"
+      modal
+      header="Order Details"
+      :style="{ width: '42rem', maxWidth: '90vw' }"
+      :contentStyle="{ maxHeight: '85vh', overflow: 'auto' }"
+      :dismissableMask="true"
+      @hide="closeModal"
     >
-      <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Order Details</DialogTitle>
-        </DialogHeader>
+      <!-- Loading state -->
+      <div
+        v-if="isLoadingDetails"
+        class="space-y-4 py-4"
+      >
+        <Skeleton
+          height="1.5rem"
+          width="8rem"
+        />
+        <Skeleton
+          height="5rem"
+          class="w-full"
+        />
+        <Skeleton
+          height="5rem"
+          class="w-full"
+        />
+        <Skeleton
+          height="4rem"
+          class="w-full"
+        />
+      </div>
 
-        <!-- Loading state -->
-        <div
-          v-if="isLoadingDetails"
-          class="space-y-4 py-4"
-        >
-          <Skeleton class="h-6 w-32" />
-          <Skeleton class="h-20 w-full" />
-          <Skeleton class="h-20 w-full" />
-          <Skeleton class="h-16 w-full" />
+      <!-- Order details -->
+      <div
+        v-else-if="orderDetails"
+        class="space-y-6 py-4"
+      >
+        <!-- Order info -->
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-1">
+            <p class="text-sm text-gray-500">Order Number</p>
+            <p class="font-medium">#{{ orderDetails.orderNumber }}</p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-gray-500">Date</p>
+            <p class="font-medium">
+              {{ formatDate(orderDetails.createdAt) }}
+            </p>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-gray-500">Status</p>
+            <Tag :severity="getStatusSeverity(orderDetails.status)">
+              {{ formatStatus(orderDetails.status) }}
+            </Tag>
+          </div>
+          <div class="space-y-1">
+            <p class="text-sm text-gray-500">Payment Method</p>
+            <p class="font-medium">
+              {{ getPaymentMethod(orderDetails.payments?.[0]?.provider) }}
+            </p>
+          </div>
         </div>
 
-        <!-- Order details -->
-        <div
-          v-else-if="orderDetails"
-          class="space-y-6 py-4"
-        >
-          <!-- Order info -->
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-1">
-              <p class="text-sm text-gray-500">Order Number</p>
-              <p class="font-medium">#{{ orderDetails.orderNumber }}</p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm text-gray-500">Date</p>
-              <p class="font-medium">
-                {{ formatDate(orderDetails.createdAt) }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm text-gray-500">Status</p>
-              <Badge :variant="getStatusVariant(orderDetails.status)">
-                {{ formatStatus(orderDetails.status) }}
-              </Badge>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm text-gray-500">Payment Method</p>
-              <p class="font-medium">
-                {{ getPaymentMethod(orderDetails.payments?.[0]?.provider) }}
-              </p>
-            </div>
-          </div>
-
-          <!-- Order items -->
-          <div>
-            <h3 class="mb-4 font-semibold">
-              Items ({{ orderDetails.items.length }})
-            </h3>
-            <div class="space-y-4">
+        <!-- Order items -->
+        <div>
+          <h3 class="mb-4 font-semibold">
+            Items ({{ orderDetails.items.length }})
+          </h3>
+          <div class="space-y-4">
+            <div
+              v-for="item in orderDetails.items"
+              :key="item.id"
+              class="flex gap-4 rounded-lg border p-4"
+            >
               <div
-                v-for="item in orderDetails.items"
-                :key="item.id"
-                class="flex gap-4 rounded-lg border p-4"
+                class="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100"
               >
-                <div
-                  class="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-gray-100"
-                >
-                  <img
-                    class="h-full w-full object-cover"
-                    :src="getItemImage(item)"
-                    :alt="getItemName(item)"
-                  />
-                </div>
+                <img
+                  class="h-full w-full object-cover"
+                  :src="getItemImage(item)"
+                  :alt="getItemName(item)"
+                />
+              </div>
 
-                <div class="flex flex-1 flex-col justify-between">
-                  <div>
-                    <h4 class="font-medium text-gray-900">
-                      {{ getItemName(item) }}
-                    </h4>
-                    <p
-                      v-if="item.data.sku"
-                      class="text-sm text-gray-500"
+              <div class="flex flex-1 flex-col justify-between">
+                <div>
+                  <h4 class="font-medium text-gray-900">
+                    {{ getItemName(item) }}
+                  </h4>
+                  <p
+                    v-if="item.data.sku"
+                    class="text-sm text-gray-500"
+                  >
+                    SKU: {{ item.data.sku }}
+                  </p>
+                  <p
+                    v-if="item.data.variant"
+                    class="text-sm text-gray-500"
+                  >
+                    <span
+                      v-for="(option, index) in item.data.variant.options"
+                      :key="index"
                     >
-                      SKU: {{ item.data.sku }}
-                    </p>
-                    <p
-                      v-if="item.data.variant"
-                      class="text-sm text-gray-500"
-                    >
-                      <span
-                        v-for="(option, index) in item.data.variant.options"
-                        :key="index"
-                      >
-                        {{ option.attribute }}: {{ option.option }}
-                        <span
-                          v-if="index < item.data.variant.options.length - 1"
-                        >
-                          ,
-                        </span>
+                      {{ option.attribute }}: {{ option.option }}
+                      <span v-if="index < item.data.variant.options.length - 1">
+                        ,
                       </span>
-                    </p>
-                  </div>
+                    </span>
+                  </p>
+                </div>
 
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-gray-600">
-                      {{ getItemQuantity(item) }} ×
-                      {{ formatPrice(getItemPrice(item)) }}
-                    </span>
-                    <span class="font-medium">
-                      {{
-                        formatPrice(getItemPrice(item) * getItemQuantity(item))
-                      }}
-                    </span>
-                  </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">
+                    {{ getItemQuantity(item) }} ×
+                    {{ formatPrice(getItemPrice(item)) }}
+                  </span>
+                  <span class="font-medium">
+                    {{
+                      formatPrice(getItemPrice(item) * getItemQuantity(item))
+                    }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Order summary -->
-          <div class="border-t pt-4">
-            <div class="space-y-2">
-              <div class="flex justify-between text-sm">
-                <span class="text-gray-500">Subtotal</span>
-                <span>
-                  {{
-                    formatPrice(
-                      orderDetails.totalAmount -
-                        orderDetails.shippingCost +
-                        (orderDetails.coupon?.value || 0),
-                    )
-                  }}
-                </span>
-              </div>
-              <div
-                v-if="orderDetails.shippingCost > 0"
-                class="flex justify-between text-sm"
-              >
-                <span class="text-gray-500">Shipping</span>
-                <span>{{ formatPrice(orderDetails.shippingCost) }}</span>
-              </div>
-              <div
-                v-if="orderDetails.coupon"
-                class="flex justify-between text-sm text-emerald-600"
-              >
-                <span>Discount ({{ orderDetails.coupon.code }})</span>
-                <span>
-                  -{{
-                    orderDetails.coupon.type === 'PERCENTAGE'
-                      ? `${orderDetails.coupon.value}%`
-                      : formatPrice(orderDetails.coupon.value)
-                  }}
-                </span>
-              </div>
-              <div
-                class="flex justify-between border-t pt-2 text-lg font-semibold"
-              >
-                <span>Total</span>
-                <span>{{ formatPrice(orderDetails.totalAmount) }}</span>
-              </div>
+        <!-- Order summary -->
+        <div class="border-t pt-4">
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Subtotal</span>
+              <span>
+                {{
+                  formatPrice(
+                    orderDetails.totalAmount -
+                      orderDetails.shippingCost +
+                      (orderDetails.coupon?.value || 0),
+                  )
+                }}
+              </span>
+            </div>
+            <div
+              v-if="orderDetails.shippingCost > 0"
+              class="flex justify-between text-sm"
+            >
+              <span class="text-gray-500">Shipping</span>
+              <span>{{ formatPrice(orderDetails.shippingCost) }}</span>
+            </div>
+            <div
+              v-if="orderDetails.coupon"
+              class="flex justify-between text-sm text-emerald-600"
+            >
+              <span>Discount ({{ orderDetails.coupon.code }})</span>
+              <span>
+                -{{
+                  orderDetails.coupon.type === 'PERCENTAGE'
+                    ? `${orderDetails.coupon.value}%`
+                    : formatPrice(orderDetails.coupon.value)
+                }}
+              </span>
+            </div>
+            <div
+              class="flex justify-between border-t pt-2 text-lg font-semibold"
+            >
+              <span>Total</span>
+              <span>{{ formatPrice(orderDetails.totalAmount) }}</span>
             </div>
           </div>
         </div>
-      </DialogContent>
+      </div>
     </Dialog>
   </div>
 </template>

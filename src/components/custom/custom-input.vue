@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { EyeIcon, EyeOffIcon } from 'lucide-vue-next'
+import Button from 'primevue/button'
 import { computed, ref } from 'vue'
-import { Button } from '../ui/button'
 
 interface Props {
   id?: string
@@ -77,14 +77,21 @@ const handleChange = (e: Event) => {
     </label>
     <Button
       v-if="props.type === 'password'"
-      variant="ghost"
-      size="icon"
+      text
+      plain
       type="button"
       @click="displayPassword = !displayPassword"
-      class="absolute top-5 right-0 hover:bg-transparent"
+      class="absolute top-5 right-0 !p-2"
+      aria-label="Toggle password visibility"
     >
-      <EyeIcon v-if="displayPassword" />
-      <EyeOffIcon v-else />
+      <EyeIcon
+        v-if="displayPassword"
+        class="size-4"
+      />
+      <EyeOffIcon
+        v-else
+        class="size-4"
+      />
     </Button>
   </div>
 </template>

@@ -1,23 +1,8 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
+import CustomSelect from '@/components/custom/custom-select.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useUserAddresses } from '@/composables/useAddresses'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useCarts } from '@/composables/useCarts'
@@ -31,7 +16,8 @@ import {
   createOrderSchema,
   type CreateOrderInput,
 } from '@/validators/orders.validator'
-import { toTypedSchema } from '@vee-validate/zod'
+import { Form, type FormSubmitEvent } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
 import {
   CreditCardIcon,
   MapPinIcon,
@@ -40,8 +26,10 @@ import {
   TagIcon,
   TruckIcon,
 } from 'lucide-vue-next'
-
-import { useForm } from 'vee-validate'
+import Button from 'primevue/button'
+import Message from 'primevue/message'
+import RadioButton from 'primevue/radiobutton'
+import Skeleton from 'primevue/skeleton'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -82,49 +70,44 @@ const shippingOptions: ShippingOption[] = [
   { id: 'pickup', label: 'Pick Up', price: 21, isPercentage: true },
 ]
 
-// Get shipping option from URL query parameter
+// State
 const selectedShippingId = ref<string>('free')
-
-// Address selection mode
 const addressMode = ref<'existing' | 'new'>('existing')
 const selectedAddressId = ref<string | null>(null)
-
-// Payment Method
 const paymentMethod = ref<PaymentProvider>(PaymentProvider.STRIPE)
-
-// Card Details (for Stripe)
 const cardDetails = ref({
   number: '',
   expiry: '',
   cvc: '',
 })
+const formKey = ref(0)
 
-// Form setup with vee-validate and zod
-const form = useForm({
-  validationSchema: toTypedSchema(createOrderSchema),
-  initialValues: {
-    address: {
-      country: '',
-      name: '',
-      email: '',
-      phone: '',
-      street: '',
-      city: '',
-    },
-    payment: {
-      provider: PaymentProvider.STRIPE,
-      transactionId: '1234567890',
-      metadata: {},
-    },
-    coupon: null,
-    shippingOption: {
-      id: shippingOptions[0]!.id,
-      label: shippingOptions[0]!.label,
-      price: shippingOptions[0]!.price,
-      isPercentage: shippingOptions[0]!.isPercentage ?? false,
-    },
+// Initial form values
+const initialValues = ref({
+  address: {
+    id: undefined as string | undefined,
+    country: '',
+    name: '',
+    email: '',
+    phone: '',
+    street: '',
+    city: '',
+  },
+  payment: {
+    provider: PaymentProvider.STRIPE,
+    transactionId: '1234567890',
+    metadata: {},
+  },
+  coupon: null as string | null,
+  shippingOption: {
+    id: shippingOptions[0]!.id,
+    label: shippingOptions[0]!.label,
+    price: shippingOptions[0]!.price,
+    isPercentage: shippingOptions[0]!.isPercentage ?? false,
   },
 })
+
+const resolver = zodResolver(createOrderSchema)
 
 // Initialize from URL on mount
 watch(
@@ -180,12 +163,13 @@ const getItemSubtotal = (item: (typeof items.value)[0]) => {
 
 // Update shipping option in form
 function updateShippingInForm(option: ShippingOption) {
-  form.setFieldValue('shippingOption', {
+  initialValues.value.shippingOption = {
     id: option.id,
     label: option.label,
     price: option.price,
     isPercentage: option.isPercentage ?? false,
-  })
+  }
+  formKey.value++
 }
 
 // Change shipping option
@@ -223,18 +207,17 @@ watch(
 // Watch for address mode changes
 watch(addressMode, (newMode) => {
   if (newMode === 'new') {
-    form.setValues({
-      address: {
-        id: undefined,
-        name: '',
-        email: '',
-        street: '',
-        city: '',
-        country: '',
-        phone: '',
-      },
-    })
+    initialValues.value.address = {
+      id: undefined,
+      name: '',
+      email: '',
+      street: '',
+      city: '',
+      country: '',
+      phone: '',
+    }
     selectedAddressId.value = null
+    formKey.value++
   } else if (newMode === 'existing' && addresses.value.length > 0) {
     const addr = defaultAddress.value ?? addresses.value[0]
     if (addr) {
@@ -246,7 +229,8 @@ watch(addressMode, (newMode) => {
 
 // Watch for payment method changes
 watch(paymentMethod, (newMethod) => {
-  form.setFieldValue('payment.provider', newMethod)
+  initialValues.value.payment.provider = newMethod
+  formKey.value++
 })
 
 // Watch for applied coupon changes and update form
@@ -254,26 +238,26 @@ watch(
   () => appliedCoupon.value,
   (newCoupon) => {
     if (newCoupon) {
-      form.setFieldValue('coupon', newCoupon.code)
+      initialValues.value.coupon = newCoupon.code
     } else {
-      form.setFieldValue('coupon', null)
+      initialValues.value.coupon = null
     }
+    formKey.value++
   },
 )
 
 // Fill form with address data
 function fillFormWithAddress(address: Address) {
-  form.setValues({
-    address: {
-      id: address.id,
-      name: address.name,
-      email: address.email,
-      street: address.street,
-      city: address.city,
-      country: address.country,
-      phone: address.phone,
-    },
-  })
+  initialValues.value.address = {
+    id: address.id,
+    name: address.name,
+    email: address.email,
+    street: address.street,
+    city: address.city,
+    country: address.country,
+    phone: address.phone,
+  }
+  formKey.value++
 }
 
 // Handle address selection
@@ -291,16 +275,18 @@ const handleRemoveCoupon = () => {
   removeCoupon()
 }
 
-const onSubmit = form.handleSubmit(async (values) => {
+const onFormSubmit = async ({ valid, values }: FormSubmitEvent) => {
+  if (!valid) return
+
   if (!authStore.isAuthenticated) {
     openAuthModal('login', () => {
-      proceedWithOrder(values)
+      proceedWithOrder(values as CreateOrderInput)
     })
     return
   }
 
-  proceedWithOrder(values)
-})
+  proceedWithOrder(values as CreateOrderInput)
+}
 
 const proceedWithOrder = async (values: CreateOrderInput) => {
   try {
@@ -368,58 +354,64 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
   >
     <!-- Left Column - Forms -->
     <div class="space-y-6 lg:col-span-2">
-      <form @submit="onSubmit">
+      <Form
+        v-slot="$form"
+        :key="formKey"
+        :initialValues="initialValues"
+        :resolver="resolver"
+        @submit="onFormSubmit"
+      >
         <!-- Contact Information -->
         <div class="mb-6 rounded border p-6">
           <h2 class="mb-6 text-xl font-semibold">Contact Information</h2>
 
           <div class="space-y-4">
-            <FormField
-              v-slot="{ componentField }"
-              name="address.name"
-            >
-              <FormItem>
-                <FormControl>
-                  <CustomInput
-                    label="Full Name *"
-                    type="text"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomInput
+                name="address.name"
+                label="Full Name *"
+                type="text"
+              />
+              <Message
+                v-if="$form['address.name']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.name'].error?.message }}
+              </Message>
+            </div>
 
-            <FormField
-              v-slot="{ componentField }"
-              name="address.email"
-            >
-              <FormItem>
-                <FormControl>
-                  <CustomInput
-                    label="Email Address *"
-                    type="email"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomInput
+                name="address.email"
+                label="Email Address *"
+                type="email"
+              />
+              <Message
+                v-if="$form['address.email']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.email'].error?.message }}
+              </Message>
+            </div>
 
-            <FormField
-              v-slot="{ componentField }"
-              name="address.phone"
-            >
-              <FormItem>
-                <FormControl>
-                  <CustomPhoneInput
-                    label="Phone Number *"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomPhoneInput
+                name="address.phone"
+                label="Phone Number *"
+              />
+              <Message
+                v-if="$form['address.phone']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.phone'].error?.message }}
+              </Message>
+            </div>
           </div>
         </div>
 
@@ -513,69 +505,60 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
 
           <!-- Address Form Fields -->
           <div class="space-y-4">
-            <FormField
-              v-slot="{ componentField }"
-              name="address.street"
-            >
-              <FormItem>
-                <FormControl>
-                  <CustomInput
-                    label="Street Address *"
-                    type="text"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomInput
+                name="address.street"
+                label="Street Address *"
+                type="text"
+              />
+              <Message
+                v-if="$form['address.street']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.street'].error?.message }}
+              </Message>
+            </div>
 
-            <FormField
-              v-slot="{ componentField, value }"
-              name="address.country"
-            >
-              <FormItem>
-                <Label class="text-xs text-gray-500 uppercase">Country *</Label>
-                <FormControl>
-                  <Select v-bind="componentField">
-                    <SelectTrigger class="w-full">
-                      <span v-if="value">{{ value }}</span>
-                      <span
-                        v-else
-                        class="text-muted-foreground"
-                      >
-                        Select a country
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="country in getAllCountries()"
-                        :key="country.name"
-                        :value="country.name"
-                      >
-                        {{ country.name }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomSelect
+                name="address.country"
+                label="Country *"
+                :options="
+                  getAllCountries().map((country) => ({
+                    label: country.name,
+                    value: country.name,
+                  }))
+                "
+                search-placeholder="Search country..."
+                placeholder="Select a country"
+              />
+              <Message
+                v-if="$form['address.country']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.country'].error?.message }}
+              </Message>
+            </div>
 
-            <FormField
-              v-slot="{ componentField }"
-              name="address.city"
-            >
-              <FormItem>
-                <FormControl>
-                  <CustomInput
-                    label="Town / City *"
-                    type="text"
-                    v-bind="componentField"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
+            <div class="flex flex-col gap-1">
+              <CustomInput
+                name="address.city"
+                label="Town / City *"
+                type="text"
+              />
+              <Message
+                v-if="$form['address.city']?.invalid"
+                severity="error"
+                size="small"
+                variant="simple"
+              >
+                {{ $form['address.city'].error?.message }}
+              </Message>
+            </div>
           </div>
         </div>
 
@@ -586,11 +569,7 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
             Shipping Method
           </h2>
 
-          <RadioGroup
-            :model-value="selectedShippingId"
-            @update:model-value="changeShippingOption"
-            class="space-y-3"
-          >
+          <div class="space-y-3">
             <div
               v-for="option in shippingOptions"
               :key="option.id"
@@ -602,16 +581,19 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
               @click="changeShippingOption(option.id)"
             >
               <div class="flex items-center gap-3">
-                <RadioGroupItem
+                <RadioButton
+                  :inputId="option.id"
+                  name="shipping"
                   :value="option.id"
-                  :id="option.id"
+                  :modelValue="selectedShippingId"
+                  @update:modelValue="changeShippingOption"
                 />
-                <Label
+                <label
                   :for="option.id"
                   class="cursor-pointer font-normal"
                 >
                   {{ option.label }}
-                </Label>
+                </label>
               </div>
               <span class="text-sm font-medium">
                 {{
@@ -623,7 +605,7 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
                 }}
               </span>
             </div>
-          </RadioGroup>
+          </div>
 
           <p class="mt-3 text-xs text-gray-500">
             Note: Shipping cost is not affected by coupon discounts.
@@ -634,13 +616,7 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
         <div class="mb-6 rounded border p-6">
           <h2 class="mb-6 text-xl font-semibold">Payment method</h2>
 
-          <RadioGroup
-            :model-value="paymentMethod"
-            @update:model-value="
-              (value) => (paymentMethod = value as PaymentProvider)
-            "
-            class="space-y-3"
-          >
+          <div class="space-y-3">
             <div
               class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
               :class="{
@@ -652,16 +628,18 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
               @click="paymentMethod = PaymentProvider.STRIPE"
             >
               <div class="flex items-center gap-3">
-                <RadioGroupItem
+                <RadioButton
+                  :inputId="'stripe'"
+                  name="payment"
                   :value="PaymentProvider.STRIPE"
-                  id="stripe"
+                  v-model="paymentMethod"
                 />
-                <Label
+                <label
                   for="stripe"
                   class="cursor-pointer font-normal"
                 >
                   Pay by Card Credit
-                </Label>
+                </label>
               </div>
               <CreditCardIcon class="h-5 w-5 text-gray-400" />
             </div>
@@ -677,19 +655,21 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
               @click="paymentMethod = PaymentProvider.PAYPAL"
             >
               <div class="flex items-center gap-3">
-                <RadioGroupItem
+                <RadioButton
+                  :inputId="'paypal'"
+                  name="payment"
                   :value="PaymentProvider.PAYPAL"
-                  id="paypal"
+                  v-model="paymentMethod"
                 />
-                <Label
+                <label
                   for="paypal"
                   class="cursor-pointer font-normal"
                 >
                   Paypal
-                </Label>
+                </label>
               </div>
             </div>
-          </RadioGroup>
+          </div>
 
           <!-- Card Details (shown when Stripe is selected) -->
           <div
@@ -721,11 +701,12 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
         <LoadingButton
           type="submit"
           :loading="isCreatingOrder"
+          :disabled="isCreatingOrder"
           class="h-14 w-full text-base"
         >
           Place Order
         </LoadingButton>
-      </form>
+      </Form>
     </div>
 
     <!-- Right Column - Order Summary -->

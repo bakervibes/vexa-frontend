@@ -6,9 +6,9 @@ import {
   SearchIcon,
   XIcon,
 } from 'lucide-vue-next'
+import Button from 'primevue/button'
 import { onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { Button } from '../ui/button'
 import FlyoutCart from '../views/cart/FlyoutCart.vue'
 import UserProfileDropdown from './UserProfileDropdown.vue'
 
@@ -255,20 +255,20 @@ const onLeaveMobile = (el: Element) => {
 
         <div class="flex shrink-0 items-center gap-2">
           <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            class="hover:bg-transparent"
+            text
+            plain
+            aria-label="Search"
+            class="!p-2"
           >
             <SearchIcon class="size-5 cursor-pointer" />
           </Button>
 
           <RouterLink to="/wishlist">
             <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              class="hover:bg-transparent"
+              text
+              plain
+              aria-label="Wishlist"
+              class="!p-2"
             >
               <HeartIcon class="size-5 cursor-pointer" />
             </Button>

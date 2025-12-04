@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { Loader2Icon } from 'lucide-vue-next'
-import type { PrimitiveProps } from 'reka-ui'
+import Button from 'primevue/button'
 import type { HTMLAttributes } from 'vue'
-import type { ButtonVariants } from '../ui/button'
-import { Button } from '../ui/button'
 
-interface ButtonProps extends PrimitiveProps {
-  variant?: ButtonVariants['variant']
-  size?: ButtonVariants['size']
+interface ButtonProps {
+  severity?:
+    | 'primary'
+    | 'secondary'
+    | 'success'
+    | 'info'
+    | 'warn'
+    | 'danger'
+    | 'contrast'
+  size?: 'small' | 'large'
+  text?: boolean
+  outlined?: boolean
   class?: HTMLAttributes['class']
 }
 
@@ -18,14 +25,17 @@ interface ExtraProps {
 
 const props = withDefaults(defineProps<ButtonProps & ExtraProps>(), {
   loading: false,
-  as: 'button',
 })
 </script>
 
 <template>
   <Button
-    v-bind="props"
     :disabled="props.disabled || props.loading"
+    :severity="props.severity"
+    :size="props.size"
+    :text="props.text"
+    :outlined="props.outlined"
+    :class="props.class"
     class="relative"
   >
     <!-- Le slot reste, mais devient invisible en loading -->

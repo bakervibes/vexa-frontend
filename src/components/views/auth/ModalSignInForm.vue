@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
 import { useAuthStore } from '@/stores/auth'
 import { loginBodySchema } from '@/validators/auth.validator'
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
-import { watch } from 'vue'
+import { Form } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import Checkbox from 'primevue/checkbox'
+import Message from 'primevue/message'
+import { ref } from 'vue'
 
 const emit = defineEmits<{
   (e: 'switch-to-register'): void
@@ -19,29 +15,33 @@ const emit = defineEmits<{
 }>()
 
 const authStore = useAuthStore()
+const rememberMe = ref(false)
 
-const form = useForm({
-  validationSchema: toTypedSchema(loginBodySchema),
-  initialValues: {
-    email: '',
-    password: '',
-  },
-})
+const initialValues = {
+  email: '',
+  password: '',
+}
 
-// Réinitialiser l'erreur quand l'utilisateur tape
-watch(form.values, () => {
-  if (authStore.error) {
-    authStore.error = null
-  }
-})
+const resolver = zodResolver(loginBodySchema)
 
-const onSubmit = form.handleSubmit(async (values) => {
+const onFormSubmit = async ({
+  valid,
+  values,
+}: {
+  valid: boolean
+  values: typeof initialValues
+}) => {
+  if (!valid) return
+
+  // Réinitialiser l'erreur
+  authStore.error = null
+
   const result = await authStore.login(values)
 
   if (result.success) {
     emit('success')
   }
-})
+}
 </script>
 
 <template>
@@ -61,12 +61,13 @@ const onSubmit = form.handleSubmit(async (values) => {
         <h2 class="text-3xl font-bold">Sign in</h2>
 
         <!-- Error Message -->
-        <div
+        <Message
           v-if="authStore.error"
-          class="rounded-lg bg-red-50 p-3 text-sm text-red-600"
+          severity="error"
+          :closable="false"
         >
           {{ authStore.error }}
-        </div>
+        </Message>
 
         <p class="mt-2 text-gray-600">
           Don't have an account?
@@ -79,50 +80,53 @@ const onSubmit = form.handleSubmit(async (values) => {
           </button>
         </p>
 
-        <form
-          @submit="onSubmit"
+        <Form
+          v-slot="$form"
+          :initialValues="initialValues"
+          :resolver="resolver"
+          @submit="onFormSubmit"
           class="space-y-4"
         >
           <!-- Email Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="email"
-          >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Email address"
-                  type="text"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <CustomInput
+              name="email"
+              label="Email address"
+              type="text"
+            />
+            <Message
+              v-if="$form.email?.invalid"
+              severity="error"
+              size="small"
+              variant="simple"
+            >
+              {{ $form.email.error?.message }}
+            </Message>
+          </div>
 
           <!-- Password Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="password"
-          >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Password"
-                  type="password"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <CustomInput
+              name="password"
+              label="Password"
+              type="password"
+            />
+            <Message
+              v-if="$form.password?.invalid"
+              severity="error"
+              size="small"
+              variant="simple"
+            >
+              {{ $form.password.error?.message }}
+            </Message>
+          </div>
 
           <!-- Options -->
           <div class="flex items-center justify-between">
-            <label class="flex items-center">
-              <input
-                type="checkbox"
-                class="mr-2 h-4 w-4 rounded border-gray-300"
+            <label class="flex items-center gap-2">
+              <Checkbox
+                v-model="rememberMe"
+                :binary="true"
               />
               <span class="text-sm text-gray-600">Remember me</span>
             </label>
@@ -137,13 +141,14 @@ const onSubmit = form.handleSubmit(async (values) => {
 
           <!-- Submit Button -->
           <LoadingButton
+            type="submit"
             :disabled="authStore.isLoading"
             :loading="authStore.isLoading"
             class="h-12 w-full"
           >
             Sign in
           </LoadingButton>
-        </form>
+        </Form>
       </div>
     </div>
   </div>

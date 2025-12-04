@@ -1,18 +1,5 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useCarts, useCartsMutation } from '@/composables/useCarts'
 import { useCoupons } from '@/composables/useCoupons'
 import { formatPrice } from '@/utils/lib'
@@ -25,6 +12,12 @@ import {
   Trash2Icon,
   XIcon,
 } from 'lucide-vue-next'
+import Button from 'primevue/button'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import InputText from 'primevue/inputtext'
+import RadioButton from 'primevue/radiobutton'
+import Skeleton from 'primevue/skeleton'
 import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
@@ -276,13 +269,29 @@ const handleApplyCoupon = () => {
       :key="i"
       class="flex items-center gap-4"
     >
-      <Skeleton class="h-24 w-24 rounded-md" />
+      <Skeleton
+        width="6rem"
+        height="6rem"
+        class="rounded-md"
+      />
       <div class="flex-1 space-y-2">
-        <Skeleton class="h-4 w-3/4" />
-        <Skeleton class="h-3 w-1/2" />
+        <Skeleton
+          width="75%"
+          height="1rem"
+        />
+        <Skeleton
+          width="50%"
+          height="0.75rem"
+        />
         <div class="flex items-center justify-between pt-2">
-          <Skeleton class="h-8 w-24" />
-          <Skeleton class="h-4 w-16" />
+          <Skeleton
+            width="6rem"
+            height="2rem"
+          />
+          <Skeleton
+            width="4rem"
+            height="1rem"
+          />
         </div>
       </div>
     </div>
@@ -302,7 +311,7 @@ const handleApplyCoupon = () => {
     </div>
     <RouterLink to="/shop">
       <Button
-        variant="outline"
+        outlined
         class="mt-4"
       >
         Continue shopping
@@ -320,14 +329,14 @@ const handleApplyCoupon = () => {
       <div class="flex items-center justify-between">
         <h1 class="flex items-center gap-1">
           <span class="text-2xl font-bold">My cart</span>
-          <span class="text-muted-foreground text-xl font-medium">
+          <span class="text-xl font-medium text-gray-500">
             ({{ items.length }})
           </span>
         </h1>
 
         <div class="flex items-center gap-2">
           <RouterLink to="/shop">
-            <Button variant="link">
+            <Button link>
               <ArrowLeftIcon class="h-4 w-4" />
               <span class="block text-sm sm:hidden">Shop</span>
               <span class="hidden sm:block">Continue shopping</span>
@@ -337,8 +346,8 @@ const handleApplyCoupon = () => {
           <LoadingButton
             :loading="isClearingCart"
             :disabled="isClearingCart"
-            variant="destructive"
-            size="lg"
+            severity="danger"
+            size="large"
             @click="clearCart(items.map((item) => item.product.slug))"
           >
             <Trash2Icon class="h-4 w-4" />
@@ -350,133 +359,181 @@ const handleApplyCoupon = () => {
 
       <!-- Desktop Table -->
       <div class="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="w-[45%]">Product</TableHead>
-              <TableHead class="text-center">Quantity</TableHead>
-              <TableHead class="text-center">Price</TableHead>
-              <TableHead class="text-right">Subtotal</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow
-              v-for="item in items"
-              :key="item.id"
-            >
-              <TableCell class="py-6">
-                <div class="flex items-center gap-4">
-                  <RouterLink
-                    :to="`/products/${item.product.slug}`"
-                    class="flex items-center gap-4"
+        <DataTable :value="items">
+          <Column
+            header="Product"
+            style="width: 45%"
+          >
+            <template #body="slotProps">
+              <div class="flex items-center gap-4 py-3">
+                <RouterLink
+                  :to="`/products/${slotProps.data.product.slug}`"
+                  class="flex items-center gap-4"
+                >
+                  <div
+                    class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100"
                   >
-                    <div
-                      class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100"
-                    >
-                      <img
-                        :src="item.product.images[0]"
-                        :alt="item.product.name"
-                        class="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div class="font-medium">{{ item.product.name }}</div>
-                      <div
-                        v-if="item.variant"
-                        class="flex flex-col text-sm text-gray-500"
-                      >
-                        <span
-                          v-for="option in item.variant.productVariantOptions"
-                          :key="option.id"
-                        >
-                          {{ option.option.attribute.name }}:
-                          {{ option.option.name }}
-                        </span>
-                      </div>
-                      <button
-                        @click.prevent="
-                          handleRemoveItem(
-                            item.productId,
-                            item.variantId,
-                            item.product.slug,
-                          )
-                        "
-                        :disabled="
-                          isItemRemoving(item.productId, item.variantId)
-                        "
-                        class="hover:text-destructive mt-1 flex w-fit cursor-pointer items-center gap-1 text-sm text-gray-500"
-                      >
-                        <XIcon class="h-4 w-4" />
-                        Remove
-                      </button>
-                    </div>
-                  </RouterLink>
-                </div>
-              </TableCell>
-              <TableCell class="py-6">
-                <div class="flex items-center justify-center">
-                  <div class="flex items-center rounded border">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8 rounded-none rounded-l"
-                      @click="
-                        handleQuantityChange(
-                          item.productId,
-                          getDisplayQuantity(item.productId, item.variantId) -
-                            1,
-                          item.variantId,
-                          item.product.slug,
-                        )
-                      "
-                      :disabled="
-                        getDisplayQuantity(item.productId, item.variantId) <=
-                          1 ||
-                        isItemDisabled(item.productId, item.variantId) ||
-                        isItemUpdating(item.productId, item.variantId) ||
-                        isItemRemoving(item.productId, item.variantId)
-                      "
-                    >
-                      <MinusIcon class="h-4 w-4" />
-                    </Button>
-                    <span class="w-10 text-center text-sm">
-                      {{ getDisplayQuantity(item.productId, item.variantId) }}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8 rounded-none rounded-r"
-                      @click="
-                        handleQuantityChange(
-                          item.productId,
-                          getDisplayQuantity(item.productId, item.variantId) +
-                            1,
-                          item.variantId,
-                          item.product.slug,
-                        )
-                      "
-                      :disabled="
-                        getDisplayQuantity(item.productId, item.variantId) >=
-                          getMaxQuantity(item.productId, item.variantId) ||
-                        isItemDisabled(item.productId, item.variantId) ||
-                        isItemUpdating(item.productId, item.variantId) ||
-                        isItemRemoving(item.productId, item.variantId)
-                      "
-                    >
-                      <PlusIcon class="h-4 w-4" />
-                    </Button>
+                    <img
+                      :src="slotProps.data.product.images[0]"
+                      :alt="slotProps.data.product.name"
+                      class="h-full w-full object-cover"
+                    />
                   </div>
+                  <div>
+                    <div class="font-medium">
+                      {{ slotProps.data.product.name }}
+                    </div>
+                    <div
+                      v-if="slotProps.data.variant"
+                      class="flex flex-col text-sm text-gray-500"
+                    >
+                      <span
+                        v-for="option in slotProps.data.variant
+                          .productVariantOptions"
+                        :key="option.id"
+                      >
+                        {{ option.option.attribute.name }}:
+                        {{ option.option.name }}
+                      </span>
+                    </div>
+                    <button
+                      @click.prevent="
+                        handleRemoveItem(
+                          slotProps.data.productId,
+                          slotProps.data.variantId,
+                          slotProps.data.product.slug,
+                        )
+                      "
+                      :disabled="
+                        isItemRemoving(
+                          slotProps.data.productId,
+                          slotProps.data.variantId,
+                        )
+                      "
+                      class="mt-1 flex w-fit cursor-pointer items-center gap-1 text-sm text-gray-500 hover:text-red-500"
+                    >
+                      <XIcon class="h-4 w-4" />
+                      Remove
+                    </button>
+                  </div>
+                </RouterLink>
+              </div>
+            </template>
+          </Column>
+          <Column
+            header="Quantity"
+            class="text-center"
+          >
+            <template #body="slotProps">
+              <div class="flex items-center justify-center">
+                <div class="flex items-center rounded border">
+                  <Button
+                    text
+                    size="small"
+                    class="!h-8 !w-8 rounded-none rounded-l"
+                    @click="
+                      handleQuantityChange(
+                        slotProps.data.productId,
+                        getDisplayQuantity(
+                          slotProps.data.productId,
+                          slotProps.data.variantId,
+                        ) - 1,
+                        slotProps.data.variantId,
+                        slotProps.data.product.slug,
+                      )
+                    "
+                    :disabled="
+                      getDisplayQuantity(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) <= 1 ||
+                      isItemDisabled(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) ||
+                      isItemUpdating(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) ||
+                      isItemRemoving(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      )
+                    "
+                  >
+                    <MinusIcon class="h-4 w-4" />
+                  </Button>
+                  <span class="w-10 text-center text-sm">
+                    {{
+                      getDisplayQuantity(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      )
+                    }}
+                  </span>
+                  <Button
+                    text
+                    size="small"
+                    class="!h-8 !w-8 rounded-none rounded-r"
+                    @click="
+                      handleQuantityChange(
+                        slotProps.data.productId,
+                        getDisplayQuantity(
+                          slotProps.data.productId,
+                          slotProps.data.variantId,
+                        ) + 1,
+                        slotProps.data.variantId,
+                        slotProps.data.product.slug,
+                      )
+                    "
+                    :disabled="
+                      getDisplayQuantity(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) >=
+                        getMaxQuantity(
+                          slotProps.data.productId,
+                          slotProps.data.variantId,
+                        ) ||
+                      isItemDisabled(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) ||
+                      isItemUpdating(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      ) ||
+                      isItemRemoving(
+                        slotProps.data.productId,
+                        slotProps.data.variantId,
+                      )
+                    "
+                  >
+                    <PlusIcon class="h-4 w-4" />
+                  </Button>
                 </div>
-              </TableCell>
-              <TableCell class="py-6 text-center">
-                {{ formatPrice(getItemPrice(item)) }}
-              </TableCell>
-              <TableCell class="py-6 text-right font-medium">
-                {{ formatPrice(getItemSubtotal(item)) }}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+              </div>
+            </template>
+          </Column>
+          <Column
+            header="Price"
+            class="text-center"
+          >
+            <template #body="slotProps">
+              {{ formatPrice(getItemPrice(slotProps.data)) }}
+            </template>
+          </Column>
+          <Column
+            header="Subtotal"
+            class="text-right"
+          >
+            <template #body="slotProps">
+              <span class="font-medium">
+                {{ formatPrice(getItemSubtotal(slotProps.data)) }}
+              </span>
+            </template>
+          </Column>
+        </DataTable>
       </div>
 
       <!-- Mobile View -->
@@ -510,9 +567,9 @@ const handleApplyCoupon = () => {
             <div class="flex items-center justify-between">
               <div class="flex items-center rounded border">
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 rounded-none rounded-l"
+                  text
+                  size="small"
+                  class="!h-8 !w-8 rounded-none rounded-l"
                   @click="
                     handleQuantityChange(
                       item.productId,
@@ -532,9 +589,9 @@ const handleApplyCoupon = () => {
                   {{ getDisplayQuantity(item.productId, item.variantId) }}
                 </span>
                 <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 rounded-none rounded-r"
+                  text
+                  size="small"
+                  class="!h-8 !w-8 rounded-none rounded-r"
                   @click="
                     handleQuantityChange(
                       item.productId,
@@ -565,7 +622,7 @@ const handleApplyCoupon = () => {
                 )
               "
               :disabled="isItemRemoving(item.productId, item.variantId)"
-              class="hover:text-destructive flex w-fit cursor-pointer items-center gap-1 text-sm text-gray-500"
+              class="flex w-fit cursor-pointer items-center gap-1 text-sm text-gray-500 hover:text-red-500"
             >
               <XIcon class="h-4 w-4" />
               Remove
@@ -581,10 +638,7 @@ const handleApplyCoupon = () => {
         <h3 class="mb-6 text-xl font-semibold">Cart summary</h3>
 
         <!-- Shipping Options -->
-        <RadioGroup
-          v-model="selectedShippingId"
-          class="space-y-3"
-        >
+        <div class="space-y-3">
           <div
             v-for="option in shippingOptions"
             :key="option.id"
@@ -595,17 +649,17 @@ const handleApplyCoupon = () => {
             @click="selectedShippingId = option.id"
           >
             <div class="flex items-center gap-3">
-              <RadioGroupItem
+              <RadioButton
+                v-model="selectedShippingId"
                 :value="option.id"
-                :id="option.id"
-                class="cursor-pointer"
+                :inputId="option.id"
               />
-              <Label
+              <label
                 :for="option.id"
                 class="cursor-pointer font-normal"
               >
                 {{ option.label }}
-              </Label>
+              </label>
             </div>
             <span class="text-sm font-medium">
               {{
@@ -617,7 +671,7 @@ const handleApplyCoupon = () => {
               }}
             </span>
           </div>
-        </RadioGroup>
+        </div>
 
         <!-- Coupon Section -->
         <div class="mt-8 border-t pt-8">
@@ -658,10 +712,10 @@ const handleApplyCoupon = () => {
             class="flex max-w-md gap-2"
           >
             <div class="relative flex-1">
-              <Input
+              <InputText
                 v-model="couponCode"
                 placeholder="Coupon Code"
-                class="h-10 pl-10 uppercase"
+                class="h-10 w-full pl-10 uppercase"
                 :disabled="isApplyingCoupon"
                 @keyup.enter="handleApplyCoupon"
               />

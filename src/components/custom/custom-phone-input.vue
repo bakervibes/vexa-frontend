@@ -5,20 +5,10 @@ import {
   getCountryCallingCode,
   type CountryCode,
 } from 'libphonenumber-js'
-import { Check, ChevronDownIcon } from 'lucide-vue-next'
+import Select from 'primevue/select'
 import fr from 'react-phone-number-input/locale/fr.json'
 import { computed, ref, watch } from 'vue'
-import { Button } from '../ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '../ui/command'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import FlatComponent from './FlatComponent.vue'
+import FlagComponent from './FlagComponent.vue'
 
 interface Props {
   id?: string
@@ -44,7 +34,6 @@ const emits = defineEmits<{
   input: [e: Event]
 }>()
 
-const openCountry = ref(false)
 const selectedCountry = ref<CountryCode>(props.defaultCountry)
 const internalValue = ref('')
 
@@ -173,9 +162,9 @@ const handleChange = (e: Event) => {
 }
 
 // Sélection d'un pays
-const handleCountrySelect = (countryCode: CountryCode) => {
+const handleCountrySelect = (event: any) => {
+  const countryCode = event.value as CountryCode
   selectedCountry.value = countryCode
-  openCountry.value = false
   const newValue = `+${getCountryCallingCode(countryCode)}`
   internalValue.value = newValue
   emits('update:modelValue', newValue)
@@ -185,69 +174,46 @@ const handleCountrySelect = (countryCode: CountryCode) => {
 <template>
   <div class="relative flex w-full items-end gap-2 border-b border-gray-300">
     <!-- Country Selector -->
-    <Popover
-      v-model:open="openCountry"
-      :modal="false"
+    <Select
+      v-model="selectedCountry"
+      :options="countries"
+      optionLabel="label"
+      optionValue="value"
+      filter
+      :disabled="disabled"
+      placeholder="Sélectionner un pays"
+      @change="handleCountrySelect"
+      class="shrink-0 !border-none"
+      panelClass="w-80"
     >
-      <PopoverTrigger as-child>
-        <Button
-          type="button"
-          variant="ghost"
-          role="combobox"
-          :aria-expanded="openCountry"
-          :disabled="disabled"
-          class="flex shrink-0 gap-1.5 px-0 hover:bg-transparent focus:ring-0"
+      <template #value="slotProps">
+        <div
+          v-if="slotProps.value"
+          class="flex items-center gap-1.5"
         >
-          <span
-            class="flex h-5 w-7 overflow-hidden rounded [&_svg:not([class*='size-'])]:size-full"
-          >
-            <FlatComponent
-              :country="selectedCountry"
-              :title="selectedCountryData?.label || selectedCountry"
+          <span class="flex h-5 w-7 overflow-hidden rounded">
+            <FlagComponent
+              :country="slotProps.value"
+              :title="selectedCountryData?.label || slotProps.value"
             />
           </span>
-          <ChevronDownIcon class="-mr-1 size-4 text-gray-400" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent class="w-80 p-0">
-        <Command>
-          <CommandInput placeholder="Rechercher un pays..." />
-          <CommandList class="max-h-60">
-            <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
-            <CommandGroup>
-              <CommandItem
-                v-for="country in countries"
-                :key="country.value"
-                :value="`${country.label} ${country.indicatif}`"
-                @select="handleCountrySelect(country.value)"
-                class="flex cursor-pointer items-center gap-2"
-              >
-                <span
-                  class="flex h-5 w-7 overflow-hidden rounded [&_svg:not([class*='size-'])]:size-full"
-                >
-                  <FlatComponent
-                    :country="country.value"
-                    :title="country.label"
-                  />
-                </span>
-                <span class="flex-1 text-sm">{{ country.label }}</span>
-                <span class="text-foreground/50 text-sm">
-                  {{ country.indicatif }}
-                </span>
-                <Check
-                  :class="[
-                    'ml-auto size-4',
-                    selectedCountry === country.value
-                      ? 'opacity-100'
-                      : 'opacity-0',
-                  ]"
-                />
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+        </div>
+      </template>
+      <template #option="slotProps">
+        <div class="flex items-center gap-2">
+          <span class="flex h-5 w-7 overflow-hidden rounded">
+            <FlagComponent
+              :country="slotProps.option.value"
+              :title="slotProps.option.label"
+            />
+          </span>
+          <span class="flex-1 text-sm">{{ slotProps.option.label }}</span>
+          <span class="text-sm text-gray-500">
+            {{ slotProps.option.indicatif }}
+          </span>
+        </div>
+      </template>
+    </Select>
 
     <!-- Input with floating label -->
     <div class="flex-1">

@@ -1,13 +1,5 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { Textarea } from '@/components/ui/textarea'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useReviewsMutation } from '@/composables/useReviews'
 import { useAuthStore } from '@/stores/auth'
@@ -16,9 +8,12 @@ import {
   addReviewSchema,
   updateReviewSchema,
 } from '@/validators/reviews.validator'
-import { toTypedSchema } from '@vee-validate/zod'
+import { Form, type FormSubmitEvent } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { Star, X } from 'lucide-vue-next'
-import { useForm } from 'vee-validate'
+import Button from 'primevue/button'
+import Message from 'primevue/message'
+import Textarea from 'primevue/textarea'
 import { computed } from 'vue'
 
 interface Props {
@@ -41,21 +36,18 @@ const { addReview, updateReview, isAddingReview, isUpdatingReview } =
 const authStore = useAuthStore()
 const { openAuthModal } = useAuthModal()
 
-const validationSchema = computed(() => {
+const resolver = computed(() => {
   if (props.review) {
-    return toTypedSchema(updateReviewSchema)
+    return zodResolver(updateReviewSchema)
   }
-  return toTypedSchema(addReviewSchema)
+  return zodResolver(addReviewSchema)
 })
 
-const form = useForm({
-  validationSchema: validationSchema.value,
-  initialValues: {
-    comment: props.review?.comment ?? '',
-    rating: props.review?.rating ?? 0,
-    ...(props.product.id && { productId: props.product.id }),
-  },
-})
+const initialValues = {
+  comment: props.review?.comment ?? '',
+  rating: props.review?.rating ?? 0,
+  ...(props.product.id && { productId: props.product.id }),
+}
 
 const submitReview = async (values: any) => {
   try {
@@ -78,14 +70,15 @@ const submitReview = async (values: any) => {
         slug: props.product.slug,
       })
     }
-    form.resetForm()
     emit('success')
   } catch (error) {
     console.error('Error submitting review:', error)
   }
 }
 
-const onSubmit = form.handleSubmit(async (values) => {
+const onFormSubmit = async ({ valid, values }: FormSubmitEvent) => {
+  if (!valid) return
+
   if (!authStore.isAuthenticated) {
     openAuthModal('login', () => {
       submitReview(values)
@@ -93,74 +86,75 @@ const onSubmit = form.handleSubmit(async (values) => {
     return
   }
   await submitReview(values)
-})
+}
 
 const handleCancel = () => {
-  form.resetForm()
   emit('cancel')
 }
 </script>
 
 <template>
-  <form
-    @submit="onSubmit"
+  <Form
+    v-slot="$form"
+    :initialValues="initialValues"
+    :resolver="resolver"
+    @submit="onFormSubmit"
     class="space-y-4"
   >
     <div class="flex items-center justify-between">
-      <FormField
-        v-slot="{ componentField }"
-        name="rating"
-      >
-        <FormItem>
-          <FormControl>
-            <div class="flex gap-1">
-              <button
-                v-for="i in 5"
-                :key="i"
-                type="button"
-                @click="componentField.onChange(i)"
-                class="size-6 cursor-pointer"
-              >
-                <Star
-                  :class="[
-                    'size-6 text-yellow-500',
-                    i <= componentField.modelValue && 'fill-yellow-500',
-                  ]"
-                />
-              </button>
-            </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <div class="flex gap-1">
+          <button
+            v-for="i in 5"
+            :key="i"
+            type="button"
+            @click="$form.rating = i"
+            class="size-6 cursor-pointer"
+          >
+            <Star
+              :class="[
+                'size-6 text-yellow-500',
+                i <= $form.rating && 'fill-yellow-500',
+              ]"
+            />
+          </button>
+        </div>
+        <Message
+          v-if="$form.rating?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.rating.error?.message }}
+        </Message>
+      </div>
 
       <Button
         v-if="review"
-        size="icon"
+        text
         type="button"
-        variant="ghost"
         @click="handleCancel"
-        class="m-0 h-auto w-auto p-0 hover:bg-transparent"
+        class="m-0 h-auto w-auto p-0"
       >
         <X class="size-4" />
       </Button>
     </div>
 
-    <FormField
-      v-slot="{ componentField }"
-      name="comment"
-    >
-      <FormItem>
-        <FormControl>
-          <Textarea
-            :rows="4"
-            placeholder="Contenu de votre avis..."
-            v-bind="componentField"
-          />
-        </FormControl>
-        <FormMessage />
-      </FormItem>
-    </FormField>
+    <div class="flex flex-col gap-1">
+      <Textarea
+        name="comment"
+        :rows="4"
+        placeholder="Contenu de votre avis..."
+      />
+      <Message
+        v-if="$form.comment?.invalid"
+        severity="error"
+        size="small"
+        variant="simple"
+      >
+        {{ $form.comment.error?.message }}
+      </Message>
+    </div>
 
     <LoadingButton
       :loading="isAddingReview || isUpdatingReview"
@@ -169,5 +163,5 @@ const handleCancel = () => {
     >
       Envoyer
     </LoadingButton>
-  </form>
+  </Form>
 </template>

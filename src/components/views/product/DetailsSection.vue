@@ -1,13 +1,6 @@
 <script setup lang="ts">
 import CustomBreadcrumb from '@/components/custom/custom-breadcrumb.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel'
 import { useCartsMutation } from '@/composables/useCarts'
 import { useProduct } from '@/composables/useProducts'
 import { useProductReviews } from '@/composables/useReviews'
@@ -15,6 +8,7 @@ import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
 import type { ProductVariantWithDetails } from '@/types/products'
 import { formatPrice } from '@/utils/lib'
 import { Heart, Minus, Plus } from 'lucide-vue-next'
+import Carousel from 'primevue/carousel'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -449,6 +443,25 @@ onUnmounted(() => {
 })
 
 const showReviewForm = ref(false)
+
+// Carousel responsiveOptions
+const responsiveOptions = ref([
+  {
+    breakpoint: '1024px',
+    numVisible: 3,
+    numScroll: 1,
+  },
+  {
+    breakpoint: '768px',
+    numVisible: 2,
+    numScroll: 1,
+  },
+  {
+    breakpoint: '560px',
+    numVisible: 1,
+    numScroll: 1,
+  },
+])
 </script>
 
 <template>
@@ -509,66 +522,55 @@ const showReviewForm = ref(false)
         <!-- Carousel for Modal and Mobile -->
         <div :class="[isModal ? 'block' : 'block lg:hidden']">
           <Carousel
-            :opts="{
-              align: 'start',
-              slidesToScroll: 1,
-              watchDrag: false,
-            }"
+            :value="product.images"
+            :numVisible="1"
+            :numScroll="1"
+            :responsiveOptions="responsiveOptions"
           >
-            <CarouselPrevious />
-
-            <CarouselContent>
-              <CarouselItem
-                v-for="(img, index) in product.images"
-                :key="index"
-                class="sm:basis-1/2 lg:basis-1/3"
+            <template #item="slotProps">
+              <div
+                class="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
               >
+                <!-- Badges -->
                 <div
-                  class="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
+                  class="absolute top-3 left-3 z-10 flex flex-col items-stretch gap-2"
                 >
-                  <!-- Badges -->
-                  <div
-                    class="absolute top-3 left-3 z-10 flex flex-col items-stretch gap-2"
+                  <span
+                    class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
                   >
-                    <span
-                      class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
-                    >
-                      NEW
-                    </span>
-                    <span
-                      v-if="discount !== 0"
-                      class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
-                      :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
-                    >
-                      {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
-                    </span>
-                  </div>
-
-                  <div
-                    v-if="index === 0"
-                    class="absolute top-3 right-3 z-10"
+                    NEW
+                  </span>
+                  <span
+                    v-if="discount !== 0"
+                    class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
+                    :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
                   >
-                    <LoadingButton
-                      :loading="isAddingWishlistItem || isRemovingWishlistItem"
-                      @click="handleToggleWishlist"
-                      class="h-11 w-11 rounded-md"
-                      :disabled="isAddingWishlistItem || isRemovingWishlistItem"
-                      variant="outline"
-                    >
-                      <Heart :class="isInWishlist && 'fill-black'" />
-                    </LoadingButton>
-                  </div>
-
-                  <img
-                    :src="img"
-                    :alt="`${product.name} view ${index + 1}`"
-                    class="h-full w-full object-cover"
-                  />
+                    {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
+                  </span>
                 </div>
-              </CarouselItem>
-            </CarouselContent>
 
-            <CarouselNext />
+                <div
+                  v-if="slotProps.index === 0"
+                  class="absolute top-3 right-3 z-10"
+                >
+                  <LoadingButton
+                    :loading="isAddingWishlistItem || isRemovingWishlistItem"
+                    @click="handleToggleWishlist"
+                    class="h-11 w-11 rounded-md"
+                    :disabled="isAddingWishlistItem || isRemovingWishlistItem"
+                    variant="outline"
+                  >
+                    <Heart :class="isInWishlist && 'fill-black'" />
+                  </LoadingButton>
+                </div>
+
+                <img
+                  :src="slotProps.data"
+                  :alt="`${product.name} view ${slotProps.index + 1}`"
+                  class="h-full w-full object-cover"
+                />
+              </div>
+            </template>
           </Carousel>
         </div>
 
@@ -665,7 +667,7 @@ const showReviewForm = ref(false)
               </span>
               <span
                 v-if="hasDiscount"
-                class="text-muted-foreground text-xl line-through"
+                class="text-xl text-gray-500 line-through"
               >
                 {{ formatPrice(currentBasePrice) }}
               </span>
@@ -702,7 +704,7 @@ const showReviewForm = ref(false)
 
           <!-- Description -->
           <div className="space-y-2">
-            <h3 className="font-semibold text-xl leading-6">Description</h3>
+            <h3 className="text-xl font-semibold leading-6">Description</h3>
             <p className="leading-relaxed text-gray-700">
               {{ product.description }}
             </p>
@@ -799,7 +801,7 @@ const showReviewForm = ref(false)
             >
               <Minus class="h-4 w-4" />
             </button>
-            <span class="w-4 text-center font-medium">{{ quantity }}</span>
+            <span class="px-6 text-sm font-semibold">{{ quantity }}</span>
             <button
               @click="incrementQuantity"
               class="cursor-pointer p-4 text-black disabled:cursor-not-allowed disabled:text-black/40"
@@ -813,37 +815,41 @@ const showReviewForm = ref(false)
             </button>
           </div>
 
+          <!-- Add to Cart Button -->
           <LoadingButton
-            :loading="isAddingCartItem"
             @click="handleAddToCart"
-            class="h-12 w-full flex-1 rounded-md text-lg disabled:cursor-not-allowed"
+            :loading="isAddingCartItem"
             :disabled="
               isAddingCartItem || isOutOfStock || hasIncompleteSelection
             "
+            class="flex-1"
           >
-            <span v-if="isOutOfStock">Out of stock</span>
-            <span v-else-if="hasIncompleteSelection">
-              Please select options
-            </span>
-            <span v-else>Add to cart</span>
+            {{
+              isOutOfStock
+                ? 'Out of Stock'
+                : hasIncompleteSelection
+                  ? 'Select Options'
+                  : 'Add to Cart'
+            }}
           </LoadingButton>
         </div>
 
-        <!-- Meta Info -->
-        <div
-          class="flex flex-col gap-2 text-xs tracking-wider text-gray-500 uppercase"
-        >
-          <div class="flex gap-8">
-            <span class="w-20">SKU</span>
-            <span class="text-black normal-case">
-              {{ currentVariant?.sku || product.sku }}
+        <!-- Additional Details -->
+        <div class="space-y-2 border-t pt-6 text-sm text-gray-600">
+          <div class="flex justify-between">
+            <span>SKU:</span>
+            <span class="font-medium">
+              {{ currentVariant?.sku || product.sku || 'N/A' }}
             </span>
           </div>
-          <div class="flex gap-8">
-            <span class="w-20">Category</span>
-            <span class="text-black normal-case">
-              {{ product.category.name }}
-            </span>
+          <div class="flex justify-between">
+            <span>Category:</span>
+            <RouterLink
+              :to="`/shop?categories=${product.category?.slug}`"
+              class="font-medium hover:underline"
+            >
+              {{ product.category?.name || 'N/A' }}
+            </RouterLink>
           </div>
         </div>
       </div>

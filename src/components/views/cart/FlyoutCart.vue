@@ -1,27 +1,12 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Button } from '@/components/ui/button'
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useCarts, useCartsMutation } from '@/composables/useCarts'
 import { formatPrice } from '@/utils/lib'
 import { Minus, Plus, ShoppingCartIcon, Trash2Icon } from 'lucide-vue-next'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Drawer from 'primevue/drawer'
+import Skeleton from 'primevue/skeleton'
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
@@ -49,6 +34,7 @@ const updatingItemId = ref<string | null>(null)
 const removingItemId = ref<string | null>(null)
 const editingItemId = ref<string | null>(null)
 
+const isDrawerOpen = ref(false)
 const showRemoveItemDialog = ref(false)
 const showClearCartDialog = ref(false)
 
@@ -253,217 +239,237 @@ const cancelClearCart = () => {
 </script>
 
 <template>
-  <Sheet>
-    <SheetTrigger as-child>
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        class="relative hover:bg-transparent"
-      >
-        <ShoppingCartIcon class="size-5" />
-        <span
-          v-if="itemCount > 0"
-          class="bg-primary text-primary-foreground absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold"
-        >
-          {{ itemCount }}
-        </span>
-      </Button>
-    </SheetTrigger>
-    <SheetContent class="flex h-full w-full flex-col px-2 sm:max-w-100">
-      <SheetHeader class="px-2 pt-4">
-        <SheetTitle>My Cart ({{ itemCount }})</SheetTitle>
-      </SheetHeader>
+  <Button
+    type="button"
+    text
+    class="relative hover:bg-transparent"
+    @click="isDrawerOpen = true"
+  >
+    <ShoppingCartIcon class="size-5" />
+    <span
+      v-if="itemCount > 0"
+      class="bg-primary absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold text-white"
+    >
+      {{ itemCount }}
+    </span>
+  </Button>
 
+  <Drawer
+    v-model:visible="isDrawerOpen"
+    position="right"
+    header="My Cart"
+    :style="{ width: '25rem' }"
+    class="flex h-full flex-col"
+  >
+    <template #header>
+      <span class="text-lg font-semibold">My Cart ({{ itemCount }})</span>
+    </template>
+
+    <div
+      v-if="isLoadingCart"
+      class="flex flex-1 flex-col gap-4 py-4"
+    >
       <div
-        v-if="isLoadingCart"
-        class="flex flex-1 flex-col gap-4 py-4"
+        v-for="i in 3"
+        :key="i"
+        class="flex items-center gap-4"
       >
-        <div
-          v-for="i in 3"
-          :key="i"
-          class="flex items-center gap-4"
-        >
-          <Skeleton class="size-20 rounded-md" />
-          <div class="flex-1 space-y-2">
-            <Skeleton class="h-4 w-3/4" />
-            <Skeleton class="h-3 w-1/2" />
-            <div class="flex items-center justify-between pt-2">
-              <Skeleton class="h-8 w-24" />
-              <Skeleton class="h-4 w-16" />
-            </div>
+        <Skeleton
+          width="5rem"
+          height="5rem"
+          class="rounded-md"
+        />
+        <div class="flex-1 space-y-2">
+          <Skeleton
+            width="75%"
+            height="1rem"
+          />
+          <Skeleton
+            width="50%"
+            height="0.75rem"
+          />
+          <div class="flex items-center justify-between pt-2">
+            <Skeleton
+              width="6rem"
+              height="2rem"
+            />
+            <Skeleton
+              width="4rem"
+              height="1rem"
+            />
           </div>
         </div>
       </div>
+    </div>
 
-      <div
-        v-else-if="isEmpty"
-        class="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center"
-      >
-        <div class="bg-muted rounded-full p-6">
-          <ShoppingCartIcon class="text-muted-foreground size-10" />
-        </div>
-        <div class="space-y-1">
-          <h3 class="font-semibold">Your cart is empty</h3>
-          <p class="text-muted-foreground text-sm">
-            Add products to start shopping
-          </p>
-        </div>
-        <SheetTrigger as-child>
-          <Button
-            variant="outline"
-            class="mt-4"
-          >
-            Continue shopping
-          </Button>
-        </SheetTrigger>
+    <div
+      v-else-if="isEmpty"
+      class="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center"
+    >
+      <div class="rounded-full bg-gray-100 p-6">
+        <ShoppingCartIcon class="size-10 text-gray-400" />
       </div>
-
-      <section
-        v-else
-        class="no-scrollbar h-full flex-1 overflow-y-auto px-2"
+      <div class="space-y-1">
+        <h3 class="font-semibold">Your cart is empty</h3>
+        <p class="text-sm text-gray-500">Add products to start shopping</p>
+      </div>
+      <Button
+        outlined
+        class="mt-4"
+        @click="isDrawerOpen = false"
       >
-        <div class="flex flex-col">
-          <div
-            v-for="item in items"
-            :key="item.id"
-            class="flex gap-3 border-b py-6"
+        Continue shopping
+      </Button>
+    </div>
+
+    <section
+      v-else
+      class="no-scrollbar h-full flex-1 overflow-y-auto"
+    >
+      <div class="flex flex-col">
+        <div
+          v-for="item in items"
+          :key="item.id"
+          class="flex gap-3 border-b py-6"
+        >
+          <RouterLink
+            :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
+            class="relative h-30 w-26 shrink-0 overflow-hidden border bg-gray-100"
+            @click="isDrawerOpen = false"
           >
-            <RouterLink
-              :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-              class="bg-muted relative h-30 w-26 shrink-0 overflow-hidden border"
-            >
-              <img
-                :src="item.product.images[0]"
-                :alt="item.product.name"
-                class="h-full w-full object-cover"
-              />
-            </RouterLink>
+            <img
+              :src="item.product.images[0]"
+              :alt="item.product.name"
+              class="h-full w-full object-cover"
+            />
+          </RouterLink>
 
-            <div class="flex w-full gap-4">
-              <div class="flex w-2/3 flex-col gap-1">
-                <RouterLink
-                  :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-                  class="line-clamp-2 font-medium"
-                >
-                  {{ item.product.name }}
-                </RouterLink>
+          <div class="flex w-full gap-4">
+            <div class="flex w-2/3 flex-col gap-1">
+              <RouterLink
+                :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
+                class="line-clamp-2 font-medium"
+                @click="isDrawerOpen = false"
+              >
+                {{ item.product.name }}
+              </RouterLink>
 
-                <p
-                  v-if="item.variant"
-                  class="text-muted-foreground flex flex-col text-xs"
-                >
-                  <span v-if="item.variant.productVariantOptions.length > 0">
-                    {{
-                      item.variant.productVariantOptions[0]?.option.attribute
-                        .name
-                    }}:
-                    {{ item.variant.productVariantOptions[0]?.option.name }}
-                  </span>
-                  <span
-                    v-if="item.variant.productVariantOptions.length > 1"
-                    class="w-fit text-gray-500"
-                  >
-                    +{{ item.variant.productVariantOptions.length - 1 }} more
-                  </span>
-                </p>
-
-                <div class="flex w-fit items-center rounded border">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-6 w-6 rounded-none rounded-l"
-                    @click="
-                      handleQuantityChange(
-                        item.productId,
-                        getDisplayQuantity(item.productId, item.variantId) - 1,
-                        item.variantId ?? undefined,
-                        item.product?.slug,
-                      )
-                    "
-                    :disabled="
-                      getDisplayQuantity(item.productId, item.variantId) <= 1 ||
-                      isItemDisabled(item.productId, item.variantId) ||
-                      isItemUpdating(item.productId, item.variantId) ||
-                      isItemRemoving(item.productId, item.variantId)
-                    "
-                  >
-                    <Minus class="size-3" />
-                  </Button>
-                  <span
-                    class="relative flex w-8 items-center justify-center text-center text-sm"
-                  >
-                    <span>
-                      {{ getDisplayQuantity(item.productId, item.variantId) }}
-                    </span>
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-6 w-6 rounded-none rounded-r"
-                    @click="
-                      handleQuantityChange(
-                        item.productId,
-                        getDisplayQuantity(item.productId, item.variantId) + 1,
-                        item.variantId ?? undefined,
-                        item.product?.slug,
-                      )
-                    "
-                    :disabled="
-                      getDisplayQuantity(item.productId, item.variantId) >=
-                        getMaxQuantity(item.productId, item.variantId) ||
-                      isItemDisabled(item.productId, item.variantId) ||
-                      isItemUpdating(item.productId, item.variantId) ||
-                      isItemRemoving(item.productId, item.variantId)
-                    "
-                  >
-                    <Plus class="size-3" />
-                  </Button>
-                </div>
-              </div>
-
-              <div class="flex w-1/3 flex-col items-end gap-1">
-                <p class="text-sm font-medium">
+              <p
+                v-if="item.variant"
+                class="flex flex-col text-xs text-gray-500"
+              >
+                <span v-if="item.variant.productVariantOptions.length > 0">
                   {{
-                    formatPrice(
-                      item.variant?.price ??
-                        item.variant?.basePrice ??
-                        item.product.price ??
-                        item.product.basePrice ??
-                        0,
-                    )
-                  }}
-                </p>
+                    item.variant.productVariantOptions[0]?.option.attribute
+                      .name
+                  }}:
+                  {{ item.variant.productVariantOptions[0]?.option.name }}
+                </span>
+                <span
+                  v-if="item.variant.productVariantOptions.length > 1"
+                  class="w-fit text-gray-500"
+                >
+                  +{{ item.variant.productVariantOptions.length - 1 }} more
+                </span>
+              </p>
 
+              <div class="flex w-fit items-center rounded border">
                 <Button
-                  variant="ghost"
-                  size="icon"
+                  text
+                  size="small"
+                  class="!h-6 !w-6 rounded-none rounded-l"
                   @click="
-                    openRemoveItemDialog(
+                    handleQuantityChange(
                       item.productId,
+                      getDisplayQuantity(item.productId, item.variantId) - 1,
                       item.variantId ?? undefined,
                       item.product?.slug,
-                      item.product?.name,
                     )
                   "
                   :disabled="
+                    getDisplayQuantity(item.productId, item.variantId) <= 1 ||
                     isItemDisabled(item.productId, item.variantId) ||
+                    isItemUpdating(item.productId, item.variantId) ||
                     isItemRemoving(item.productId, item.variantId)
                   "
-                  class="text-destructive hover:text-destructive cursor-pointer p-1"
                 >
-                  <Trash2Icon class="size-4" />
+                  <Minus class="size-3" />
+                </Button>
+                <span
+                  class="relative flex w-8 items-center justify-center text-center text-sm"
+                >
+                  <span>
+                    {{ getDisplayQuantity(item.productId, item.variantId) }}
+                  </span>
+                </span>
+                <Button
+                  text
+                  size="small"
+                  class="!h-6 !w-6 rounded-none rounded-r"
+                  @click="
+                    handleQuantityChange(
+                      item.productId,
+                      getDisplayQuantity(item.productId, item.variantId) + 1,
+                      item.variantId ?? undefined,
+                      item.product?.slug,
+                    )
+                  "
+                  :disabled="
+                    getDisplayQuantity(item.productId, item.variantId) >=
+                      getMaxQuantity(item.productId, item.variantId) ||
+                    isItemDisabled(item.productId, item.variantId) ||
+                    isItemUpdating(item.productId, item.variantId) ||
+                    isItemRemoving(item.productId, item.variantId)
+                  "
+                >
+                  <Plus class="size-3" />
                 </Button>
               </div>
             </div>
+
+            <div class="flex w-1/3 flex-col items-end gap-1">
+              <p class="text-sm font-medium">
+                {{
+                  formatPrice(
+                    item.variant?.price ??
+                      item.variant?.basePrice ??
+                      item.product.price ??
+                      item.product.basePrice ??
+                      0,
+                  )
+                }}
+              </p>
+
+              <Button
+                text
+                size="small"
+                @click="
+                  openRemoveItemDialog(
+                    item.productId,
+                    item.variantId ?? undefined,
+                    item.product?.slug,
+                    item.product?.name,
+                  )
+                "
+                :disabled="
+                  isItemDisabled(item.productId, item.variantId) ||
+                  isItemRemoving(item.productId, item.variantId)
+                "
+                class="cursor-pointer p-1 text-red-500 hover:text-red-600"
+              >
+                <Trash2Icon class="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <SheetFooter
-        v-if="!isEmpty"
-        class="flex-col space-y-2 px-2 pt-2 pb-8"
-      >
+    <template
+      #footer
+      v-if="!isEmpty"
+    >
+      <div class="flex flex-col gap-2">
         <div class="flex justify-between text-base font-medium">
           <span>Total</span>
           <span>{{ formatPrice(subtotal) }}</span>
@@ -472,101 +478,107 @@ const cancelClearCart = () => {
         <div class="grid w-full grid-cols-2 gap-2">
           <LoadingButton
             :loading="isClearingCart"
-            variant="outline"
+            outlined
             class="w-full"
             @click="openClearCartDialog"
-            size="lg"
+            size="large"
             :disabled="isGlobalActionDisabled()"
           >
             <Trash2Icon class="size-4" />
             Clear cart
           </LoadingButton>
 
-          <SheetTrigger as-child>
-            <RouterLink to="/checkout">
-              <Button
-                class="w-full"
-                size="lg"
-              >
-                Checkout
-              </Button>
-            </RouterLink>
-          </SheetTrigger>
+          <RouterLink
+            to="/checkout"
+            @click="isDrawerOpen = false"
+          >
+            <Button
+              class="w-full"
+              size="large"
+            >
+              Checkout
+            </Button>
+          </RouterLink>
         </div>
 
         <div class="flex justify-center">
-          <SheetTrigger as-child>
-            <RouterLink
-              to="/cart"
-              class="border-b border-black text-sm font-medium"
-            >
-              View cart
-            </RouterLink>
-          </SheetTrigger>
+          <RouterLink
+            to="/cart"
+            class="border-b border-black text-sm font-medium"
+            @click="isDrawerOpen = false"
+          >
+            View cart
+          </RouterLink>
         </div>
-      </SheetFooter>
-    </SheetContent>
-  </Sheet>
+      </div>
+    </template>
+  </Drawer>
 
-  <AlertDialog
-    :open="showRemoveItemDialog"
-    @update:open="(val) => !val && cancelRemoveItem()"
+  <Dialog
+    v-model:visible="showRemoveItemDialog"
+    modal
+    header="Remove item from cart?"
+    :style="{ width: '25rem' }"
+    :dismissableMask="true"
+    @hide="cancelRemoveItem"
   >
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Remove item from cart?</AlertDialogTitle>
-        <AlertDialogDescription>
-          Are you sure you want to remove "{{ itemToRemove?.productName }}" from
-          your cart? This action cannot be undone.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel
+    <p class="text-gray-600">
+      Are you sure you want to remove "{{ itemToRemove?.productName }}" from
+      your cart? This action cannot be undone.
+    </p>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          outlined
           @click="cancelRemoveItem"
           :disabled="isRemovingCartItem"
         >
           Cancel
-        </AlertDialogCancel>
+        </Button>
         <LoadingButton
           :loading="isRemovingCartItem"
           :disabled="isRemovingCartItem"
-          variant="destructive"
+          severity="danger"
           @click="confirmRemoveItem"
         >
           Remove
         </LoadingButton>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+      </div>
+    </template>
+  </Dialog>
 
-  <AlertDialog
-    :open="showClearCartDialog"
-    @update:open="(val) => !val && cancelClearCart()"
+  <Dialog
+    v-model:visible="showClearCartDialog"
+    modal
+    header="Clear your cart?"
+    :style="{ width: '25rem' }"
+    :dismissableMask="true"
+    @hide="cancelClearCart"
   >
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Clear your cart?</AlertDialogTitle>
-        <AlertDialogDescription>
-          Are you sure you want to remove all items from your cart? This action
-          cannot be undone.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel
+    <p class="text-gray-600">
+      Are you sure you want to remove all items from your cart? This action
+      cannot be undone.
+    </p>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          outlined
           @click="cancelClearCart"
           :disabled="isClearingCart"
         >
           Cancel
-        </AlertDialogCancel>
+        </Button>
         <LoadingButton
           :loading="isClearingCart"
           :disabled="isClearingCart"
-          variant="destructive"
+          severity="danger"
           @click="confirmClearCart"
         >
           Clear cart
         </LoadingButton>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+      </div>
+    </template>
+  </Dialog>
 </template>

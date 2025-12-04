@@ -4,7 +4,6 @@
  * Layout for account pages with shared sidebar
  * Includes sidebar navigation for Account, Address, Orders, Wishlist
  */
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuthStore } from '@/stores/auth'
 import { cn } from '@/utils/lib'
 import {
@@ -14,6 +13,7 @@ import {
   PackageIcon,
   UserIcon,
 } from 'lucide-vue-next'
+import Avatar from 'primevue/avatar'
 import { computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { Toaster } from 'vue-sonner'
@@ -66,18 +66,18 @@ const handleLogout = async () => {
             <div class="rounded-lg bg-gray-50 py-6">
               <!-- User Avatar & Name -->
               <div class="mb-6 flex flex-col items-center">
-                <Avatar class="h-20 w-20">
-                  <AvatarImage
-                    v-if="authStore.user?.image"
-                    :src="authStore.user.image"
-                    :alt="authStore.user?.name || 'User'"
-                  />
-                  <AvatarFallback
-                    class="bg-primary text-primary-foreground text-xl font-medium"
-                  >
-                    {{ userInitials }}
-                  </AvatarFallback>
-                </Avatar>
+                <Avatar
+                  :image="authStore.user?.image || undefined"
+                  :label="!authStore.user?.image ? userInitials : undefined"
+                  class="h-20 w-20"
+                  shape="circle"
+                  style="
+                    background-color: hsl(var(--primary));
+                    color: hsl(var(--primary-foreground));
+                    font-size: 1.25rem;
+                    font-weight: 500;
+                  "
+                />
                 <h2 class="mt-4 text-lg font-semibold">
                   {{ authStore.user?.name || 'Guest' }}
                 </h2>

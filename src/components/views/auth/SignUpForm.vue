@@ -1,41 +1,41 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
 import { useAuthStore } from '@/stores/auth'
 import { registerBodySchema } from '@/validators/auth.validator'
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
+import { Form } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import Checkbox from 'primevue/checkbox'
+import Message from 'primevue/message'
+import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { watch } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const redirect = route.query.redirect as string | undefined
+const acceptTerms = ref(false)
 
-const form = useForm({
-  validationSchema: toTypedSchema(registerBodySchema),
-  initialValues: {
-    name: '',
-    email: '',
-    password: '',
-  },
-})
+const initialValues = {
+  name: '',
+  email: '',
+  password: '',
+}
 
-// Réinitialiser l'erreur quand l'utilisateur tape
-watch(form.values, () => {
-  if (authStore.error) {
-    authStore.error = null
-  }
-})
+const resolver = zodResolver(registerBodySchema)
 
-const onSubmit = form.handleSubmit(async (values) => {
+const onFormSubmit = async ({
+  valid,
+  values,
+}: {
+  valid: boolean
+  values: typeof initialValues
+}) => {
+  if (!valid) return
+
+  // Réinitialiser l'erreur
+  authStore.error = null
+
   const result = await authStore.register({
     name: values.name,
     email: values.email,
@@ -45,7 +45,7 @@ const onSubmit = form.handleSubmit(async (values) => {
   if (result.success) {
     router.push(redirect || '/')
   }
-})
+}
 </script>
 
 <template>
@@ -54,7 +54,7 @@ const onSubmit = form.handleSubmit(async (values) => {
     <div class="hidden h-full w-full overflow-hidden md:block">
       <img
         src="/auth.png"
-        alt="Sign in"
+        alt="Sign up"
         class="h-full w-full object-cover"
       />
     </div>
@@ -65,12 +65,13 @@ const onSubmit = form.handleSubmit(async (values) => {
         <h2 class="text-3xl font-bold">Create an account</h2>
 
         <!-- Error Message -->
-        <div
+        <Message
           v-if="authStore.error"
-          class="rounded-lg bg-red-50 p-3 text-sm text-red-600"
+          severity="error"
+          :closable="false"
         >
           {{ authStore.error }}
-        </div>
+        </Message>
 
         <p class="mt-2 text-gray-600">
           Already have an account?
@@ -82,96 +83,100 @@ const onSubmit = form.handleSubmit(async (values) => {
           </RouterLink>
         </p>
 
-        <form
-          @submit="onSubmit"
+        <Form
+          v-slot="$form"
+          :initialValues="initialValues"
+          :resolver="resolver"
+          @submit="onFormSubmit"
           class="space-y-4"
         >
           <!-- Name Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="name"
-          >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Username"
-                  type="text"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <CustomInput
+              name="name"
+              label="Username"
+              type="text"
+            />
+            <Message
+              v-if="$form.name?.invalid"
+              severity="error"
+              size="small"
+              variant="simple"
+            >
+              {{ $form.name.error?.message }}
+            </Message>
+          </div>
 
           <!-- Email Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="email"
-          >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Email address"
-                  type="email"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <CustomInput
+              name="email"
+              label="Email address"
+              type="email"
+            />
+            <Message
+              v-if="$form.email?.invalid"
+              severity="error"
+              size="small"
+              variant="simple"
+            >
+              {{ $form.email.error?.message }}
+            </Message>
+          </div>
 
           <!-- Password Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="password"
-          >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Password"
-                  type="password"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          <div class="flex flex-col gap-1">
+            <CustomInput
+              name="password"
+              label="Password"
+              type="password"
+            />
+            <Message
+              v-if="$form.password?.invalid"
+              severity="error"
+              size="small"
+              variant="simple"
+            >
+              {{ $form.password.error?.message }}
+            </Message>
+          </div>
 
           <!-- Options -->
           <div class="flex items-center">
-            <label class="flex items-center">
-              <input
-                type="checkbox"
-                class="mr-2 h-4 w-4 rounded border-gray-300"
+            <label class="flex items-center gap-2">
+              <Checkbox
+                v-model="acceptTerms"
+                :binary="true"
               />
               <span class="text-gray-600">
                 I agree to the
-                <a
-                  href="#"
+                <RouterLink
+                  to="/terms-and-conditions"
                   class="text-blue-600 hover:underline"
                 >
                   terms
-                </a>
+                </RouterLink>
                 and
-                <a
-                  href="#"
+                <RouterLink
+                  to="/terms-and-conditions"
                   class="text-blue-600 hover:underline"
                 >
                   conditions of use
-                </a>
+                </RouterLink>
               </span>
             </label>
           </div>
 
           <!-- Submit Button -->
           <LoadingButton
+            type="submit"
             :disabled="authStore.isLoading"
             :loading="authStore.isLoading"
             class="w-full"
           >
             Create an account
           </LoadingButton>
-        </form>
+        </Form>
       </div>
     </div>
   </div>

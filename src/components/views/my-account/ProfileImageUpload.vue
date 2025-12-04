@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { env } from '@/env'
 import { useAuthStore } from '@/stores/auth'
 import { generateVueHelpers } from '@uploadthing/vue'
 import { CameraIcon, Loader2Icon } from 'lucide-vue-next'
+import Avatar from 'primevue/avatar'
+import Button from 'primevue/button'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
@@ -94,18 +94,20 @@ const isLoading = computed(() => isUploading.value)
 <template>
   <div class="flex flex-col items-center">
     <div class="relative">
-      <Avatar class="h-24 w-24">
-        <AvatarImage
-          v-if="authStore.user?.image"
-          :src="authStore.user.image"
-          :alt="authStore.user?.name || 'User'"
-        />
-        <AvatarFallback
-          class="bg-primary text-primary-foreground text-2xl font-medium"
-        >
-          {{ userInitials }}
-        </AvatarFallback>
-      </Avatar>
+      <Avatar
+        v-if="authStore.user?.image"
+        :image="authStore.user.image"
+        size="xlarge"
+        shape="circle"
+        class="!h-24 !w-24"
+      />
+      <Avatar
+        v-else
+        :label="userInitials"
+        size="xlarge"
+        shape="circle"
+        class="bg-primary !h-24 !w-24 text-2xl font-medium text-white"
+      />
 
       <!-- Loading overlay -->
       <div
@@ -140,8 +142,8 @@ const isLoading = computed(() => isUploading.value)
     <p class="text-sm text-gray-500">{{ authStore.user?.email }}</p>
 
     <Button
-      variant="outline"
-      size="sm"
+      outlined
+      size="small"
       class="mt-3"
       :disabled="isLoading"
       @click="handleAvatarClick"

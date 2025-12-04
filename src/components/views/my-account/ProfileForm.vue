@@ -2,116 +2,122 @@
 import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
 import { useUsersMutation } from '@/composables/useUsers'
 import { useAuthStore } from '@/stores/auth'
 import {
   updateProfileSchema,
   type UpdateProfileInput,
 } from '@/validators/users.validator'
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
-import { watch } from 'vue'
+import { Form } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import Message from 'primevue/message'
+import { ref, watch } from 'vue'
 
 const authStore = useAuthStore()
 const { updateProfile, isUpdatingProfile } = useUsersMutation()
 
-// Form setup with vee-validate and zod
-const form = useForm({
-  validationSchema: toTypedSchema(updateProfileSchema),
-  initialValues: {
-    name: '',
-    email: '',
-    phone: '',
-  },
+// Initial values pour le formulaire
+const initialValues = ref({
+  name: '',
+  email: '',
+  phone: '',
 })
 
-// Initialize form with user data when available
+// Mettre à jour les valeurs initiales quand l'utilisateur est disponible
 watch(
   () => authStore.user,
   (user) => {
     if (user) {
-      form.setValues({
+      initialValues.value = {
         name: user.name || '',
         email: user.email || '',
         phone: user.phone || '',
-      })
+      }
     }
   },
   { immediate: true },
 )
 
-const onSubmit = form.handleSubmit(async (values) => {
+const resolver = zodResolver(updateProfileSchema)
+
+const onFormSubmit = async ({
+  valid,
+  values,
+}: {
+  valid: boolean
+  values: typeof initialValues.value
+}) => {
+  if (!valid) return
+
   try {
     await updateProfile(values as UpdateProfileInput)
   } catch (error) {
     console.error('Error updating profile:', error)
   }
-})
+}
 </script>
 
 <template>
   <section>
     <h2 class="mb-6 text-xl font-semibold">Account Details</h2>
 
-    <form
-      @submit="onSubmit"
+    <Form
+      v-slot="$form"
+      :key="JSON.stringify(initialValues)"
+      :initialValues="initialValues"
+      :resolver="resolver"
+      @submit="onFormSubmit"
       class="max-w-lg space-y-5"
     >
       <!-- Full Name -->
-      <FormField
-        v-slot="{ componentField }"
-        name="name"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomInput
-              label="Full Name *"
-              type="text"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomInput
+          name="name"
+          label="Full Name *"
+          type="text"
+        />
+        <Message
+          v-if="$form.name?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.name.error?.message }}
+        </Message>
+      </div>
 
       <!-- Email -->
-      <FormField
-        v-slot="{ componentField }"
-        name="email"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomInput
-              label="Email *"
-              type="email"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomInput
+          name="email"
+          label="Email *"
+          type="email"
+        />
+        <Message
+          v-if="$form.email?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.email.error?.message }}
+        </Message>
+      </div>
 
       <!-- Phone -->
-      <FormField
-        v-slot="{ componentField }"
-        name="phone"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomPhoneInput
-              label="Phone *"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomPhoneInput
+          name="phone"
+          label="Phone *"
+        />
+        <Message
+          v-if="$form.phone?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.phone.error?.message }}
+        </Message>
+      </div>
 
       <!-- Submit Button -->
       <div class="flex justify-end">
@@ -124,7 +130,7 @@ const onSubmit = form.handleSubmit(async (values) => {
           Save changes
         </LoadingButton>
       </div>
-    </form>
+    </Form>
   </section>
 </template>
 

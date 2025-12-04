@@ -1,28 +1,15 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useAuthModal } from '@/composables/useAuthModal'
 import { useReviewsMutation } from '@/composables/useReviews'
 import { useAuthStore } from '@/stores/auth'
 import type { ProductWithDetails, ReviewWithUser } from '@/types'
 import { formatDate } from '@/utils/lib'
 import { MoreVertical, Pencil, StarIcon, Trash2 } from 'lucide-vue-next'
+import Avatar from 'primevue/avatar'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Menu from 'primevue/menu'
 import { computed, ref } from 'vue'
 import ProductReviewForm from './ProductReviewForm.vue'
 
@@ -45,6 +32,7 @@ const { deleteReview, isDeletingReview } = useReviewsMutation()
 const isEdit = ref(false)
 const isDelete = ref(false)
 const dialogOpen = ref(false)
+const menu = ref()
 
 const isOwnReview = computed(() => {
   return authStore.user?.id === props.review.user.id
@@ -69,8 +57,30 @@ const stars = computed(() => {
   return values
 })
 
+const menuItems = ref([
+  {
+    label: 'Modifier',
+    icon: Pencil,
+    command: () => {
+      isEdit.value = true
+    },
+  },
+  {
+    label: 'Supprimer',
+    icon: Trash2,
+    command: () => {
+      handleDeleteClick()
+    },
+    class: 'text-red-500',
+  },
+])
+
 const handleEdit = () => {
   isEdit.value = true
+}
+
+const toggle = (event: Event) => {
+  menu.value.toggle(event)
 }
 
 const handleDeleteClick = () => {
@@ -111,6 +121,10 @@ const handleEditSuccess = () => {
 
 const handleEditCancel = () => {
   isEdit.value = false
+}
+
+const getUserInitials = () => {
+  return props.review.user.name.substring(0, 2).toUpperCase()
 }
 </script>
 
@@ -155,49 +169,42 @@ const handleEditCancel = () => {
         </template>
       </div>
 
-      <DropdownMenu v-if="isOwnReview">
-        <DropdownMenuTrigger as-child>
-          <Button
-            type="button"
-            variant="ghost"
-            class="m-0 h-auto w-auto p-0 hover:bg-transparent"
-          >
-            <MoreVertical class="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          class="space-y-1"
+      <div v-if="isOwnReview">
+        <Button
+          type="button"
+          text
+          class="m-0 h-auto w-auto p-0"
+          @click="toggle"
         >
-          <DropdownMenuItem
-            class="cursor-pointer"
-            @click="handleEdit"
-          >
-            <Pencil
-              :size="16"
-              class="mr-2"
-            />
-            Modifier
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            class="hover:text-destructive! cursor-pointer"
-            @click="handleDeleteClick"
-          >
-            <Trash2
-              :size="16"
-              class="mr-2"
-            />
-            Supprimer
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <MoreVertical class="size-4" />
+        </Button>
+        <Menu
+          ref="menu"
+          :model="menuItems"
+          :popup="true"
+        >
+          <template #item="{ item }">
+            <button
+              @click="item.command"
+              class="flex w-full items-center gap-2 px-3 py-2 hover:bg-gray-100"
+              :class="item.class"
+            >
+              <component
+                :is="item.icon"
+                :size="16"
+              />
+              <span>{{ item.label }}</span>
+            </button>
+          </template>
+        </Menu>
+      </div>
     </div>
 
     <div class="flex flex-col gap-2">
       <p class="font-medium whitespace-pre-wrap text-black/80">
         {{ review.comment }}
       </p>
-      <span class="text-muted-foreground text-sm font-medium">
+      <span class="text-sm font-medium text-gray-500">
         {{ formatDate(review.updatedAt, true) }}
         <span
           v-if="
@@ -214,58 +221,55 @@ const handleEditCancel = () => {
 
     <div class="flex items-center justify-between">
       <div class="text-primary flex items-center gap-4 font-semibold">
-        <Avatar>
-          <AvatarImage
-            v-if="review.user.image"
-            class="object-cover"
-            :src="review.user.image"
-          />
-          <AvatarFallback
-            v-else
-            class="text-sm uppercase"
-          >
-            {{ review.user.name.substring(0, 2) }}
-          </AvatarFallback>
-        </Avatar>
+        <Avatar
+          v-if="review.user.image"
+          :image="review.user.image"
+          shape="circle"
+          size="large"
+        />
+        <Avatar
+          v-else
+          :label="getUserInitials()"
+          shape="circle"
+          size="large"
+          class="text-sm uppercase"
+        />
         <span>{{ review.user.name }}</span>
       </div>
     </div>
 
     <!-- Delete Dialog -->
     <Dialog
-      v-model:open="dialogOpen"
-      @update:open="(value) => !value && handleCancel()"
+      v-model:visible="dialogOpen"
+      modal
+      header="Êtes-vous sûr ?"
+      :style="{ width: '25rem' }"
+      :dismissableMask="true"
+      @hide="handleCancel"
     >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Êtes-vous sûr ?</DialogTitle>
-          <DialogDescription>
-            La suppression de cet avis est irréversible.
-          </DialogDescription>
-        </DialogHeader>
+      <p class="text-gray-600">La suppression de cet avis est irréversible.</p>
 
-        <DialogFooter class="flex-row! justify-end gap-2">
-          <DialogClose as-child>
-            <Button
-              variant="outline"
-              class="w-fit"
-              @click="handleCancel"
-            >
-              Annuler
-            </Button>
-          </DialogClose>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <Button
+            outlined
+            class="w-fit"
+            @click="handleCancel"
+          >
+            Annuler
+          </Button>
 
           <LoadingButton
             class="w-fit"
             :loading="isDeletingReview"
             :disabled="isDeletingReview"
-            variant="destructive"
+            severity="danger"
             @click="handleDelete"
           >
             Supprimer
           </LoadingButton>
-        </DialogFooter>
-      </DialogContent>
+        </div>
+      </template>
     </Dialog>
   </li>
 </template>

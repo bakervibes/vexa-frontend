@@ -1,56 +1,60 @@
 <script setup lang="ts">
-import type { CarouselApi } from '@/components/ui/carousel'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from '@/components/ui/carousel'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-vue-next'
+import Carousel from 'primevue/carousel'
 import { ref } from 'vue'
 import HeroSection1 from './HeroSection1.vue'
 import HeroSection2 from './HeroSection2.vue'
 
-const carouselApi = ref<CarouselApi>()
 const currentIndex = ref(0)
+const heroSections = ref([
+  { component: HeroSection1 },
+  { component: HeroSection2 },
+])
 
-function onCarouselInit(api: CarouselApi) {
-  carouselApi.value = api
+const responsiveOptions = ref([
+  {
+    breakpoint: '1024px',
+    numVisible: 1,
+    numScroll: 1,
+  },
+])
 
-  api?.on('select', () => {
-    currentIndex.value = api.selectedScrollSnap()
-  })
+const onPageChange = (event: { page: number }) => {
+  currentIndex.value = event.page
 }
 
-function goToPrevious() {
-  carouselApi.value?.scrollPrev()
+const goToPrevious = () => {
+  const newIndex = currentIndex.value === 0 ? 1 : currentIndex.value - 1
+  currentIndex.value = newIndex
 }
 
-function goToNext() {
-  carouselApi.value?.scrollNext()
+const goToNext = () => {
+  const newIndex = currentIndex.value === 1 ? 0 : currentIndex.value + 1
+  currentIndex.value = newIndex
 }
 
-function goToSlide(index: number) {
-  carouselApi.value?.scrollTo(index)
+const goToSlide = (index: number) => {
+  currentIndex.value = index
 }
 </script>
 
 <template>
   <section class="relative">
     <Carousel
-      @init-api="onCarouselInit"
-      :opts="{
-        align: 'start',
-        loop: true,
-      }"
+      :value="heroSections"
+      :numVisible="1"
+      :numScroll="1"
+      :circular="true"
+      :autoplayInterval="5000"
+      :page="currentIndex"
+      @update:page="onPageChange"
+      :showIndicators="false"
+      :showNavigators="false"
+      :responsiveOptions="responsiveOptions"
     >
-      <CarouselContent>
-        <CarouselItem :with-gap="false">
-          <HeroSection1 />
-        </CarouselItem>
-        <CarouselItem :with-gap="false">
-          <HeroSection2 />
-        </CarouselItem>
-      </CarouselContent>
+      <template #item="slotProps">
+        <component :is="slotProps.data.component" />
+      </template>
     </Carousel>
 
     <div

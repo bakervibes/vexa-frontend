@@ -1,24 +1,10 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
 import { useProducts } from '@/composables/useProducts'
 import { SlidersHorizontalIcon } from 'lucide-vue-next'
-import { computed } from 'vue'
+import Button from 'primevue/button'
+import Drawer from 'primevue/drawer'
+import Paginator from 'primevue/paginator'
+import { computed, ref } from 'vue'
 import ProductCard from '../common/ProductCard.vue'
 import ProductCardSkeleton from '../common/ProductCardSkeleton.vue'
 import ShopFilter from './ShopFilter.vue'
@@ -28,39 +14,44 @@ const { products, paginationProducts, filters, setFilters, isLoadingProducts } =
   useProducts()
 
 const currentPage = computed(() => Number(filters.value.page) || 1)
+const isFilterDrawerOpen = ref(false)
+
+const onPageChange = (event: { page: number }) => {
+  setFilters({ page: String(event.page + 1) }, false)
+}
 </script>
 
 <template>
   <section class="flex flex-1 flex-col gap-4">
     <div class="flex items-center justify-between gap-2">
-      <Sheet>
-        <SheetTrigger class="flex items-center justify-between gap-3 lg:hidden">
-          <Button
-            variant="outline"
-            class="flex h-11! items-center gap-2"
-          >
-            <h1 class="text-xl font-bold">Filter</h1>
-            <SlidersHorizontalIcon class="size-6 text-black/40" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent
-          side="left"
-          class="block w-full sm:max-w-100 lg:hidden"
-        >
-          <SheetHeader class="px-5 pt-4">
-            <SheetTitle>
-              <h1 class="text-2xl font-bold">Filter</h1>
-            </SheetTitle>
-            <SheetDescription>
-              Use the available filters to refine your product search.
-            </SheetDescription>
-          </SheetHeader>
+      <Button
+        outlined
+        class="flex !h-11 items-center gap-2 lg:hidden"
+        @click="isFilterDrawerOpen = true"
+      >
+        <h1 class="text-xl font-bold">Filter</h1>
+        <SlidersHorizontalIcon class="size-6 text-black/40" />
+      </Button>
 
-          <div class="h-[calc(100vh-6.1rem)] overflow-y-auto px-5 pb-5">
-            <ShopFilter />
+      <Drawer
+        v-model:visible="isFilterDrawerOpen"
+        position="left"
+        :style="{ width: '25rem' }"
+        class="block lg:hidden"
+      >
+        <template #header>
+          <div>
+            <h1 class="text-2xl font-bold">Filter</h1>
+            <p class="text-sm text-gray-500">
+              Use the available filters to refine your product search.
+            </p>
           </div>
-        </SheetContent>
-      </Sheet>
+        </template>
+
+        <div class="h-full overflow-y-auto">
+          <ShopFilter />
+        </div>
+      </Drawer>
 
       <h1>{{ paginationProducts?.total || 0 }} products</h1>
 
@@ -120,36 +111,14 @@ const currentPage = computed(() => Number(filters.value.page) || 1)
       />
     </div>
 
-    <Pagination
+    <Paginator
       v-if="paginationProducts && paginationProducts.totalPages > 1"
-      v-slot="{ page }"
-      :total="paginationProducts.total"
-      :items-per-page="21"
-      :sibling-count="1"
-      :default-page="currentPage"
-      show-edges
-      @update:page="(p) => setFilters({ page: String(p) }, false)"
-    >
-      <PaginationContent v-slot="{ items }">
-        <PaginationPrevious />
-
-        <template
-          v-for="(item, index) in items"
-          :key="index"
-        >
-          <PaginationItem
-            v-if="item.type === 'page'"
-            :value="item.value"
-            :is-active="item.value === page"
-          >
-            {{ item.value }}
-          </PaginationItem>
-          <PaginationEllipsis v-else />
-        </template>
-
-        <PaginationNext />
-      </PaginationContent>
-    </Pagination>
+      :rows="21"
+      :totalRecords="paginationProducts.total"
+      :first="(currentPage - 1) * 21"
+      @page="onPageChange"
+      template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
+    />
   </section>
 </template>
 

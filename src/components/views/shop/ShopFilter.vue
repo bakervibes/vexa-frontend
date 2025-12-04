@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { Label } from '@/components/ui/label'
 import { useFilters } from '@/composables/useFilters'
 import { useProducts } from '@/composables/useProducts'
 import { formatPrice } from '@/utils/lib'
+import Accordion from 'primevue/accordion'
+import AccordionContent from 'primevue/accordioncontent'
+import AccordionHeader from 'primevue/accordionheader'
+import AccordionPanel from 'primevue/accordionpanel'
+import Checkbox from 'primevue/checkbox'
 import { computed } from 'vue'
 import RangePicker from '../common/RangePicker.vue'
 
@@ -100,22 +98,24 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
           :max="priceRange.max"
           :step="1"
           :default-value="[priceRange.min, priceRange.max]"
-          :format-value="(value) => `${formatPrice(value)}`"
+          :format-value="(value: number) => `${formatPrice(value)}`"
         />
       </div>
 
       <Accordion
-        type="multiple"
-        :default-value="['category']"
+        :value="['0']"
+        multiple
       >
         <!-- Categories Filter -->
-        <AccordionItem value="category">
-          <AccordionTrigger
-            class="text-base font-semibold"
-            data-testid="accordion-trigger-category"
-          >
-            Catégorie
-          </AccordionTrigger>
+        <AccordionPanel value="0">
+          <AccordionHeader>
+            <span
+              class="text-base font-semibold"
+              data-testid="accordion-trigger-category"
+            >
+              Catégorie
+            </span>
+          </AccordionHeader>
           <AccordionContent>
             <div class="flex flex-col gap-1">
               <div
@@ -123,36 +123,37 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
                 :key="category.slug"
                 class="flex items-center gap-2"
               >
-                <input
-                  type="checkbox"
-                  :id="category.slug"
-                  :checked="selectedCategories.includes(category.slug)"
-                  @change="handleCategoryCheckbox(category.slug)"
-                  class="size-4 cursor-pointer checked:accent-black/90"
+                <Checkbox
+                  :inputId="category.slug"
+                  :binary="true"
+                  :modelValue="selectedCategories.includes(category.slug)"
+                  @update:modelValue="handleCategoryCheckbox(category.slug)"
                 />
-                <Label
+                <label
                   class="cursor-pointer text-base"
                   :for="category.slug"
                 >
                   {{ category.name }}
-                </Label>
+                </label>
               </div>
             </div>
           </AccordionContent>
-        </AccordionItem>
+        </AccordionPanel>
 
         <!-- Attributes Filters (dynamic) -->
-        <AccordionItem
-          v-for="attribute in attributes"
+        <AccordionPanel
+          v-for="(attribute, index) in attributes"
           :key="attribute.slug"
-          :value="attribute.slug"
+          :value="`${index + 1}`"
         >
-          <AccordionTrigger
-            class="text-base font-semibold"
-            :data-testid="`accordion-trigger-${attribute.slug}`"
-          >
-            {{ attribute.name }}
-          </AccordionTrigger>
+          <AccordionHeader>
+            <span
+              class="text-base font-semibold"
+              :data-testid="`accordion-trigger-${attribute.slug}`"
+            >
+              {{ attribute.name }}
+            </span>
+          </AccordionHeader>
           <AccordionContent>
             <div class="flex flex-col gap-1">
               <div
@@ -160,23 +161,24 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
                 :key="option.slug"
                 class="flex items-center gap-2"
               >
-                <input
-                  type="checkbox"
-                  :id="`${attribute.slug}-${option.slug}`"
-                  :checked="isOptionSelected(attribute.name, option.name)"
-                  @change="handleOptionCheckbox(attribute.name, option.name)"
-                  class="size-4 cursor-pointer checked:accent-black/90"
+                <Checkbox
+                  :inputId="`${attribute.slug}-${option.slug}`"
+                  :binary="true"
+                  :modelValue="isOptionSelected(attribute.name, option.name)"
+                  @update:modelValue="
+                    handleOptionCheckbox(attribute.name, option.name)
+                  "
                 />
-                <Label
+                <label
                   class="cursor-pointer text-base"
                   :for="`${attribute.slug}-${option.slug}`"
                 >
                   {{ option.name }}
-                </Label>
+                </label>
               </div>
             </div>
           </AccordionContent>
-        </AccordionItem>
+        </AccordionPanel>
       </Accordion>
     </div>
   </section>

@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import Dialog from 'primevue/dialog'
 import { ref, watch } from 'vue'
 import ModalSignInForm from './ModalSignInForm.vue'
 import ModalSignUpForm from './ModalSignUpForm.vue'
@@ -59,39 +53,31 @@ const handleOpenChange = (value: boolean) => {
 
 <template>
   <Dialog
-    :open="open"
-    @update:open="handleOpenChange"
+    :visible="open"
+    @update:visible="handleOpenChange"
+    modal
+    :header="currentMode === 'login' ? 'Sign in' : 'Create an account'"
+    :style="{ width: '80vw', maxWidth: '1024px' }"
+    :contentStyle="{ padding: 0 }"
+    :showHeader="false"
+    :dismissableMask="true"
+    class="overflow-hidden"
   >
-    <DialogContent class="w-full! max-w-5xl! overflow-hidden rounded-none p-0">
-      <DialogHeader class="sr-only">
-        <DialogTitle>
-          {{ currentMode === 'login' ? 'Sign in' : 'Create an account' }}
-        </DialogTitle>
-        <DialogDescription>
-          {{
-            currentMode === 'login'
-              ? 'Sign in to your account to continue'
-              : 'Create a new account to get started'
-          }}
-        </DialogDescription>
-      </DialogHeader>
-
-      <Transition
-        name="fade"
-        mode="out-in"
-      >
-        <ModalSignInForm
-          v-if="currentMode === 'login'"
-          @switch-to-register="switchToRegister"
-          @success="handleSuccess"
-        />
-        <ModalSignUpForm
-          v-else
-          @switch-to-login="switchToLogin"
-          @success="handleSuccess"
-        />
-      </Transition>
-    </DialogContent>
+    <Transition
+      name="fade"
+      mode="out-in"
+    >
+      <ModalSignInForm
+        v-if="currentMode === 'login'"
+        @switch-to-register="switchToRegister"
+        @success="handleSuccess"
+      />
+      <ModalSignUpForm
+        v-else
+        @switch-to-login="switchToLogin"
+        @success="handleSuccess"
+      />
+    </Transition>
   </Dialog>
 </template>
 

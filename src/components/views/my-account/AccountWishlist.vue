@@ -1,20 +1,14 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { useCarts, useCartsMutation } from '@/composables/useCarts'
 import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
 import type { WishlistItemWithDetails } from '@/types'
 import { formatPrice } from '@/utils/lib'
 import { ArrowLeftIcon, CheckIcon, HeartIcon, XIcon } from 'lucide-vue-next'
+import Button from 'primevue/button'
+import Column from 'primevue/column'
+import DataTable from 'primevue/datatable'
+import Skeleton from 'primevue/skeleton'
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
@@ -80,11 +74,15 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       v-if="isLoadingWishlist"
       class="space-y-4"
     >
-      <Skeleton class="h-12 w-full" />
+      <Skeleton
+        height="3rem"
+        class="w-full"
+      />
       <Skeleton
         v-for="i in 4"
         :key="i"
-        class="h-20 w-full"
+        height="5rem"
+        class="w-full"
       />
     </div>
 
@@ -102,7 +100,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       </div>
       <RouterLink to="/shop">
         <Button
-          variant="outline"
+          outlined
           class="mt-2"
         >
           Continue browsing
@@ -117,116 +115,118 @@ const displayFrom = (item: WishlistItemWithDetails) => {
     >
       <!-- Desktop View -->
       <div class="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="w-[50%]">Product</TableHead>
-              <TableHead class="text-center">Price</TableHead>
-              <TableHead class="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow
-              v-for="item in items"
-              :key="item.id"
-            >
-              <TableCell class="py-5">
-                <div class="flex items-center gap-4">
-                  <button
-                    @click="handleRemoveItem(item)"
-                    class="hover:text-destructive cursor-pointer text-gray-500 transition-colors"
-                    :disabled="isRemovingWishlistItem"
-                    aria-label="Remove item"
-                  >
-                    <XIcon class="h-5 w-5" />
-                  </button>
-                  <RouterLink
-                    :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-                    class="flex items-center gap-4"
-                  >
-                    <div class="h-16 w-16 overflow-hidden rounded bg-gray-100">
-                      <img
-                        :src="item.product.images[0]"
-                        :alt="item.product.name"
-                        class="h-full w-full object-cover"
-                      />
-                    </div>
-                    <div>
-                      <div class="font-medium">
-                        {{ item.product.name }}
-                      </div>
-                      <div v-if="!!item.variant">
-                        <div
-                          v-for="option in item.variant.productVariantOptions"
-                          :key="option.id"
-                        >
-                          <span class="text-gray-500">
-                            {{ option.option.attribute.name }}:
-                          </span>
-                          {{ option.option.name }}
-                        </div>
-                      </div>
-                    </div>
-                  </RouterLink>
-                </div>
-              </TableCell>
-              <TableCell class="py-5 text-center">
-                <span
-                  v-if="displayFrom(item)"
-                  class="text-gray-500"
+        <DataTable :value="items">
+          <Column
+            header="Product"
+            style="width: 50%"
+          >
+            <template #body="slotProps">
+              <div class="flex items-center gap-4 py-2">
+                <button
+                  @click="handleRemoveItem(slotProps.data)"
+                  class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
+                  :disabled="isRemovingWishlistItem"
+                  aria-label="Remove item"
                 >
-                  From
+                  <XIcon class="h-5 w-5" />
+                </button>
+                <RouterLink
+                  :to="`/products/${slotProps.data.product.slug}${slotProps.data.variant && `?${slotProps.data.variant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
+                  class="flex items-center gap-4"
+                >
+                  <div class="h-16 w-16 overflow-hidden rounded bg-gray-100">
+                    <img
+                      :src="slotProps.data.product.images[0]"
+                      :alt="slotProps.data.product.name"
+                      class="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <div class="font-medium">
+                      {{ slotProps.data.product.name }}
+                    </div>
+                    <div v-if="!!slotProps.data.variant">
+                      <div
+                        v-for="option in slotProps.data.variant
+                          .productVariantOptions"
+                        :key="option.id"
+                      >
+                        <span class="text-gray-500">
+                          {{ option.option.attribute.name }}:
+                        </span>
+                        {{ option.option.name }}
+                      </div>
+                    </div>
+                  </div>
+                </RouterLink>
+              </div>
+            </template>
+          </Column>
+          <Column
+            header="Price"
+            class="text-center"
+          >
+            <template #body="slotProps">
+              <span
+                v-if="displayFrom(slotProps.data)"
+                class="text-gray-500"
+              >
+                From
+              </span>
+              {{ formatPrice(getItemPrice(slotProps.data)) }}
+            </template>
+          </Column>
+          <Column
+            header="Action"
+            class="text-right"
+          >
+            <template #body="slotProps">
+              <!-- Product requiring variant selection -->
+              <div
+                v-if="needsVariantSelection(slotProps.data)"
+                class="flex w-full justify-end"
+              >
+                <RouterLink
+                  :to="`/products/${slotProps.data.product.slug}`"
+                  class="flex w-fit items-center"
+                >
+                  <Button link>
+                    <ArrowLeftIcon class="h-4 w-4" />
+                    Select options
+                  </Button>
+                </RouterLink>
+              </div>
+
+              <!-- Product already in cart -->
+              <div
+                v-else-if="
+                  cartItems.some(
+                    (cartItem) =>
+                      cartItem.product.id === slotProps.data.product.id &&
+                      cartItem.variant?.id === slotProps.data.variant?.id,
+                  )
+                "
+                class="rounded-md text-green-500"
+              >
+                <span class="flex items-center justify-end gap-2">
+                  <CheckIcon class="h-4 w-4" />
+                  Already in cart
                 </span>
-                {{ formatPrice(getItemPrice(item)) }}
-              </TableCell>
-              <TableCell class="py-5 text-right">
-                <!-- Product requiring variant selection -->
-                <div
-                  v-if="needsVariantSelection(item)"
-                  class="flex w-full justify-end"
-                >
-                  <RouterLink
-                    :to="`/products/${item.product.slug}`"
-                    class="flex w-fit items-center"
-                  >
-                    <Button variant="link">
-                      <ArrowLeftIcon class="h-4 w-4" />
-                      Select options
-                    </Button>
-                  </RouterLink>
-                </div>
+              </div>
 
-                <!-- Product already in cart -->
-                <div
-                  v-else-if="
-                    cartItems.some(
-                      (cartItem) =>
-                        cartItem.product.id === item.product.id &&
-                        cartItem.variant?.id === item.variant?.id,
-                    )
-                  "
-                  class="rounded-md text-green-500"
-                >
-                  <span class="flex items-center justify-end gap-2">
-                    <CheckIcon class="h-4 w-4" />
-                    Already in cart
-                  </span>
-                </div>
-
-                <!-- Add to cart button -->
-                <LoadingButton
-                  v-else
-                  :loading="isItemLoading(item)"
-                  @click="handleAddToCart(item)"
-                  :disabled="isAnyItemLoading()"
-                  class="h-10"
-                >
-                  Add to cart
-                </LoadingButton>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+              <!-- Add to cart button -->
+              <LoadingButton
+                v-else
+                :loading="isItemLoading(slotProps.data)"
+                @click="handleAddToCart(slotProps.data)"
+                :disabled="isAnyItemLoading()"
+                class="h-10"
+              >
+                Add to cart
+              </LoadingButton>
+            </template>
+          </Column>
+        </DataTable>
       </div>
 
       <!-- Mobile View -->
@@ -239,7 +239,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
           <div class="flex items-center gap-4">
             <button
               @click="handleRemoveItem(item)"
-              class="hover:text-destructive cursor-pointer text-gray-500 transition-colors"
+              class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
               :disabled="isRemovingWishlistItem"
               aria-label="Remove item"
             >
@@ -258,7 +258,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
               <div class="font-medium">{{ item.product.name }}</div>
               <div
                 v-if="item.variant"
-                class="text-muted-foreground text-sm"
+                class="text-sm text-gray-500"
               >
                 <span
                   v-for="(option, index) in item.variant.productVariantOptions"
@@ -288,7 +288,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
               :to="`/products/${item.product.slug}`"
               class="flex w-fit items-center"
             >
-              <Button variant="link">
+              <Button link>
                 <ArrowLeftIcon class="h-4 w-4" />
                 Select options
               </Button>

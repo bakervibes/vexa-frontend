@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import { MailIcon } from 'lucide-vue-next'
+import Button from 'primevue/button'
 import { ref } from 'vue'
 
 const email = ref('')
@@ -58,8 +58,8 @@ const handleSubmit = () => {
           />
           <Button
             type="submit"
-            variant="ghost"
-            class="px-0 text-sm font-medium text-gray-700 hover:bg-transparent hover:text-black"
+            text
+            class="px-0 text-sm font-medium text-gray-700 hover:text-black"
           >
             Signup
           </Button>

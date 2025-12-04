@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Skeleton } from '@/components/ui/skeleton'
 import { useOrder } from '@/composables/useOrders'
 import type { OrderItem, PaymentProvider } from '@/types'
 import { formatPrice } from '@/utils/lib'
+import Button from 'primevue/button'
+import Card from 'primevue/card'
+import Dialog from 'primevue/dialog'
+import Skeleton from 'primevue/skeleton'
 import { computed, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
@@ -70,193 +64,222 @@ const getItemQuantity = (item: OrderItem) => item.data.quantity
 <template>
   <div class="flex justify-center">
     <Card class="w-full max-w-2xl">
-      <CardContent class="p-8 text-center">
-        <!-- LOADING -->
-        <div
-          v-if="isLoading"
-          class="space-y-6"
-        >
-          <Skeleton class="mx-auto h-8 w-48" />
-          <Skeleton class="mx-auto h-12 w-64" />
-          <Skeleton class="mx-auto h-10 w-40" />
-          <div class="mx-auto max-w-sm space-y-4">
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-          </div>
-        </div>
-
-        <!-- ERROR: Missing orderNumber -->
-        <div
-          v-else-if="isOrderNumberMissing"
-          class="space-y-4 py-10"
-        >
-          <svg
-            class="mx-auto h-12 w-12 text-red-500"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
+      <template #content>
+        <div class="p-8 text-center">
+          <!-- LOADING -->
+          <div
+            v-if="isLoading"
+            class="space-y-6"
           >
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
+            <Skeleton
+              width="12rem"
+              height="2rem"
+              class="mx-auto"
             />
-            <line
-              x1="12"
-              y1="8"
-              x2="12"
-              y2="12"
+            <Skeleton
+              width="16rem"
+              height="3rem"
+              class="mx-auto"
             />
-            <line
-              x1="12"
-              y1="16"
-              x2="12.01"
-              y2="16"
+            <Skeleton
+              width="10rem"
+              height="2.5rem"
+              class="mx-auto"
             />
-          </svg>
-
-          <h2 class="text-xl font-semibold text-red-600">
-            Missing order number
-          </h2>
-          <p class="text-gray-600">
-            The page requires an
-            <strong>order number</strong>
-            query parameter.
-          </p>
-
-          <RouterLink to="/">
-            <Button class="mt-4">Return to Home</Button>
-          </RouterLink>
-        </div>
-
-        <!-- ERROR: Generic error -->
-        <div
-          v-else-if="isError"
-          class="space-y-4 py-10"
-        >
-          <svg
-            class="mx-auto h-12 w-12 text-red-500"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="10"
-            />
-            <line
-              x1="12"
-              y1="8"
-              x2="12"
-              y2="12"
-            />
-            <line
-              x1="12"
-              y1="16"
-              x2="12.01"
-              y2="16"
-            />
-          </svg>
-
-          <h2 class="text-xl font-semibold text-red-600">
-            Unable to load order
-          </h2>
-          <p class="text-gray-500">
-            Something went wrong while retrieving your order.
-          </p>
-
-          <RouterLink to="/">
-            <Button class="mt-4">Return to Home</Button>
-          </RouterLink>
-        </div>
-
-        <!-- ERROR: Order not found -->
-        <div
-          v-else-if="!order"
-          class="space-y-4 py-10"
-        >
-          <svg
-            class="mx-auto h-12 w-12 text-yellow-500"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M10.29 3.86L1.82 18a1 1 0 0 0 .85 1.5h18.66a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"
-            />
-            <line
-              x1="12"
-              y1="9"
-              x2="12"
-              y2="13"
-            />
-            <line
-              x1="12"
-              y1="17"
-              x2="12.01"
-              y2="17"
-            />
-          </svg>
-
-          <h2 class="text-xl font-semibold text-yellow-600">Order not found</h2>
-          <p class="text-gray-500">
-            No order matches the number:
-            <strong>{{ orderNumber }}</strong>
-            .
-          </p>
-
-          <RouterLink to="/orders">
-            <Button class="mt-4">View my orders</Button>
-          </RouterLink>
-        </div>
-
-        <!-- SUCCESS -->
-        <template v-else>
-          <div class="mb-8">
-            <p class="mb-2 text-lg text-gray-500">Thank you! 🎉</p>
-            <h2 class="text-3xl font-semibold">Your order has been received</h2>
+            <div class="mx-auto max-w-sm space-y-4">
+              <Skeleton
+                width="100%"
+                height="2.5rem"
+              />
+              <Skeleton
+                width="100%"
+                height="2.5rem"
+              />
+              <Skeleton
+                width="100%"
+                height="2.5rem"
+              />
+              <Skeleton
+                width="100%"
+                height="2.5rem"
+              />
+            </div>
           </div>
 
-          <!-- Modal Trigger -->
-          <div class="mb-8">
-            <Dialog v-model:open="isModalOpen">
-              <DialogTrigger as-child>
-                <Button
-                  variant="outline"
-                  class="gap-2"
+          <!-- ERROR: Missing orderNumber -->
+          <div
+            v-else-if="isOrderNumberMissing"
+            class="space-y-4 py-10"
+          >
+            <svg
+              class="mx-auto h-12 w-12 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <line
+                x1="12"
+                y1="8"
+                x2="12"
+                y2="12"
+              />
+              <line
+                x1="12"
+                y1="16"
+                x2="12.01"
+                y2="16"
+              />
+            </svg>
+
+            <h2 class="text-xl font-semibold text-red-600">
+              Missing order number
+            </h2>
+            <p class="text-gray-600">
+              The page requires an
+              <strong>order number</strong>
+              query parameter.
+            </p>
+
+            <RouterLink to="/">
+              <Button class="mt-4">Return to Home</Button>
+            </RouterLink>
+          </div>
+
+          <!-- ERROR: Generic error -->
+          <div
+            v-else-if="isError"
+            class="space-y-4 py-10"
+          >
+            <svg
+              class="mx-auto h-12 w-12 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+              />
+              <line
+                x1="12"
+                y1="8"
+                x2="12"
+                y2="12"
+              />
+              <line
+                x1="12"
+                y1="16"
+                x2="12.01"
+                y2="16"
+              />
+            </svg>
+
+            <h2 class="text-xl font-semibold text-red-600">
+              Unable to load order
+            </h2>
+            <p class="text-gray-500">
+              Something went wrong while retrieving your order.
+            </p>
+
+            <RouterLink to="/">
+              <Button class="mt-4">Return to Home</Button>
+            </RouterLink>
+          </div>
+
+          <!-- ERROR: Order not found -->
+          <div
+            v-else-if="!order"
+            class="space-y-4 py-10"
+          >
+            <svg
+              class="mx-auto h-12 w-12 text-yellow-500"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10.29 3.86L1.82 18a1 1 0 0 0 .85 1.5h18.66a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"
+              />
+              <line
+                x1="12"
+                y1="9"
+                x2="12"
+                y2="13"
+              />
+              <line
+                x1="12"
+                y1="17"
+                x2="12.01"
+                y2="17"
+              />
+            </svg>
+
+            <h2 class="text-xl font-semibold text-yellow-600">
+              Order not found
+            </h2>
+            <p class="text-gray-500">
+              No order matches the number:
+              <strong>{{ orderNumber }}</strong>
+              .
+            </p>
+
+            <RouterLink to="/orders">
+              <Button class="mt-4">View my orders</Button>
+            </RouterLink>
+          </div>
+
+          <!-- SUCCESS -->
+          <template v-else>
+            <div class="mb-8">
+              <p class="mb-2 text-lg text-gray-500">Thank you! 🎉</p>
+              <h2 class="text-3xl font-semibold">
+                Your order has been received
+              </h2>
+            </div>
+
+            <!-- Modal Trigger -->
+            <div class="mb-8">
+              <Button
+                outlined
+                class="gap-2"
+                @click="isModalOpen = true"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"
-                    />
-                    <path d="M3 6h18" />
-                    <path d="M16 10a4 4 0 0 1-8 0" />
-                  </svg>
-                  View order items ({{ items.length }})
-                </Button>
-              </DialogTrigger>
+                  <path
+                    d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"
+                  />
+                  <path d="M3 6h18" />
+                  <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                View order items ({{ items.length }})
+              </Button>
 
-              <DialogContent class="max-h-[80vh] overflow-y-auto sm:max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Order Items</DialogTitle>
-                </DialogHeader>
-
+              <Dialog
+                v-model:visible="isModalOpen"
+                modal
+                header="Order Items"
+                :style="{ width: '32rem', maxWidth: '90vw' }"
+                :contentStyle="{ maxHeight: '80vh', overflow: 'auto' }"
+              >
                 <div class="mt-4 space-y-4">
                   <div
                     v-for="item in items"
@@ -319,37 +342,37 @@ const getItemQuantity = (item: OrderItem) => item.data.quantity
                     </div>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+              </Dialog>
+            </div>
 
-          <!-- Order details -->
-          <div class="mx-auto max-w-sm space-y-4 text-left">
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Order code:</span>
-              <span class="font-medium">{{ order.orderNumber }}</span>
+            <!-- Order details -->
+            <div class="mx-auto max-w-sm space-y-4 text-left">
+              <div class="flex justify-between border-b pb-3">
+                <span class="text-gray-500">Order code:</span>
+                <span class="font-medium">{{ order.orderNumber }}</span>
+              </div>
+              <div class="flex justify-between border-b pb-3">
+                <span class="text-gray-500">Date:</span>
+                <span class="font-medium">{{ orderDate }}</span>
+              </div>
+              <div class="flex justify-between border-b pb-3">
+                <span class="text-gray-500">Total:</span>
+                <span class="font-medium">{{ formatPrice(total) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-500">Payment method:</span>
+                <span class="font-medium">{{ paymentMethod }}</span>
+              </div>
             </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Date:</span>
-              <span class="font-medium">{{ orderDate }}</span>
-            </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Total:</span>
-              <span class="font-medium">{{ formatPrice(total) }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">Payment method:</span>
-              <span class="font-medium">{{ paymentMethod }}</span>
-            </div>
-          </div>
 
-          <div class="mt-8">
-            <RouterLink to="/orders">
-              <Button class="h-12 px-8">Purchase history</Button>
-            </RouterLink>
-          </div>
-        </template>
-      </CardContent>
+            <div class="mt-8">
+              <RouterLink to="/orders">
+                <Button class="h-12 px-8">Purchase history</Button>
+              </RouterLink>
+            </div>
+          </template>
+        </div>
+      </template>
     </Card>
   </div>
 </template>

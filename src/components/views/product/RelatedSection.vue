@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import { useRelatedProducts } from '@/composables/useProducts'
 import { ArrowRightIcon } from 'lucide-vue-next'
+import Button from 'primevue/button'
 import ProductCard from '../common/ProductCard.vue'
 
 const props = defineProps<{
@@ -20,7 +20,7 @@ const { relatedProducts } = useRelatedProducts(props.slug)
       </h2>
 
       <RouterLink to="/shop">
-        <Button variant="link">
+        <Button link>
           More products
           <ArrowRightIcon />
         </Button>

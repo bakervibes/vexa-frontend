@@ -1,13 +1,7 @@
 <script setup lang="ts">
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useProducts } from '@/composables/useProducts'
 import { SortBy, SortOrder } from '@/validators/common.schemas'
+import Select from 'primevue/select'
 import { computed } from 'vue'
 
 const { filters, setFilters } = useProducts()
@@ -37,13 +31,11 @@ const currentSortOption = computed(() => {
     (opt) => opt.sortBy === currentSortBy && opt.order === currentSortOrder,
   )
 
-  return option?.label
+  return option
 })
 
 // Handle sort selection
-function handleSortChange(label: string) {
-  const option = sortOptions.find((opt) => opt.label === label)
-
+function handleSortChange(option: SortOption) {
   if (option) {
     setFilters({
       sortBy: option.sortBy,
@@ -55,22 +47,13 @@ function handleSortChange(label: string) {
 
 <template>
   <Select
-    :model-value="currentSortOption"
-    @update:model-value="(value) => handleSortChange(value as string)"
-  >
-    <SelectTrigger class="h-11! w-50">
-      <SelectValue placeholder="Sort by" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem
-        v-for="option in sortOptions"
-        :key="option.label"
-        :value="option.label"
-      >
-        {{ option.label }}
-      </SelectItem>
-    </SelectContent>
-  </Select>
+    :modelValue="currentSortOption"
+    @update:modelValue="(value) => handleSortChange(value as SortOption)"
+    :options="sortOptions"
+    optionLabel="label"
+    placeholder="Sort by"
+    class="!h-11 w-50"
+  />
 </template>
 
 <style scoped></style>

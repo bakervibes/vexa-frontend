@@ -1,98 +1,99 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
 import { useUsersMutation } from '@/composables/useUsers'
 import { changePasswordSchema } from '@/validators/users.validator'
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
+import { Form, type FormSubmitEvent } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
+import Message from 'primevue/message'
+import { ref } from 'vue'
 
 const { changePassword, isChangingPassword } = useUsersMutation()
 
-// Form setup with vee-validate and zod
-const form = useForm({
-  validationSchema: toTypedSchema(changePasswordSchema),
-  initialValues: {
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  },
-})
+const initialValues = {
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+}
 
-const onSubmit = form.handleSubmit(async (values) => {
+const resolver = zodResolver(changePasswordSchema)
+const formKey = ref(0)
+
+const onFormSubmit = async ({ valid, values }: FormSubmitEvent) => {
+  if (!valid) return
+
   try {
-    await changePassword(values)
+    await changePassword(values as typeof initialValues)
     // Reset form on success
-    form.resetForm()
+    formKey.value++
   } catch (error) {
     console.error('Error changing password:', error)
   }
-})
+}
 </script>
 
 <template>
   <section>
     <h2 class="mb-6 text-xl font-semibold">Password</h2>
 
-    <form
-      @submit="onSubmit"
+    <Form
+      v-slot="$form"
+      :key="formKey"
+      :initialValues="initialValues"
+      :resolver="resolver"
+      @submit="onFormSubmit"
       class="max-w-lg space-y-5"
     >
       <!-- Current Password -->
-      <FormField
-        v-slot="{ componentField }"
-        name="currentPassword"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomInput
-              label="Current Password *"
-              type="password"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomInput
+          name="currentPassword"
+          label="Current Password *"
+          type="password"
+        />
+        <Message
+          v-if="$form.currentPassword?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.currentPassword.error?.message }}
+        </Message>
+      </div>
 
       <!-- New Password -->
-      <FormField
-        v-slot="{ componentField }"
-        name="newPassword"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomInput
-              label="New Password *"
-              type="password"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomInput
+          name="newPassword"
+          label="New Password *"
+          type="password"
+        />
+        <Message
+          v-if="$form.newPassword?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.newPassword.error?.message }}
+        </Message>
+      </div>
 
       <!-- Confirm Password -->
-      <FormField
-        v-slot="{ componentField }"
-        name="confirmPassword"
-      >
-        <FormItem>
-          <FormControl>
-            <CustomInput
-              label="Confirm New Password *"
-              type="password"
-              v-bind="componentField"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <div class="flex flex-col gap-1">
+        <CustomInput
+          name="confirmPassword"
+          label="Confirm New Password *"
+          type="password"
+        />
+        <Message
+          v-if="$form.confirmPassword?.invalid"
+          severity="error"
+          size="small"
+          variant="simple"
+        >
+          {{ $form.confirmPassword.error?.message }}
+        </Message>
+      </div>
 
       <!-- Submit Button -->
       <div class="flex justify-end">
@@ -105,7 +106,7 @@ const onSubmit = form.handleSubmit(async (values) => {
           Change password
         </LoadingButton>
       </div>
-    </form>
+    </Form>
   </section>
 </template>
 

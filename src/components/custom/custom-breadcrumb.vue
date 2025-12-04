@@ -1,19 +1,8 @@
 <script setup lang="ts">
-import {
-  Breadcrumb,
-  BreadcrumbEllipsis,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { computed } from 'vue'
+import { MoreHorizontal } from 'lucide-vue-next'
+import Breadcrumb from 'primevue/breadcrumb'
+import Menu from 'primevue/menu'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 // Props
@@ -26,113 +15,89 @@ const props = defineProps<{
   items: BreadcrumbItemType[]
 }>()
 
+const menu = ref()
+
 // Logique : dropdown dès qu'il y a 3 éléments ou plus
-// Tous les éléments sauf le dernier vont dans le dropdown
 const shouldShowDropdown = computed(() => props.items.length >= 3)
 
-const displayedItems = computed(() => {
+// Transformation des items pour PrimeVue Breadcrumb
+const breadcrumbItems = computed(() => {
   if (props.items.length < 3) {
     // Moins de 3 éléments : affichage normal
-    return { hidden: [], last: props.items }
+    return props.items.map((item) => ({
+      label: item.label,
+      to: item.link,
+    }))
   }
 
-  // 3 éléments ou plus : tous dans le dropdown sauf le dernier
-  return {
-    hidden: props.items.slice(0, -1),
-    last: [props.items[props.items.length - 1]],
-  }
+  // 3 éléments ou plus : afficher uniquement le dernier
+  const lastItem = props.items[props.items.length - 1]
+  if (!lastItem) return []
+  return [
+    {
+      label: lastItem.label,
+      to: lastItem.link,
+    },
+  ]
 })
+
+// Items pour le menu dropdown
+const menuItems = computed(() => {
+  if (props.items.length < 3) return []
+
+  return props.items.slice(0, -1).map((item) => ({
+    label: item.label,
+    command: () => {
+      if (item.link) {
+        window.location.href = item.link
+      }
+    },
+  }))
+})
+
+const toggleMenu = (event: Event) => {
+  menu.value?.toggle(event)
+}
 </script>
 
 <template>
-  <Breadcrumb class="shrink-0">
-    <BreadcrumbList>
-      <!-- Cas simple : moins de 3 éléments -->
-      <template v-if="!shouldShowDropdown">
-        <template
-          v-for="(item, index) in displayedItems.last"
-          :key="index"
+  <div class="flex shrink-0 items-center gap-2">
+    <!-- Bouton dropdown si 3+ éléments -->
+    <button
+      v-if="shouldShowDropdown"
+      @click="toggleMenu"
+      class="hover:text-primary flex cursor-pointer items-center gap-1 transition-colors"
+      aria-label="Afficher les éléments du chemin"
+    >
+      <MoreHorizontal class="h-4 w-4" />
+    </button>
+
+    <Menu
+      v-if="shouldShowDropdown"
+      ref="menu"
+      :model="menuItems"
+      :popup="true"
+    />
+
+    <!-- Breadcrumb PrimeVue -->
+    <Breadcrumb :model="breadcrumbItems">
+      <template #item="{ item, props }">
+        <RouterLink
+          v-if="item.to"
+          :to="item.to"
+          v-bind="props.action"
+          class="hover:text-primary truncate text-lg transition-colors"
         >
-          <BreadcrumbItem>
-            <RouterLink
-              v-if="item?.link"
-              :to="item.link"
-              :title="item.label"
-              class="hover:text-primary truncate text-lg transition-colors"
-            >
-              {{ item.label }}
-            </RouterLink>
-            <BreadcrumbPage
-              v-else
-              :title="item?.label"
-              aria-current="page"
-              class="truncate text-lg"
-            >
-              {{ item?.label }}
-            </BreadcrumbPage>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator v-if="index < displayedItems.last.length - 1" />
-        </template>
+          {{ item.label }}
+        </RouterLink>
+        <span
+          v-else
+          v-bind="props.action"
+          class="truncate text-lg"
+        >
+          {{ item.label }}
+        </span>
       </template>
-
-      <!-- Cas avec dropdown : 3 éléments ou plus -->
-      <template v-else>
-        <!-- Dropdown contenant tous les éléments sauf le dernier -->
-        <BreadcrumbItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger class="flex cursor-pointer items-center gap-1">
-              <BreadcrumbEllipsis class="h-4 w-4" />
-              <span class="sr-only">Afficher les éléments du chemin</span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                v-for="(item, index) in displayedItems.hidden"
-                :key="index"
-                :as-child="!!item.link"
-                class="cursor-pointer"
-              >
-                <RouterLink
-                  v-if="item.link"
-                  :to="item.link"
-                  :title="item.label"
-                  class="hover:text-primary block truncate transition-colors"
-                >
-                  {{ item.label }}
-                </RouterLink>
-                <span
-                  v-else
-                  :title="item.label"
-                  class="block truncate"
-                >
-                  {{ item.label }}
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </BreadcrumbItem>
-
-        <BreadcrumbSeparator />
-
-        <!-- Dernier élément avec priorité maximale d'affichage -->
-        <BreadcrumbItem class="flex-1 overflow-hidden">
-          <RouterLink
-            v-if="displayedItems.last[0]?.link"
-            :to="displayedItems.last[0]?.link"
-            :title="displayedItems.last[0]?.label"
-            class="hover:text-primary block truncate text-lg transition-colors"
-          >
-            {{ displayedItems.last[0]?.label }}
-          </RouterLink>
-          <BreadcrumbPage
-            v-else
-            :title="displayedItems.last[0]?.label"
-            aria-current="page"
-            class="block truncate text-lg"
-          >
-            {{ displayedItems.last[0]?.label }}
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-      </template>
-    </BreadcrumbList>
-  </Breadcrumb>
+    </Breadcrumb>
+  </div>
 </template>

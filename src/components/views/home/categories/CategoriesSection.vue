@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import type { CarouselApi } from '@/components/ui/carousel'
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-} from '@/components/ui/carousel'
 import { useBestSellingCategories } from '@/composables/useCategories'
 import { ArrowRightIcon } from 'lucide-vue-next'
+import Carousel from 'primevue/carousel'
 import { computed, ref } from 'vue'
 
 const {
@@ -16,20 +11,7 @@ const {
   refetchBestSellingCategories,
 } = useBestSellingCategories()
 
-const carouselApi = ref<CarouselApi>()
 const currentIndex = ref(0)
-
-function onCarouselInit(api: CarouselApi) {
-  carouselApi.value = api
-
-  api?.on('select', () => {
-    currentIndex.value = api.selectedScrollSnap()
-  })
-}
-
-function goToSlide(index: number) {
-  carouselApi.value?.scrollTo(index)
-}
 
 const chunkedCategories = computed(() => {
   const bottomItems = bestSellingCategories.value.filter(
@@ -98,6 +80,10 @@ function getPositionClasses(position?: { x?: number; y?: number }) {
 function handleRefetch() {
   refetchBestSellingCategories()
 }
+
+const onPageChange = (event: { page: number }) => {
+  currentIndex.value = event.page
+}
 </script>
 
 <template>
@@ -115,7 +101,7 @@ function handleRefetch() {
           v-for="index in chunkedCategories.length"
           :key="index"
           class="cursor-pointer p-1"
-          @click="goToSlide(index - 1)"
+          @click="currentIndex = index - 1"
         >
           <div
             :class="[
@@ -164,37 +150,69 @@ function handleRefetch() {
     <!-- Success state with data -->
     <Carousel
       v-else
-      @init-api="onCarouselInit"
-      :opts="{
-        align: 'start',
-        loop: true,
-      }"
+      :value="chunkedCategories"
+      :numVisible="1"
+      :numScroll="1"
+      :circular="true"
+      :page="currentIndex"
+      @update:page="onPageChange"
+      :showIndicators="false"
+      :showNavigators="false"
     >
-      <CarouselContent>
-        <CarouselItem
-          v-for="(chunk, index) in chunkedCategories"
-          :key="index"
-        >
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <!-- First column (1 large item) -->
+      <template #item="slotProps">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <!-- First column (1 large item) -->
+          <div
+            v-if="slotProps.data[0]"
+            class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
+          >
+            <img
+              :src="slotProps.data[0].image"
+              :alt="slotProps.data[0].name"
+              class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+
             <div
-              v-if="chunk[0]"
-              class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
+              :class="[
+                'absolute w-max max-w-[calc(100%-2rem)]',
+                getPositionClasses(slotProps.data[0].position),
+              ]"
             >
+              <h3 class="text-xl font-bold text-black md:text-2xl">
+                {{ slotProps.data[0].name }}
+              </h3>
+              <div
+                class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
+              >
+                <span>Shop Now</span>
+                <ArrowRightIcon class="size-4" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Middle column (2 items stacked) -->
+          <div class="flex flex-col gap-4">
+            <div
+              v-if="slotProps.data[1]"
+              class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
+            >
+              <div
+                class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              />
               <img
-                :src="chunk[0].image"
-                :alt="chunk[0].name"
+                :src="slotProps.data[1].image"
+                :alt="slotProps.data[1].name"
                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
 
               <div
                 :class="[
                   'absolute w-max max-w-[calc(100%-2rem)]',
-                  getPositionClasses(chunk[0].position),
+                  getPositionClasses(slotProps.data[1].position),
                 ]"
               >
                 <h3 class="text-xl font-bold text-black md:text-2xl">
-                  {{ chunk[0].name }}
+                  {{ slotProps.data[1].name }}
                 </h3>
                 <div
                   class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
@@ -205,90 +223,27 @@ function handleRefetch() {
               </div>
             </div>
 
-            <!-- Middle column (2 items stacked) -->
-            <div class="flex flex-col gap-4">
-              <div
-                v-if="chunk[1]"
-                class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
-              >
-                <div
-                  class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                />
-                <img
-                  :src="chunk[1].image"
-                  :alt="chunk[1].name"
-                  class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-
-                <div
-                  :class="[
-                    'absolute w-max max-w-[calc(100%-2rem)]',
-                    getPositionClasses(chunk[1].position),
-                  ]"
-                >
-                  <h3 class="text-xl font-bold text-black md:text-2xl">
-                    {{ chunk[1].name }}
-                  </h3>
-                  <div
-                    class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
-                  >
-                    <span>Shop Now</span>
-                    <ArrowRightIcon class="size-4" />
-                  </div>
-                </div>
-              </div>
-
-              <div
-                v-if="chunk[2]"
-                class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
-              >
-                <div
-                  class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                />
-                <img
-                  :src="chunk[2].image"
-                  :alt="chunk[2].name"
-                  class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-
-                <div
-                  :class="[
-                    'absolute w-max max-w-[calc(100%-2rem)]',
-                    getPositionClasses(chunk[2].position),
-                  ]"
-                >
-                  <h3 class="text-xl font-bold text-black md:text-2xl">
-                    {{ chunk[2].name }}
-                  </h3>
-                  <div
-                    class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
-                  >
-                    <span>Shop Now</span>
-                    <ArrowRightIcon class="size-4" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Third column (1 large item) -->
             <div
-              v-if="chunk[3]"
-              class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
+              v-if="slotProps.data[2]"
+              class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
             >
+              <div
+                class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              />
               <img
-                :src="chunk[3].image"
-                :alt="chunk[3].name"
+                :src="slotProps.data[2].image"
+                :alt="slotProps.data[2].name"
                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
 
               <div
                 :class="[
                   'absolute w-max max-w-[calc(100%-2rem)]',
-                  getPositionClasses(chunk[3].position),
+                  getPositionClasses(slotProps.data[2].position),
                 ]"
               >
                 <h3 class="text-xl font-bold text-black md:text-2xl">
-                  {{ chunk[3].name }}
+                  {{ slotProps.data[2].name }}
                 </h3>
                 <div
                   class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
@@ -299,8 +254,37 @@ function handleRefetch() {
               </div>
             </div>
           </div>
-        </CarouselItem>
-      </CarouselContent>
+
+          <!-- Third column (1 large item) -->
+          <div
+            v-if="slotProps.data[3]"
+            class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
+          >
+            <img
+              :src="slotProps.data[3].image"
+              :alt="slotProps.data[3].name"
+              class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+            />
+
+            <div
+              :class="[
+                'absolute w-max max-w-[calc(100%-2rem)]',
+                getPositionClasses(slotProps.data[3].position),
+              ]"
+            >
+              <h3 class="text-xl font-bold text-black md:text-2xl">
+                {{ slotProps.data[3].name }}
+              </h3>
+              <div
+                class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
+              >
+                <span>Shop Now</span>
+                <ArrowRightIcon class="size-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
     </Carousel>
   </section>
 </template>

@@ -4,33 +4,23 @@ import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import CustomSelect from '@/components/custom/custom-select.vue'
 import CustomSwitch from '@/components/custom/custom-switch.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   useAddressesMutation,
   useUserAddresses,
 } from '@/composables/useAddresses'
 import type { Address } from '@/types'
 import { getAllCountries } from '@/utils/countries'
-import { createAddressSchema } from '@/validators/addresses.validator'
-import { toTypedSchema } from '@vee-validate/zod'
+import {
+  createAddressSchema,
+  type CreateAddressInput,
+} from '@/validators/addresses.validator'
+import { Form, type FormSubmitEvent } from '@primevue/forms'
+import { zodResolver } from '@primevue/forms/resolvers/zod'
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next'
-import { useForm } from 'vee-validate'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
+import Skeleton from 'primevue/skeleton'
 import { ref, watch } from 'vue'
 
 const { addresses, isLoading } = useUserAddresses()
@@ -47,34 +37,27 @@ const {
 const isModalOpen = ref(false)
 const editingAddress = ref<Address | null>(null)
 const deletingAddressId = ref<string | null>(null)
+const formKey = ref(0)
 
-// Form setup with vee-validate and zod
-const form = useForm({
-  validationSchema: toTypedSchema(createAddressSchema),
-  initialValues: {
-    id: null,
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-    country: '',
-    isDefault: false,
-  },
+// Initial form values
+const initialValues = ref({
+  id: null as string | null,
+  name: '',
+  email: '',
+  phone: '',
+  street: '',
+  city: '',
+  country: '',
+  isDefault: false,
 })
+
+const resolver = zodResolver(createAddressSchema)
 
 // Watch for modal close to reset form
 watch(isModalOpen, (isOpen) => {
   if (!isOpen) {
     editingAddress.value = null
-    form.resetForm()
-  }
-})
-
-const openCreateModal = () => {
-  editingAddress.value = null
-  form.resetForm({
-    values: {
+    initialValues.value = {
       id: null,
       name: '',
       email: '',
@@ -83,29 +66,49 @@ const openCreateModal = () => {
       city: '',
       country: '',
       isDefault: false,
-    },
-  })
+    }
+    formKey.value++
+  }
+})
+
+const openCreateModal = () => {
+  editingAddress.value = null
+  initialValues.value = {
+    id: null,
+    name: '',
+    email: '',
+    phone: '',
+    street: '',
+    city: '',
+    country: '',
+    isDefault: false,
+  }
+  formKey.value++
   isModalOpen.value = true
 }
 
 const openEditModal = (address: Address) => {
   editingAddress.value = address
-  form.resetForm({
-    values: {
-      id: address.id,
-      name: address.name,
-      email: address.email,
-      phone: address.phone,
-      street: address.street,
-      city: address.city,
-      country: address.country,
-      isDefault: address.isDefault,
-    },
-  })
+  initialValues.value = {
+    id: address.id,
+    name: address.name,
+    email: address.email,
+    phone: address.phone,
+    street: address.street,
+    city: address.city,
+    country: address.country,
+    isDefault: address.isDefault,
+  }
+  formKey.value++
   isModalOpen.value = true
 }
 
-const onSubmit = form.handleSubmit(async (values) => {
+const onFormSubmit = async ({
+  valid,
+  values,
+}: FormSubmitEvent<CreateAddressInput>) => {
+  if (!valid) return
+
   try {
     if (editingAddress.value) {
       await updateAddress(editingAddress.value.id, values)
@@ -116,7 +119,7 @@ const onSubmit = form.handleSubmit(async (values) => {
   } catch (error) {
     console.error('Error saving address:', error)
   }
-})
+}
 
 const handleDelete = async (id: string) => {
   deletingAddressId.value = id
@@ -141,12 +144,11 @@ const formatAddress = (address: Address) => {
       <h2 class="text-xl font-semibold">Address</h2>
       <Button
         @click="openCreateModal"
-        size="sm"
-        class="gap-2"
+        size="small"
         type="button"
         :disabled="isDeletingAddress"
       >
-        <PlusIcon class="h-4 w-4" />
+        <PlusIcon class="mr-2 h-4 w-4" />
         Add Address
       </Button>
     </div>
@@ -159,7 +161,8 @@ const formatAddress = (address: Address) => {
       <Skeleton
         v-for="i in 2"
         :key="i"
-        class="h-40 rounded-lg"
+        height="10rem"
+        class="rounded-lg"
       />
     </div>
 
@@ -171,7 +174,7 @@ const formatAddress = (address: Address) => {
       <p class="text-gray-500">No addresses saved yet</p>
       <Button
         @click="openCreateModal"
-        variant="outline"
+        outlined
         type="button"
       >
         Add your first address
@@ -202,7 +205,8 @@ const formatAddress = (address: Address) => {
             @click="openEditModal(address)"
             type="button"
             :disabled="isDeletingAddress"
-            variant="ghost"
+            text
+            size="small"
             class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
           >
             <PencilIcon class="h-4 w-4" />
@@ -218,8 +222,8 @@ const formatAddress = (address: Address) => {
 
         <div class="mt-4 flex justify-end">
           <LoadingButton
-            variant="ghost"
-            size="sm"
+            text
+            size="small"
             :loading="isDeletingAddress && deletingAddressId === address.id"
             :disabled="isDeletingAddress"
             type="button"
@@ -235,163 +239,153 @@ const formatAddress = (address: Address) => {
 
     <!-- Add/Edit Address Modal -->
     <Dialog
-      :open="isModalOpen"
-      @update:open="isModalOpen = $event"
+      v-model:visible="isModalOpen"
+      modal
+      :header="editingAddress ? 'Edit Address' : 'Add New Address'"
+      :style="{ width: '28rem' }"
+      :dismissableMask="true"
     >
-      <DialogContent class="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {{ editingAddress ? 'Edit Address' : 'Add New Address' }}
-          </DialogTitle>
-          <DialogDescription>
-            {{
-              editingAddress
-                ? 'Update your address details below.'
-                : 'Fill in your address details below.'
-            }}
-          </DialogDescription>
-        </DialogHeader>
+      <p class="mb-4 text-sm text-gray-500">
+        {{
+          editingAddress
+            ? 'Update your address details below.'
+            : 'Fill in your address details below.'
+        }}
+      </p>
 
-        <form
-          @submit="onSubmit"
-          class="space-y-4"
-        >
-          <FormField
-            v-slot="{ componentField }"
+      <Form
+        v-slot="$form"
+        :key="formKey"
+        :initialValues="initialValues"
+        :resolver="resolver"
+        @submit="onFormSubmit"
+        class="space-y-4"
+      >
+        <div class="flex flex-col gap-1">
+          <CustomInput
             name="name"
+            label="Full Name *"
+            type="text"
+          />
+          <Message
+            v-if="$form.name?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Full Name *"
-                  type="text"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.name.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
+        <div class="flex flex-col gap-1">
+          <CustomInput
             name="email"
+            label="Email *"
+            type="email"
+          />
+          <Message
+            v-if="$form.email?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Email *"
-                  type="email"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.email.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
+        <div class="flex flex-col gap-1">
+          <CustomPhoneInput
             name="phone"
+            label="Phone *"
+          />
+          <Message
+            v-if="$form.phone?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomPhoneInput
-                  label="Phone *"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.phone.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
+        <div class="flex flex-col gap-1">
+          <CustomInput
             name="street"
+            label="Street Address *"
+            type="text"
+          />
+          <Message
+            v-if="$form.street?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="Street Address *"
-                  type="text"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.street.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
+        <div class="flex flex-col gap-1">
+          <CustomInput
             name="city"
+            label="City *"
+            type="text"
+          />
+          <Message
+            v-if="$form.city?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomInput
-                  label="City *"
-                  type="text"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.city.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
+        <div class="flex flex-col gap-1">
+          <CustomSelect
             name="country"
+            label="Country *"
+            :options="
+              getAllCountries().map((country) => ({
+                label: country.name,
+                value: country.name,
+              }))
+            "
+            search-placeholder="Search country..."
+            placeholder="Select a country"
+          />
+          <Message
+            v-if="$form.country?.invalid"
+            severity="error"
+            size="small"
+            variant="simple"
           >
-            <FormItem>
-              <FormControl>
-                <CustomSelect
-                  label="Country *"
-                  :options="
-                    getAllCountries().map((country) => ({
-                      label: country.name,
-                      value: country.name,
-                    }))
-                  "
-                  search-placeholder="Search country..."
-                  placeholder="Select a country"
-                  v-bind="componentField"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+            {{ $form.country.error?.message }}
+          </Message>
+        </div>
 
-          <FormField
-            v-slot="{ componentField }"
-            name="isDefault"
+        <CustomSwitch
+          name="isDefault"
+          label="Set as default"
+          description="Use this address as your default shipping address"
+        />
+
+        <div class="flex justify-end gap-2 pt-4">
+          <Button
+            type="button"
+            outlined
+            @click="isModalOpen = false"
           >
-            <FormItem>
-              <FormControl>
-                <CustomSwitch
-                  label="Set as default"
-                  description="Use this address as your default shipping address"
-                  v-bind="componentField"
-                />
-              </FormControl>
-            </FormItem>
-          </FormField>
-
-          <DialogFooter class="gap-2 sm:gap-0">
-            <DialogClose as-child>
-              <Button
-                type="button"
-                variant="outline"
-              >
-                Cancel
-              </Button>
-            </DialogClose>
-            <LoadingButton
-              type="submit"
-              :loading="isCreatingAddress || isUpdatingAddress"
-              :disabled="isCreatingAddress || isUpdatingAddress"
-            >
-              {{ editingAddress ? 'Update' : 'Save' }} Address
-            </LoadingButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
+            Cancel
+          </Button>
+          <LoadingButton
+            type="submit"
+            :loading="isCreatingAddress || isUpdatingAddress"
+            :disabled="isCreatingAddress || isUpdatingAddress"
+          >
+            {{ editingAddress ? 'Update' : 'Save' }} Address
+          </LoadingButton>
+        </div>
+      </Form>
     </Dialog>
   </div>
 </template>

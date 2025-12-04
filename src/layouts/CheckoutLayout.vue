@@ -4,14 +4,6 @@
  * Layout for checkout flow pages (Cart, Checkout, Complete)
  * Includes a stepper header to show progress
  */
-import {
-  Stepper,
-  StepperIndicator,
-  StepperItem,
-  StepperSeparator,
-  StepperTitle,
-  StepperTrigger,
-} from '@/components/ui/stepper'
 import { cn } from '@/utils/lib'
 import { CheckIcon } from 'lucide-vue-next'
 import { computed } from 'vue'
@@ -72,75 +64,61 @@ const handleStepClick = (step: number) => {
 
         <!-- Stepper Header -->
         <div class="mx-auto mb-12 max-w-2xl">
-          <Stepper
-            :model-value="currentStep"
-            class="flex w-full items-start justify-between gap-2"
-          >
-            <template
+          <div class="flex w-full items-start justify-between gap-2">
+            <div
               v-for="(stepItem, index) in steps"
               :key="stepItem.step"
+              class="group relative flex w-full flex-col items-center gap-2"
+              :class="{ 'cursor-pointer': stepItem.step < currentStep }"
+              @click="handleStepClick(stepItem.step)"
             >
-              <StepperItem
-                :step="stepItem.step"
-                class="group relative flex w-full flex-col items-center gap-2"
-                :class="{ 'cursor-pointer': stepItem.step < currentStep }"
-                @click="handleStepClick(stepItem.step)"
-              >
-                <StepperTrigger
-                  class="flex flex-col items-center gap-2"
-                  :class="{
-                    'cursor-pointer':
-                      stepItem.step < currentStep ||
-                      stepItem.step === currentStep,
-                  }"
-                >
-                  <StepperIndicator
-                    :class="
-                      cn(
-                        'flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors',
-                        stepItem.step < currentStep
-                          ? 'bg-emerald-500 text-white'
-                          : stepItem.step === currentStep
-                            ? 'bg-black text-white'
-                            : 'bg-gray-200 text-gray-500',
-                      )
-                    "
-                  >
-                    <CheckIcon
-                      v-if="stepItem.step < currentStep"
-                      class="h-5 w-5"
-                    />
-                    <span v-else>{{ stepItem.step }}</span>
-                  </StepperIndicator>
-                  <StepperTitle
-                    :class="
-                      cn(
-                        'text-sm font-medium',
-                        stepItem.step <= currentStep
-                          ? 'text-emerald-600'
-                          : 'text-gray-500',
-                      )
-                    "
-                  >
-                    {{ stepItem.title }}
-                  </StepperTitle>
-                </StepperTrigger>
-
-                <!-- Separator line -->
-                <StepperSeparator
-                  v-if="index < steps.length - 1"
+              <div class="flex flex-col items-center gap-2">
+                <div
                   :class="
                     cn(
-                      'absolute top-5 left-[calc(50%+28px)] h-0.5 w-[calc(100%-56px)]',
+                      'flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors',
                       stepItem.step < currentStep
-                        ? 'bg-emerald-500'
-                        : 'bg-gray-200',
+                        ? 'bg-emerald-500 text-white'
+                        : stepItem.step === currentStep
+                          ? 'bg-black text-white'
+                          : 'bg-gray-200 text-gray-500',
                     )
                   "
-                />
-              </StepperItem>
-            </template>
-          </Stepper>
+                >
+                  <CheckIcon
+                    v-if="stepItem.step < currentStep"
+                    class="h-5 w-5"
+                  />
+                  <span v-else>{{ stepItem.step }}</span>
+                </div>
+                <div
+                  :class="
+                    cn(
+                      'text-sm font-medium',
+                      stepItem.step <= currentStep
+                        ? 'text-emerald-600'
+                        : 'text-gray-500',
+                    )
+                  "
+                >
+                  {{ stepItem.title }}
+                </div>
+              </div>
+
+              <!-- Separator line -->
+              <div
+                v-if="index < steps.length - 1"
+                :class="
+                  cn(
+                    'absolute top-5 left-[calc(50%+28px)] h-0.5 w-[calc(100%-56px)]',
+                    stepItem.step < currentStep
+                      ? 'bg-emerald-500'
+                      : 'bg-gray-200',
+                  )
+                "
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Page Content -->
