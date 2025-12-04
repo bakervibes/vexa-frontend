@@ -197,7 +197,7 @@ This project uses ESLint, Prettier, Husky, and lint-staged to ensure code qualit
 
 Before each commit, the following checks run automatically on staged files:
 
-- **ESLint**: Fixes and validates code (with `--max-warnings 0`)
+- **ESLint**: Fixes and validates code
 - **Prettier**: Formats code automatically
 - ❌ Commits will be **blocked** if there are any linting errors
 
@@ -213,7 +213,7 @@ Before each push, the following checks run:
 The `pnpm build` command runs:
 
 1. Type checking with `vue-tsc`
-2. Linting with `eslint --max-warnings 0`
+2. Linting with `eslint`
 3. Build with Vite
 
 ❌ Builds will **fail** if there are any linting errors or warnings.

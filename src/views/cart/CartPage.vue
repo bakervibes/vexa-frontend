@@ -1,0 +1,9 @@
+<script setup lang="ts">
+import Cart from '@/components/views/cart/Cart.vue'
+</script>
+
+<template>
+  <Cart />
+</template>
+
+<style scoped></style>
