@@ -20,8 +20,8 @@ coverage
 .env.*.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
+.cursor/
 .idea
 *.suo
 *.ntvs*
