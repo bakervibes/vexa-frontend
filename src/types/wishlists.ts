@@ -9,8 +9,8 @@ import type {
 } from './models'
 
 export interface WishlistItemWithDetails extends WishlistItem {
-  product: Product & { variants: ProductVariant[] }
-  variant:
+  product: Product & { productVariants: ProductVariant[] }
+  productVariant:
     | (ProductVariant & {
         productVariantOptions: (ProductVariantOption & {
           option: Option & {
@@ -22,5 +22,5 @@ export interface WishlistItemWithDetails extends WishlistItem {
 }
 
 export interface WishlistWithItems extends Wishlist {
-  items: WishlistItemWithDetails[]
+  wishlistItems: WishlistItemWithDetails[]
 }

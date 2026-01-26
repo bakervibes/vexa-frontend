@@ -10,7 +10,7 @@ import type {
 
 export interface CartItemWithDetails extends CartItem {
   product: Product
-  variant:
+  productVariant:
     | (ProductVariant & {
         productVariantOptions: (ProductVariantOption & {
           option: Option & {
@@ -22,5 +22,10 @@ export interface CartItemWithDetails extends CartItem {
 }
 
 export interface CartWithItems extends Cart {
-  items: CartItemWithDetails[]
+  cartItems: CartItemWithDetails[]
+}
+
+export interface ShareCartResponse {
+  shareToken: string
+  expiresAt: Date
 }

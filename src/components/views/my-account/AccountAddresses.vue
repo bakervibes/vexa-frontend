@@ -5,76 +5,47 @@ import CustomSelect from '@/components/custom/custom-select.vue'
 import CustomSwitch from '@/components/custom/custom-switch.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
 import {
-  useAddressesMutation,
-  useUserAddresses,
-} from '@/composables/useAddresses'
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAddresses } from '@/composables/useAddresses'
 import type { Address } from '@/types'
 import { getAllCountries } from '@/utils/countries'
-import {
-  createAddressSchema,
-  type CreateAddressInput,
-} from '@/validators/addresses.validator'
-import { Form, type FormSubmitEvent } from '@primevue/forms'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { createAddressSchema } from '@/validators/addresses.validator'
+import { toTypedSchema } from '@vee-validate/zod'
 import { PencilIcon, PlusIcon, Trash2Icon } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Message from 'primevue/message'
-import Skeleton from 'primevue/skeleton'
+import { useForm } from 'vee-validate'
 import { ref, watch } from 'vue'
 
-const { addresses, isLoading } = useUserAddresses()
 const {
+  addresses,
+  isLoadingAddresses,
   createAddress,
   updateAddress,
   deleteAddress,
   isCreatingAddress,
   isUpdatingAddress,
   isDeletingAddress,
-} = useAddressesMutation()
+} = useAddresses()
 
 // Modal state
 const isModalOpen = ref(false)
 const editingAddress = ref<Address | null>(null)
 const deletingAddressId = ref<string | null>(null)
-const formKey = ref(0)
 
-// Initial form values
-const initialValues = ref({
-  id: null as string | null,
-  name: '',
-  email: '',
-  phone: '',
-  street: '',
-  city: '',
-  country: '',
-  isDefault: false,
-})
+// Delete confirmation dialog state
+const isDeleteDialogOpen = ref(false)
+const addressToDelete = ref<Address | null>(null)
 
-const resolver = zodResolver(createAddressSchema)
-
-// Watch for modal close to reset form
-watch(isModalOpen, (isOpen) => {
-  if (!isOpen) {
-    editingAddress.value = null
-    initialValues.value = {
-      id: null,
-      name: '',
-      email: '',
-      phone: '',
-      street: '',
-      city: '',
-      country: '',
-      isDefault: false,
-    }
-    formKey.value++
-  }
-})
-
-const openCreateModal = () => {
-  editingAddress.value = null
-  initialValues.value = {
-    id: null,
+const form = useForm({
+  validationSchema: toTypedSchema(createAddressSchema),
+  initialValues: {
     name: '',
     email: '',
     phone: '',
@@ -82,15 +53,26 @@ const openCreateModal = () => {
     city: '',
     country: '',
     isDefault: false,
+  },
+})
+
+// Watch for modal close to reset form
+watch(isModalOpen, (isOpen) => {
+  if (!isOpen) {
+    editingAddress.value = null
+    form.resetForm()
   }
-  formKey.value++
+})
+
+const openCreateModal = () => {
+  editingAddress.value = null
+  form.resetForm()
   isModalOpen.value = true
 }
 
 const openEditModal = (address: Address) => {
   editingAddress.value = address
-  initialValues.value = {
-    id: address.id,
+  form.setValues({
     name: address.name,
     email: address.email,
     phone: address.phone,
@@ -98,17 +80,11 @@ const openEditModal = (address: Address) => {
     city: address.city,
     country: address.country,
     isDefault: address.isDefault,
-  }
-  formKey.value++
+  })
   isModalOpen.value = true
 }
 
-const onFormSubmit = async ({
-  valid,
-  values,
-}: FormSubmitEvent<CreateAddressInput>) => {
-  if (!valid) return
-
+const onSubmit = form.handleSubmit(async (values) => {
   try {
     if (editingAddress.value) {
       await updateAddress(editingAddress.value.id, values)
@@ -119,15 +95,29 @@ const onFormSubmit = async ({
   } catch (error) {
     console.error('Error saving address:', error)
   }
+})
+
+const openDeleteDialog = (address: Address) => {
+  addressToDelete.value = address
+  isDeleteDialogOpen.value = true
 }
 
-const handleDelete = async (id: string) => {
-  deletingAddressId.value = id
+const confirmDelete = async () => {
+  if (!addressToDelete.value) return
+
+  deletingAddressId.value = addressToDelete.value.id
   try {
-    await deleteAddress(id)
+    await deleteAddress(addressToDelete.value.id)
+    isDeleteDialogOpen.value = false
+    addressToDelete.value = null
   } finally {
     deletingAddressId.value = null
   }
+}
+
+const cancelDelete = () => {
+  isDeleteDialogOpen.value = false
+  addressToDelete.value = null
 }
 
 // Format address for display
@@ -144,7 +134,7 @@ const formatAddress = (address: Address) => {
       <h2 class="text-xl font-semibold">Address</h2>
       <Button
         @click="openCreateModal"
-        size="small"
+        size="sm"
         type="button"
         :disabled="isDeletingAddress"
       >
@@ -155,14 +145,13 @@ const formatAddress = (address: Address) => {
 
     <!-- Loading State -->
     <div
-      v-if="isLoading"
+      v-if="isLoadingAddresses"
       class="grid gap-4 md:grid-cols-2"
     >
       <Skeleton
         v-for="i in 2"
         :key="i"
-        height="10rem"
-        class="rounded-lg"
+        class="h-40 rounded-lg"
       />
     </div>
 
@@ -174,7 +163,7 @@ const formatAddress = (address: Address) => {
       <p class="text-gray-500">No addresses saved yet</p>
       <Button
         @click="openCreateModal"
-        outlined
+        variant="outline"
         type="button"
       >
         Add your first address
@@ -205,8 +194,8 @@ const formatAddress = (address: Address) => {
             @click="openEditModal(address)"
             type="button"
             :disabled="isDeletingAddress"
-            text
-            size="small"
+            variant="ghost"
+            size="sm"
             class="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
           >
             <PencilIcon class="h-4 w-4" />
@@ -216,18 +205,19 @@ const formatAddress = (address: Address) => {
 
         <div class="space-y-1 text-sm text-gray-600">
           <p class="font-medium text-gray-900">{{ address.name }}</p>
+          <p class="text-gray-700">{{ address.email }}</p>
           <p>{{ address.phone }}</p>
           <p>{{ formatAddress(address) }}</p>
         </div>
 
         <div class="mt-4 flex justify-end">
           <LoadingButton
-            text
-            size="small"
+            variant="ghost"
+            size="sm"
             :loading="isDeletingAddress && deletingAddressId === address.id"
             :disabled="isDeletingAddress"
             type="button"
-            @click="handleDelete(address.id)"
+            @click="openDeleteDialog(address)"
             class="text-red-500 hover:bg-red-50 hover:text-red-600"
           >
             <Trash2Icon class="mr-1 h-4 w-4" />
@@ -238,155 +228,191 @@ const formatAddress = (address: Address) => {
     </div>
 
     <!-- Add/Edit Address Modal -->
-    <Dialog
-      v-model:visible="isModalOpen"
-      modal
-      :header="editingAddress ? 'Edit Address' : 'Add New Address'"
-      :style="{ width: '28rem' }"
-      :dismissableMask="true"
-    >
-      <p class="mb-4 text-sm text-gray-500">
-        {{
-          editingAddress
-            ? 'Update your address details below.'
-            : 'Fill in your address details below.'
-        }}
-      </p>
+    <AlertDialog v-model:open="isModalOpen">
+      <AlertDialogContent class="max-w-lg">
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {{ editingAddress ? 'Edit Address' : 'Add New Address' }}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            {{
+              editingAddress
+                ? 'Update your address details below.'
+                : 'Fill in your address details below.'
+            }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
-      <Form
-        v-slot="$form"
-        :key="formKey"
-        :initialValues="initialValues"
-        :resolver="resolver"
-        @submit="onFormSubmit"
-        class="space-y-4"
-      >
-        <div class="flex flex-col gap-1">
-          <CustomInput
+        <form
+          @submit="onSubmit"
+          class="space-y-4"
+        >
+          <FormField
+            v-slot="{ componentField }"
             name="name"
-            label="Full Name *"
-            type="text"
-          />
-          <Message
-            v-if="$form.name?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.name.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Full Name *"
+                type="text"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <div class="flex flex-col gap-1">
-          <CustomInput
+          <FormField
+            v-slot="{ componentField }"
             name="email"
-            label="Email *"
-            type="email"
-          />
-          <Message
-            v-if="$form.email?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.email.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Email *"
+                type="email"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <div class="flex flex-col gap-1">
-          <CustomPhoneInput
+          <FormField
+            v-slot="{ componentField }"
             name="phone"
-            label="Phone *"
-          />
-          <Message
-            v-if="$form.phone?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.phone.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomPhoneInput
+                v-bind="componentField"
+                label="Phone *"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <div class="flex flex-col gap-1">
-          <CustomInput
+          <FormField
+            v-slot="{ componentField }"
             name="street"
-            label="Street Address *"
-            type="text"
-          />
-          <Message
-            v-if="$form.street?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.street.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Street Address *"
+                type="text"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <div class="flex flex-col gap-1">
-          <CustomInput
+          <FormField
+            v-slot="{ componentField }"
             name="city"
-            label="City *"
-            type="text"
-          />
-          <Message
-            v-if="$form.city?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.city.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="City *"
+                type="text"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <div class="flex flex-col gap-1">
-          <CustomSelect
+          <FormField
+            v-slot="{ value, handleChange }"
             name="country"
-            label="Country *"
-            :options="
-              getAllCountries().map((country) => ({
-                label: country.name,
-                value: country.name,
-              }))
-            "
-            search-placeholder="Search country..."
-            placeholder="Select a country"
-          />
-          <Message
-            v-if="$form.country?.invalid"
-            severity="error"
-            size="small"
-            variant="simple"
           >
-            {{ $form.country.error?.message }}
-          </Message>
-        </div>
+            <FormItem>
+              <CustomSelect
+                :model-value="value"
+                @update:model-value="handleChange"
+                label="Country *"
+                :options="
+                  getAllCountries().map((country) => ({
+                    label: country.name,
+                    value: country.name,
+                  }))
+                "
+                search-placeholder="Search country..."
+                placeholder="Select a country"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-        <CustomSwitch
-          name="isDefault"
-          label="Set as default"
-          description="Use this address as your default shipping address"
-        />
+          <FormField
+            v-slot="{ value, handleChange }"
+            name="isDefault"
+          >
+            <FormItem>
+              <CustomSwitch
+                :model-value="value"
+                @update:model-value="handleChange"
+                label="Set as default"
+                description="Use this address as your default shipping address"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <div class="flex justify-end gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              @click="isModalOpen = false"
+            >
+              Cancel
+            </Button>
+            <LoadingButton
+              type="submit"
+              :loading="isCreatingAddress || isUpdatingAddress"
+              :disabled="isCreatingAddress || isUpdatingAddress"
+            >
+              {{ editingAddress ? 'Update' : 'Save' }} Address
+            </LoadingButton>
+          </div>
+        </form>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="isDeleteDialogOpen">
+      <AlertDialogContent class="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this address?
+            <span
+              v-if="addressToDelete"
+              class="mt-2 block font-medium text-gray-900"
+            >
+              {{ addressToDelete.name }} - {{ addressToDelete.street }},
+              {{ addressToDelete.city }}
+            </span>
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
         <div class="flex justify-end gap-2 pt-4">
           <Button
             type="button"
-            outlined
-            @click="isModalOpen = false"
+            variant="outline"
+            @click="cancelDelete"
+            :disabled="isDeletingAddress"
           >
             Cancel
           </Button>
           <LoadingButton
-            type="submit"
-            :loading="isCreatingAddress || isUpdatingAddress"
-            :disabled="isCreatingAddress || isUpdatingAddress"
+            type="button"
+            variant="destructive"
+            :loading="isDeletingAddress"
+            :disabled="isDeletingAddress"
+            @click="confirmDelete"
           >
-            {{ editingAddress ? 'Update' : 'Save' }} Address
+            <Trash2Icon class="mr-1 h-4 w-4" />
+            Delete
           </LoadingButton>
         </div>
-      </Form>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 

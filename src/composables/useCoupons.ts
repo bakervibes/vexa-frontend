@@ -1,34 +1,56 @@
-import { couponService } from '@/services/coupons.service'
-import type { AppliedCoupon } from '@/types'
+import {
+  couponService,
+  type CreateCouponInput,
+  type UpdateCouponInput,
+} from '@/services/coupons.service'
+import type { AppliedCoupon, Coupon } from '@/types'
 import type {
   ApplyCouponInput,
   ValidateCouponInput,
 } from '@/validators/coupons.validator'
-import { useMutation } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import type { MaybeRefOrGetter } from 'vue'
+import { computed, ref, toValue, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { useCarts } from './useCarts'
+
+const COUPONS_QUERY_KEY = ['admin', 'coupons']
 
 /**
- * Composable to manage coupon state and URL synchronization
+ * Hook to manage coupons (user application + admin management)
  */
-export function useCoupons(cartTotal: () => number) {
+export const useCoupons = (
+  options: { cartSubtotal?: MaybeRefOrGetter<number> } = {},
+) => {
+  const queryClient = useQueryClient()
+  const { cartSubtotal: ownCartSubtotal } = useCarts()
   const route = useRoute()
   const router = useRouter()
 
-  // Local state for the applied coupon
+  // Use provided subtotal or fallback to own cart subtotal
+  const currentCartSubtotal = computed(() => {
+    if (options.cartSubtotal) {
+      return toValue(options.cartSubtotal)
+    }
+    return ownCartSubtotal.value
+  })
+
+  // ========================================
+  // USER: Coupon Application State
+  // ========================================
+
   const appliedCoupon = ref<AppliedCoupon | null>(null)
   const couponCode = ref<string>('')
   const isApplyingCoupon = ref(false)
 
-  // Get coupon code from URL query parameter
   const couponFromUrl = computed(() => {
     const code = route.query.coupon
     return typeof code === 'string' ? code : null
   })
 
   // ========================================
-  // Mutations
+  // USER: Mutations
   // ========================================
 
   const validateCouponMutation = useMutation({
@@ -36,7 +58,6 @@ export function useCoupons(cartTotal: () => number) {
       couponService.validateCoupon(data),
     onError: (error: Error) => {
       toast.error(error.message || 'Invalid coupon code')
-      // Remove invalid coupon from URL
       removeCouponFromUrl()
     },
   })
@@ -52,13 +73,12 @@ export function useCoupons(cartTotal: () => number) {
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to apply coupon')
       appliedCoupon.value = null
-      // Remove invalid coupon from URL
       removeCouponFromUrl()
     },
   })
 
   // ========================================
-  // Helper functions
+  // USER: Helper functions
   // ========================================
 
   function formatDiscount(coupon: AppliedCoupon): string {
@@ -80,12 +100,9 @@ export function useCoupons(cartTotal: () => number) {
   }
 
   // ========================================
-  // Actions
+  // USER: Actions
   // ========================================
 
-  /**
-   * Apply a coupon code
-   */
   async function applyCoupon(code?: string) {
     const codeToApply = code || couponCode.value
     if (!codeToApply.trim()) {
@@ -98,10 +115,9 @@ export function useCoupons(cartTotal: () => number) {
     try {
       const result = await applyCouponMutation.mutateAsync({
         code: codeToApply.trim().toUpperCase(),
-        cartTotal: cartTotal(),
+        orderTotal: currentCartSubtotal.value,
       })
 
-      // Add coupon to URL
       addCouponToUrl(result.code)
       couponCode.value = ''
     } finally {
@@ -109,9 +125,6 @@ export function useCoupons(cartTotal: () => number) {
     }
   }
 
-  /**
-   * Remove the applied coupon
-   */
   function removeCoupon() {
     appliedCoupon.value = null
     couponCode.value = ''
@@ -119,45 +132,52 @@ export function useCoupons(cartTotal: () => number) {
     toast.info('Coupon removed')
   }
 
-  /**
-   * Recalculate discount when cart total changes
-   */
   async function recalculateDiscount() {
     if (!appliedCoupon.value) return
-
     try {
       const result = await couponService.applyCoupon({
         code: appliedCoupon.value.code,
-        cartTotal: cartTotal(),
+        orderTotal: currentCartSubtotal.value,
       })
       appliedCoupon.value = result
     } catch {
-      // If recalculation fails, remove the coupon
       appliedCoupon.value = null
       removeCouponFromUrl()
     }
   }
 
+  async function validateCoupon(data: ValidateCouponInput) {
+    return validateCouponMutation.mutateAsync(data)
+  }
+
   // ========================================
-  // Watch for URL coupon changes
+  // USER: Watchers
   // ========================================
 
-  // Apply coupon from URL on mount or when URL changes
   watch(
     couponFromUrl,
     async (newCode) => {
       if (newCode && newCode !== appliedCoupon.value?.code) {
         await applyCoupon(newCode)
       } else if (!newCode && appliedCoupon.value) {
-        // URL coupon was removed, clear applied coupon
         appliedCoupon.value = null
       }
     },
     { immediate: true },
   )
 
+  watch(
+    currentCartSubtotal,
+    async (newTotal, oldTotal) => {
+      if (appliedCoupon.value && newTotal !== oldTotal && newTotal > 0) {
+        await recalculateDiscount()
+      }
+    },
+    { immediate: false },
+  )
+
   // ========================================
-  // Computed values
+  // USER: Computed values
   // ========================================
 
   const discountAmount = computed(
@@ -173,14 +193,106 @@ export function useCoupons(cartTotal: () => number) {
     if (appliedCoupon.value.type === 'PERCENTAGE') {
       return appliedCoupon.value.value
     }
-    // Calculate percentage for fixed discount
-    const total = cartTotal()
+    const total = currentCartSubtotal.value
     if (total === 0) return 0
     return (appliedCoupon.value.discountAmount / total) * 100
   })
 
+  // ========================================
+  // ADMIN: State
+  // ========================================
+
+  const includeInactive = ref(true)
+
+  // ========================================
+  // ADMIN: Queries
+  // ========================================
+
+  const couponsQuery = useQuery({
+    queryKey: computed(() => [...COUPONS_QUERY_KEY, includeInactive.value]),
+    queryFn: () => couponService.getAllCoupons(includeInactive.value),
+    staleTime: 1000 * 60 * 2,
+  })
+
+  // ========================================
+  // ADMIN: Mutations
+  // ========================================
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateCouponInput) => couponService.createCoupon(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY })
+      toast.success('Coupon créé avec succès')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erreur lors de la création du coupon')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateCouponInput }) =>
+      couponService.updateCoupon(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY })
+      toast.success('Coupon mis à jour avec succès')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erreur lors de la mise à jour du coupon')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => couponService.deleteCoupon(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: COUPONS_QUERY_KEY })
+      toast.success('Coupon supprimé avec succès')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Erreur lors de la suppression du coupon')
+    },
+  })
+
+  // ========================================
+  // ADMIN: Actions
+  // ========================================
+
+  async function createCoupon(data: CreateCouponInput): Promise<Coupon | null> {
+    try {
+      return await createMutation.mutateAsync(data)
+    } catch {
+      return null
+    }
+  }
+
+  async function updateCoupon(
+    id: string,
+    data: UpdateCouponInput,
+  ): Promise<Coupon | null> {
+    try {
+      return await updateMutation.mutateAsync({ id, data })
+    } catch {
+      return null
+    }
+  }
+
+  async function deleteCoupon(id: string): Promise<Coupon | null> {
+    try {
+      return await deleteMutation.mutateAsync(id)
+    } catch {
+      return null
+    }
+  }
+
+  function toggleInactiveFilter() {
+    includeInactive.value = !includeInactive.value
+  }
+
+  // ========================================
+  // Return (expose public API)
+  // ========================================
+
   return {
-    // State
+    // USER: State
     couponCode,
     appliedCoupon: computed(() => appliedCoupon.value),
     discountAmount,
@@ -188,33 +300,39 @@ export function useCoupons(cartTotal: () => number) {
     appliedCouponCode,
     discountPercentage,
 
-    // Loading states
+    // USER: Loading states
     isApplyingCoupon: computed(() => isApplyingCoupon.value),
     isValidatingCoupon: computed(() => validateCouponMutation.isPending.value),
 
-    // Actions
+    // USER: Actions
     applyCoupon,
     removeCoupon,
     recalculateDiscount,
+    validateCoupon,
 
-    // URL helpers
+    // USER: URL helpers
     addCouponToUrl,
     removeCouponFromUrl,
-  }
-}
 
-/**
- * Simple composable to just validate a coupon without applying it
- */
-export function useValidateCoupon() {
-  const mutation = useMutation({
-    mutationFn: (data: ValidateCouponInput) =>
-      couponService.validateCoupon(data),
-  })
+    // ADMIN: Data
+    coupons: computed(() => couponsQuery.data.value || []),
+    isLoading: couponsQuery.isLoading,
+    isError: couponsQuery.isError,
+    error: couponsQuery.error,
+    refetch: couponsQuery.refetch,
 
-  return {
-    validateCoupon: mutation.mutateAsync,
-    isValidating: computed(() => mutation.isPending.value),
-    error: computed(() => mutation.error.value),
+    // ADMIN: Filters
+    includeInactive,
+    toggleInactiveFilter,
+
+    // ADMIN: Actions
+    createCoupon,
+    updateCoupon,
+    deleteCoupon,
+
+    // ADMIN: Loading states
+    isCreating: computed(() => createMutation.isPending.value),
+    isUpdating: computed(() => updateMutation.isPending.value),
+    isDeleting: computed(() => deleteMutation.isPending.value),
   }
 }

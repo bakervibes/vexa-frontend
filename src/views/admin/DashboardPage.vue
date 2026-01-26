@@ -1,33 +1,34 @@
 <script setup lang="ts">
-/**
- * DashboardPage
- * Admin dashboard page - uses AdminLayout
- */
 import AdminDashboardStats from '@/components/admin/AdminDashboardStats.vue'
+import {
+  LowStockAlert,
+  RecentOrdersWidget,
+  RevenueChart,
+  TopProductsWidget,
+} from '@/components/admin/dashboard'
+import { AdminPageHeader } from '@/components/admin/shared'
 </script>
 
 <template>
   <div class="space-y-6">
-    <div>
-      <h1 class="text-3xl font-bold">Dashboard</h1>
-      <p class="mt-2 text-gray-600">Welcome to your administration area</p>
-    </div>
+    <AdminPageHeader
+      title="Tableau de bord"
+      description="Vue d'ensemble de votre boutique"
+    />
 
+    <!-- KPI Stats -->
     <AdminDashboardStats />
 
-    <!-- Other dashboard widgets -->
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <div class="rounded-lg bg-white p-6 shadow">
-        <h3 class="text-xl font-semibold">Latest orders</h3>
-        <p class="mt-2 text-gray-600">Widget to implement</p>
-      </div>
+    <!-- Revenue Chart -->
+    <RevenueChart />
 
-      <div class="rounded-lg bg-white p-6 shadow">
-        <h3 class="text-xl font-semibold">Recent activity</h3>
-        <p class="mt-2 text-gray-600">Widget to implement</p>
-      </div>
+    <!-- Widgets Grid -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <RecentOrdersWidget />
+      <TopProductsWidget />
     </div>
+
+    <!-- Low Stock Alert -->
+    <LowStockAlert />
   </div>
 </template>
-
-<style scoped></style>

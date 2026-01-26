@@ -24,7 +24,14 @@ export default defineConfigWithVueTs(
     name: 'app/files-to-lint',
     files: ['**/*.{ts,mts,tsx,vue}'],
     rules: {
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-empty-object-type': 'error',
       '@typescript-eslint/no-empty-interface': 'error',

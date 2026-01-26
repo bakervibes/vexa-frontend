@@ -7,13 +7,18 @@ import type {
 } from '@/validators/reviews.validator'
 
 export interface PaginatedReviewsResponse {
-  reviews: ReviewWithUser[]
-  pagination: {
+  data: ReviewWithUser[]
+  meta: {
     page: number
     limit: number
     total: number
     totalPages: number
     hasMore: boolean
+  }
+  stats?: {
+    averageRating: number
+    totalReviews: number
+    distribution: Record<number, number>
   }
 }
 

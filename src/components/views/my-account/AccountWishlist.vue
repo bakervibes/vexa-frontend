@@ -1,94 +1,146 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useCarts, useCartsMutation } from '@/composables/useCarts'
-import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { useCarts } from '@/composables/useCarts'
+import { useSharedWishlists } from '@/composables/useSharedWishlists'
+import { useWishlists } from '@/composables/useWishlists'
 import type { WishlistItemWithDetails } from '@/types'
 import { formatPrice } from '@/utils/lib'
-import { ArrowLeftIcon, CheckIcon, HeartIcon, XIcon } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
-import Skeleton from 'primevue/skeleton'
-import { ref } from 'vue'
+import {
+  ArrowLeftIcon,
+  CheckIcon,
+  HeartIcon,
+  Share2Icon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-vue-next'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-const { items, isLoadingWishlist } = useWishlists()
-const { items: cartItems } = useCarts()
-const { removeWishlistItem, isRemovingWishlistItem } = useWishlistsMutation()
-const { addToCart } = useCartsMutation()
+const {
+  wishlistItems,
+  isLoadingWishlist,
+  removeWishlistItem,
+  clearWishlist,
+  isClearingWishlist,
+} = useWishlists()
+const { cartItems, addCartItem } = useCarts()
 
-// Local state to track which item is being added
-const addingItemId = ref<string | null>(null)
+const { shareWishlist, isLoadingShareToken } = useSharedWishlists()
+
+// Track individual item actions
+const cartActionItemId = ref<string | null>(null)
+const removeActionItemId = ref<string | null>(null)
+
+// Check if any global action is in progress
+const isGlobalActionInProgress = computed(
+  () => isLoadingShareToken.value || isClearingWishlist.value,
+)
+
+// Check if any item action is in progress
+const isItemActionInProgress = computed(
+  () => cartActionItemId.value !== null || removeActionItemId.value !== null,
+)
+
+// Check if any action at all is in progress
+const isAnyActionInProgress = computed(
+  () => isGlobalActionInProgress.value || isItemActionInProgress.value,
+)
+
+const getItemKey = (productId: string, variantId?: string | null) => {
+  return variantId ? `${productId}-${variantId}` : productId
+}
 
 const getItemPrice = (item: WishlistItemWithDetails) => {
   return (
-    item.variant?.price ??
-    item.variant?.basePrice ??
+    item.productVariant?.price ??
+    item.productVariant?.basePrice ??
     item.product?.price ??
     item.product?.basePrice ??
-    Math.min(...item.product.variants.map((v) => v.price ?? v.basePrice))
+    Math.min(...item.product.productVariants.map((v) => v.price ?? v.basePrice))
   )
 }
 
-const handleAddToCart = async (item: WishlistItemWithDetails) => {
-  const itemId = `${item.product.id}-${item.variant?.id || 'no-variant'}`
+// Check if specific item has cart action in progress
+const isCartActioning = (productId: string, variantId?: string | null) => {
+  return cartActionItemId.value === getItemKey(productId, variantId)
+}
 
+// Check if specific item has remove action in progress
+const isRemoveActioning = (productId: string, variantId?: string | null) => {
+  return removeActionItemId.value === getItemKey(productId, variantId)
+}
+
+const handleAddCartItem = async (item: WishlistItemWithDetails) => {
+  if (isAnyActionInProgress.value) return
+
+  const key = getItemKey(item.product.id, item.productVariant?.id)
+  cartActionItemId.value = key
   try {
-    addingItemId.value = itemId
-    await addToCart(item.product.id, 1, item.variant?.id, item.product.slug)
+    await addCartItem(item.product.id, 1, item.productVariant?.id)
+  } catch {
+    // Error already handled by useCarts toast
   } finally {
-    addingItemId.value = null
+    cartActionItemId.value = null
   }
 }
 
 const handleRemoveItem = async (item: WishlistItemWithDetails) => {
-  await removeWishlistItem(item.product.id, item.variant?.id)
-}
+  if (isAnyActionInProgress.value) return
 
-const isItemLoading = (item: WishlistItemWithDetails) => {
-  const itemId = `${item.product.id}-${item.variant?.id || 'no-variant'}`
-  return addingItemId.value === itemId
-}
-
-const isAnyItemLoading = () => {
-  return addingItemId.value !== null
+  const key = getItemKey(item.product.id, item.productVariant?.id)
+  removeActionItemId.value = key
+  try {
+    await removeWishlistItem(item.product.id, item.productVariant?.id)
+  } catch {
+    // Error already handled by useWishlists toast
+  } finally {
+    removeActionItemId.value = null
+  }
 }
 
 // Checks if the product requires variant selection
 const needsVariantSelection = (item: WishlistItemWithDetails) => {
-  return !item.product.basePrice && !item.variant
+  return !item.product.basePrice && !item.productVariant
 }
 
-// For displaying price with "From"
-const displayFrom = (item: WishlistItemWithDetails) => {
-  return needsVariantSelection(item)
+// Check if item is in cart
+const isInCart = (productId: string, variantId?: string | null) => {
+  return cartItems.value.some(
+    (cartItem) =>
+      cartItem.product.id === productId &&
+      (cartItem.productVariant?.id ?? null) === (variantId ?? null),
+  )
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
-    <h2 class="text-xl font-semibold">Your Wishlist</h2>
-
     <!-- Loading State -->
     <div
       v-if="isLoadingWishlist"
       class="space-y-4"
     >
-      <Skeleton
-        height="3rem"
-        class="w-full"
-      />
+      <Skeleton class="h-12 w-full" />
       <Skeleton
         v-for="i in 4"
         :key="i"
-        height="5rem"
-        class="w-full"
+        class="h-20 w-full"
       />
     </div>
 
     <!-- Empty Wishlist State -->
     <div
-      v-else-if="items.length === 0"
+      v-else-if="wishlistItems.length === 0"
       class="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed py-16 text-center"
     >
       <div class="rounded-full bg-gray-100 p-4">
@@ -100,7 +152,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       </div>
       <RouterLink to="/shop">
         <Button
-          outlined
+          variant="outline"
           class="mt-2"
         >
           Continue browsing
@@ -113,126 +165,159 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       v-else
       class="flex flex-col gap-4"
     >
+      <div class="flex items-center justify-between">
+        <h1 class="flex items-center gap-1">
+          <span class="text-2xl font-bold">My wishlist</span>
+          <span class="text-xl font-medium text-gray-500">
+            ({{ wishlistItems.length }})
+          </span>
+        </h1>
+
+        <div class="flex items-center gap-2">
+          <LoadingButton
+            :loading="isLoadingShareToken"
+            :disabled="isAnyActionInProgress"
+            variant="outline"
+            @click="shareWishlist"
+          >
+            <Share2Icon class="h-4 w-4" />
+            <span class="hidden text-sm sm:block">Share</span>
+          </LoadingButton>
+
+          <LoadingButton
+            :loading="isClearingWishlist"
+            :disabled="isAnyActionInProgress"
+            variant="destructive"
+            @click="clearWishlist()"
+          >
+            <Trash2Icon class="h-4 w-4" />
+            <span class="hidden text-sm sm:block md:hidden">Clear</span>
+            <span class="hidden md:block">Clear wishlist</span>
+          </LoadingButton>
+        </div>
+      </div>
+
       <!-- Desktop View -->
       <div class="hidden md:block">
-        <DataTable :value="items">
-          <Column
-            header="Product"
-            style="width: 50%"
-          >
-            <template #body="slotProps">
-              <div class="flex items-center gap-4 py-2">
-                <button
-                  @click="handleRemoveItem(slotProps.data)"
-                  class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
-                  :disabled="isRemovingWishlistItem"
-                  aria-label="Remove item"
-                >
-                  <XIcon class="h-5 w-5" />
-                </button>
-                <RouterLink
-                  :to="`/products/${slotProps.data.product.slug}${slotProps.data.variant && `?${slotProps.data.variant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-                  class="flex items-center gap-4"
-                >
-                  <div class="h-16 w-16 overflow-hidden rounded bg-gray-100">
-                    <img
-                      :src="slotProps.data.product.images[0]"
-                      :alt="slotProps.data.product.name"
-                      class="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <div class="font-medium">
-                      {{ slotProps.data.product.name }}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="w-[50%]">Product</TableHead>
+              <TableHead class="text-center">Price</TableHead>
+              <TableHead class="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="item in wishlistItems"
+              :key="item.id"
+            >
+              <TableCell>
+                <div class="flex items-center gap-4 py-2">
+                  <button
+                    @click="handleRemoveItem(item)"
+                    class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
+                    :disabled="isAnyActionInProgress"
+                    :class="{
+                      'animate-pulse': isRemoveActioning(
+                        item.product.id,
+                        item.productVariant?.id,
+                      ),
+                    }"
+                    aria-label="Remove item"
+                  >
+                    <XIcon class="h-5 w-5" />
+                  </button>
+                  <RouterLink
+                    :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+                    class="flex items-center gap-4"
+                  >
+                    <div class="h-16 w-16 overflow-hidden rounded bg-gray-100">
+                      <img
+                        :src="item.product.images[0]"
+                        :alt="item.product.name"
+                        class="h-full w-full object-cover"
+                      />
                     </div>
-                    <div v-if="!!slotProps.data.variant">
-                      <div
-                        v-for="option in slotProps.data.variant
-                          .productVariantOptions"
-                        :key="option.id"
-                      >
-                        <span class="text-gray-500">
-                          {{ option.option.attribute.name }}:
-                        </span>
-                        {{ option.option.name }}
+                    <div>
+                      <div class="font-medium">
+                        {{ item.product.name }}
+                      </div>
+                      <div v-if="!!item.productVariant">
+                        <div
+                          v-for="option in item.productVariant
+                            .productVariantOptions"
+                          :key="option.id"
+                        >
+                          <span class="text-gray-500">
+                            {{ option.option.attribute.name }}:
+                          </span>
+                          {{ option.option.name }}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </RouterLink>
-              </div>
-            </template>
-          </Column>
-          <Column
-            header="Price"
-            class="text-center"
-          >
-            <template #body="slotProps">
-              <span
-                v-if="displayFrom(slotProps.data)"
-                class="text-gray-500"
-              >
-                From
-              </span>
-              {{ formatPrice(getItemPrice(slotProps.data)) }}
-            </template>
-          </Column>
-          <Column
-            header="Action"
-            class="text-right"
-          >
-            <template #body="slotProps">
-              <!-- Product requiring variant selection -->
-              <div
-                v-if="needsVariantSelection(slotProps.data)"
-                class="flex w-full justify-end"
-              >
-                <RouterLink
-                  :to="`/products/${slotProps.data.product.slug}`"
-                  class="flex w-fit items-center"
+                  </RouterLink>
+                </div>
+              </TableCell>
+              <TableCell class="text-center">
+                <span
+                  v-if="needsVariantSelection(item)"
+                  class="text-gray-500"
                 >
-                  <Button link>
-                    <ArrowLeftIcon class="h-4 w-4" />
-                    Select options
-                  </Button>
-                </RouterLink>
-              </div>
-
-              <!-- Product already in cart -->
-              <div
-                v-else-if="
-                  cartItems.some(
-                    (cartItem) =>
-                      cartItem.product.id === slotProps.data.product.id &&
-                      cartItem.variant?.id === slotProps.data.variant?.id,
-                  )
-                "
-                class="rounded-md text-green-500"
-              >
-                <span class="flex items-center justify-end gap-2">
-                  <CheckIcon class="h-4 w-4" />
-                  Already in cart
+                  From
                 </span>
-              </div>
+                {{ formatPrice(getItemPrice(item)) }}
+              </TableCell>
+              <TableCell class="text-right">
+                <!-- Product requiring variant selection -->
+                <div
+                  v-if="needsVariantSelection(item)"
+                  class="flex w-full justify-end"
+                >
+                  <RouterLink
+                    :to="`/products/${item.product.slug}`"
+                    class="flex w-fit items-center"
+                  >
+                    <Button variant="link">
+                      <ArrowLeftIcon class="h-4 w-4" />
+                      Select options
+                    </Button>
+                  </RouterLink>
+                </div>
 
-              <!-- Add to cart button -->
-              <LoadingButton
-                v-else
-                :loading="isItemLoading(slotProps.data)"
-                @click="handleAddToCart(slotProps.data)"
-                :disabled="isAnyItemLoading()"
-                class="h-10"
-              >
-                Add to cart
-              </LoadingButton>
-            </template>
-          </Column>
-        </DataTable>
+                <!-- Product already in cart -->
+                <div
+                  v-else-if="isInCart(item.product.id, item.productVariant?.id)"
+                  class="rounded-md text-green-500"
+                >
+                  <span class="flex items-center justify-end gap-2">
+                    <CheckIcon class="h-4 w-4" />
+                    Already in cart
+                  </span>
+                </div>
+
+                <!-- Add to cart button -->
+                <LoadingButton
+                  v-else
+                  :loading="
+                    isCartActioning(item.product.id, item.productVariant?.id)
+                  "
+                  @click="handleAddCartItem(item)"
+                  :disabled="isAnyActionInProgress"
+                  class="h-10"
+                >
+                  Add to cart
+                </LoadingButton>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- Mobile View -->
       <div class="space-y-6 md:hidden">
         <div
-          v-for="item in items"
+          v-for="item in wishlistItems"
           :key="item.id"
           class="flex flex-col gap-4 border-b pb-6 last:border-0"
         >
@@ -240,7 +325,13 @@ const displayFrom = (item: WishlistItemWithDetails) => {
             <button
               @click="handleRemoveItem(item)"
               class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
-              :disabled="isRemovingWishlistItem"
+              :disabled="isAnyActionInProgress"
+              :class="{
+                'animate-pulse': isRemoveActioning(
+                  item.product.id,
+                  item.productVariant?.id,
+                ),
+              }"
               aria-label="Remove item"
             >
               <XIcon class="h-5 w-5" />
@@ -257,23 +348,32 @@ const displayFrom = (item: WishlistItemWithDetails) => {
             <div class="flex flex-col justify-center gap-1">
               <div class="font-medium">{{ item.product.name }}</div>
               <div
-                v-if="item.variant"
+                v-if="item.productVariant"
                 class="text-sm text-gray-500"
               >
                 <span
-                  v-for="(option, index) in item.variant.productVariantOptions"
+                  v-for="(option, index) in item.productVariant
+                    .productVariantOptions"
                   :key="option.id"
                 >
                   {{ option.option.attribute.name }}: {{ option.option.name }}
                   <span
-                    v-if="index < item.variant.productVariantOptions.length - 1"
+                    v-if="
+                      index <
+                      item.productVariant.productVariantOptions.length - 1
+                    "
                   >
                     ,
                   </span>
                 </span>
               </div>
               <div class="mt-1 font-medium">
-                <span v-if="displayFrom(item)">From</span>
+                <span
+                  v-if="needsVariantSelection(item)"
+                  class="text-gray-500"
+                >
+                  From
+                </span>
                 {{ formatPrice(getItemPrice(item)) }}
               </div>
             </div>
@@ -288,7 +388,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
               :to="`/products/${item.product.slug}`"
               class="flex w-fit items-center"
             >
-              <Button link>
+              <Button variant="link">
                 <ArrowLeftIcon class="h-4 w-4" />
                 Select options
               </Button>
@@ -297,13 +397,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
 
           <!-- Product already in cart (mobile) -->
           <div
-            v-else-if="
-              cartItems.some(
-                (cartItem) =>
-                  cartItem.product.id === item.product.id &&
-                  cartItem.variant?.id === item.variant?.id,
-              )
-            "
+            v-else-if="isInCart(item.product.id, item.productVariant?.id)"
             class="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-green-500 text-green-500"
           >
             <CheckIcon class="h-4 w-4" />
@@ -314,9 +408,9 @@ const displayFrom = (item: WishlistItemWithDetails) => {
           <LoadingButton
             v-else
             class="h-12 w-full"
-            :loading="isItemLoading(item)"
-            @click="handleAddToCart(item)"
-            :disabled="isAnyItemLoading()"
+            :loading="isCartActioning(item.product.id, item.productVariant?.id)"
+            @click="handleAddCartItem(item)"
+            :disabled="isAnyActionInProgress"
           >
             Add to cart
           </LoadingButton>

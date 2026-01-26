@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/composables/useAuth'
 import { env } from '@/env'
-import { useAuthStore } from '@/stores/auth'
 import { generateVueHelpers } from '@uploadthing/vue'
 import { CameraIcon, Loader2Icon } from 'lucide-vue-next'
-import Avatar from 'primevue/avatar'
-import Button from 'primevue/button'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
-const authStore = useAuthStore()
+const { user, accessToken, fetchUserProfile } = useAuth()
 
 // Generate uploadthing helpers with your backend URL
 const { useUploadThing } = generateVueHelpers({
@@ -19,7 +19,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const isUploading = ref(false)
 
 const userInitials = computed(() => {
-  const name = authStore.user?.name
+  const name = user.value?.name
   if (!name) return 'U'
   const names = name.split(' ')
   if (names.length >= 2) {
@@ -31,7 +31,7 @@ const userInitials = computed(() => {
 const { startUpload } = useUploadThing('profileImage', {
   headers: (): Record<string, string> => {
     // Include the authorization header with JWT token
-    const token = authStore.accessToken
+    const token = accessToken
     if (token) {
       return { Authorization: `Bearer ${token}` }
     }
@@ -41,7 +41,7 @@ const { startUpload } = useUploadThing('profileImage', {
     isUploading.value = false
     // The backend already updates the user image in onUploadComplete
     // We just need to refresh the user data in the store
-    await authStore.fetchUserProfile()
+    await fetchUserProfile()
     toast.success('Profile image updated successfully!')
   },
   onUploadError: (error: Error) => {
@@ -94,20 +94,16 @@ const isLoading = computed(() => isUploading.value)
 <template>
   <div class="flex flex-col items-center">
     <div class="relative">
-      <Avatar
-        v-if="authStore.user?.image"
-        :image="authStore.user.image"
-        size="xlarge"
-        shape="circle"
-        class="!h-24 !w-24"
-      />
-      <Avatar
-        v-else
-        :label="userInitials"
-        size="xlarge"
-        shape="circle"
-        class="bg-primary !h-24 !w-24 text-2xl font-medium text-white"
-      />
+      <Avatar class="h-24 w-24">
+        <AvatarImage
+          v-if="user?.image"
+          :src="user.image"
+          :alt="user?.name || 'User'"
+        />
+        <AvatarFallback class="bg-primary text-2xl font-medium text-white">
+          {{ userInitials }}
+        </AvatarFallback>
+      </Avatar>
 
       <!-- Loading overlay -->
       <div
@@ -137,13 +133,13 @@ const isLoading = computed(() => isUploading.value)
     </div>
 
     <h2 class="mt-4 text-lg font-semibold">
-      {{ authStore.user?.name || 'Guest' }}
+      {{ user?.name || 'Guest' }}
     </h2>
-    <p class="text-sm text-gray-500">{{ authStore.user?.email }}</p>
+    <p class="text-sm text-gray-500">{{ user?.email }}</p>
 
     <Button
-      outlined
-      size="small"
+      variant="outline"
+      size="sm"
       class="mt-3"
       :disabled="isLoading"
       @click="handleAvatarClick"

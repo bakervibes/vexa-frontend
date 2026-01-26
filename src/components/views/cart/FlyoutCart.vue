@@ -1,24 +1,40 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useCarts, useCartsMutation } from '@/composables/useCarts'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useCarts } from '@/composables/useCarts'
 import { formatPrice } from '@/utils/lib'
 import { Minus, Plus, ShoppingCartIcon, Trash2Icon } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import Drawer from 'primevue/drawer'
-import Skeleton from 'primevue/skeleton'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-const { subtotal, isEmpty, isLoadingCart, itemCount, items } = useCarts()
-
 const {
+  cartSubtotal,
+  isCartEmpty,
+  isLoadingCart,
+  cartItemsCount,
+  cartItems,
   isRemovingCartItem,
   isClearingCart,
   updateCartItem,
   removeCartItem,
   clearCart,
-} = useCartsMutation()
+} = useCarts()
 
 const pendingQuantities = ref<
   Map<
@@ -39,9 +55,7 @@ const showRemoveItemDialog = ref(false)
 const showClearCartDialog = ref(false)
 
 const itemToRemove = ref<{
-  productId: string
-  variantId?: string | null
-  slug?: string
+  itemId: string
   productName: string
 } | null>(null)
 
@@ -49,31 +63,26 @@ const getItemKey = (productId: string, variantId?: string | null) => {
   return `${productId}-${variantId ?? 'no-variant'}`
 }
 
-const getMaxQuantity = (productId: string, variantId?: string | null) => {
-  const item = items.value.find(
+const findCartItem = (productId: string, variantId?: string | null) => {
+  return cartItems.value.find(
     (item) =>
       item.productId === productId &&
-      (item.variantId ?? null) === (variantId ?? null),
+      (item.productVariantId ?? null) === (variantId ?? null),
   )
+}
+
+const getMaxQuantity = (productId: string, variantId?: string | null) => {
+  const item = findCartItem(productId, variantId)
   if (!item) return 0
-  // Get remaining stock (what's still available to add)
-  const remainingStock = item.variant?.stock ?? item.product?.stock ?? 0
-  // Max quantity = current quantity in cart + remaining stock available
+  const remainingStock = item.productVariant?.stock ?? item.product?.stock ?? 0
   return item.quantity + remainingStock
 }
 
 const getDisplayQuantity = (productId: string, variantId?: string | null) => {
   const key = getItemKey(productId, variantId)
+  const cartItem = findCartItem(productId, variantId)
 
-  return (
-    pendingQuantities.value.get(key)?.quantity ??
-    items.value.find(
-      (item) =>
-        item.productId === productId &&
-        (item.variantId ?? null) === (variantId ?? null),
-    )?.quantity ??
-    1
-  )
+  return pendingQuantities.value.get(key)?.quantity ?? cartItem?.quantity ?? 1
 }
 
 const isItemUpdating = (productId: string, variantId?: string | null) => {
@@ -96,22 +105,24 @@ const isItemDisabled = (productId: string, variantId?: string | null) => {
   )
 }
 
-const isGlobalActionDisabled = () => {
+const isGlobalActionDisabled = computed(() => {
   return (
     editingItemId.value !== null ||
     updatingItemId.value !== null ||
     removingItemId.value !== null ||
     isClearingCart.value
   )
-}
+})
 
 const handleQuantityChange = (
   productId: string,
   newQuantity: number,
   variantId?: string | null,
-  slug?: string,
 ) => {
   if (newQuantity < 1) return
+
+  const cartItem = findCartItem(productId, variantId)
+  if (!cartItem) return
 
   const key = getItemKey(productId, variantId)
   const existing = pendingQuantities.value.get(key)
@@ -120,16 +131,8 @@ const handleQuantityChange = (
     clearTimeout(existing.timer)
   }
 
-  const originalQuantity =
-    existing?.original ??
-    items.value.find(
-      (item) =>
-        item.productId === productId &&
-        (item.variantId ?? null) === (variantId ?? null),
-    )?.quantity ??
-    newQuantity
+  const originalQuantity = existing?.original ?? cartItem.quantity
 
-  // If the new quantity equals the original, cancel immediately and reset state
   if (newQuantity === originalQuantity) {
     pendingQuantities.value.delete(key)
     editingItemId.value = null
@@ -144,12 +147,7 @@ const handleQuantityChange = (
     if (pending && pending.quantity !== pending.original) {
       updatingItemId.value = key
       try {
-        await updateCartItem(
-          productId,
-          pending.quantity,
-          variantId ?? undefined,
-          slug,
-        )
+        await updateCartItem(cartItem.id, pending.quantity)
       } finally {
         updatingItemId.value = null
       }
@@ -168,13 +166,13 @@ const handleQuantityChange = (
 const openRemoveItemDialog = (
   productId: string,
   variantId?: string | null,
-  slug?: string,
   productName?: string,
 ) => {
+  const cartItem = findCartItem(productId, variantId)
+  if (!cartItem) return
+
   itemToRemove.value = {
-    productId,
-    variantId,
-    slug,
+    itemId: cartItem.id,
     productName: productName ?? 'this item',
   }
   showRemoveItemDialog.value = true
@@ -183,24 +181,19 @@ const openRemoveItemDialog = (
 const confirmRemoveItem = async () => {
   if (!itemToRemove.value) return
 
-  const { productId, variantId, slug } = itemToRemove.value
-  const key = getItemKey(productId, variantId ?? null)
+  const { itemId } = itemToRemove.value
 
-  const pending = pendingQuantities.value.get(key)
+  // Clear any pending quantity changes for all items (we don't have the key easily)
+  pendingQuantities.value.forEach((pending, key) => {
+    if (pending?.timer) {
+      clearTimeout(pending.timer)
+    }
+  })
 
-  if (pending?.timer) {
-    clearTimeout(pending.timer)
-    pendingQuantities.value.delete(key)
-  }
-
-  if (editingItemId.value === key) {
-    editingItemId.value = null
-  }
-
-  removingItemId.value = key
+  removingItemId.value = itemId
 
   try {
-    await removeCartItem(productId, variantId ?? undefined, slug)
+    await removeCartItem(itemId)
   } finally {
     removingItemId.value = null
     itemToRemove.value = null
@@ -227,7 +220,7 @@ const confirmClearCart = async () => {
   editingItemId.value = null
 
   try {
-    await clearCart(items.value.map((item) => item.product.slug))
+    await clearCart()
   } finally {
     showClearCartDialog.value = false
   }
@@ -236,268 +229,271 @@ const confirmClearCart = async () => {
 const cancelClearCart = () => {
   showClearCartDialog.value = false
 }
+
+const getItemPrice = (item: (typeof cartItems.value)[0]) => {
+  return (
+    item.productVariant?.price ??
+    item.productVariant?.basePrice ??
+    item.product?.price ??
+    item.product?.basePrice ??
+    0
+  )
+}
 </script>
 
 <template>
-  <Button
-    type="button"
-    text
-    class="relative hover:bg-transparent"
-    @click="isDrawerOpen = true"
-  >
-    <ShoppingCartIcon class="size-5" />
-    <span
-      v-if="itemCount > 0"
-      class="bg-primary absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold text-white"
-    >
-      {{ itemCount }}
-    </span>
-  </Button>
-
-  <Drawer
-    v-model:visible="isDrawerOpen"
-    position="right"
-    header="My Cart"
-    :style="{ width: '25rem' }"
-    class="flex h-full flex-col"
-  >
-    <template #header>
-      <span class="text-lg font-semibold">My Cart ({{ itemCount }})</span>
-    </template>
-
-    <div
-      v-if="isLoadingCart"
-      class="flex flex-1 flex-col gap-4 py-4"
-    >
-      <div
-        v-for="i in 3"
-        :key="i"
-        class="flex items-center gap-4"
+  <Sheet v-model:open="isDrawerOpen">
+    <SheetTrigger as-child>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Shopping Cart"
+        class="relative p-2"
       >
-        <Skeleton
-          width="5rem"
-          height="5rem"
-          class="rounded-md"
-        />
-        <div class="flex-1 space-y-2">
-          <Skeleton
-            width="75%"
-            height="1rem"
-          />
-          <Skeleton
-            width="50%"
-            height="0.75rem"
-          />
-          <div class="flex items-center justify-between pt-2">
-            <Skeleton
-              width="6rem"
-              height="2rem"
-            />
-            <Skeleton
-              width="4rem"
-              height="1rem"
-            />
+        <ShoppingCartIcon class="size-5" />
+        <span
+          v-if="cartItemsCount > 0"
+          class="bg-primary absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold text-white"
+        >
+          {{ cartItemsCount }}
+        </span>
+      </Button>
+    </SheetTrigger>
+    <SheetContent
+      side="right"
+      class="flex h-full w-full flex-col sm:max-w-100"
+    >
+      <SheetHeader class="text-start">
+        <SheetTitle class="text-lg font-semibold">
+          My Cart ({{ cartItemsCount }})
+        </SheetTitle>
+      </SheetHeader>
+
+      <!-- Loading State -->
+      <div
+        v-if="isLoadingCart"
+        class="flex flex-1 flex-col gap-4 py-4"
+      >
+        <div
+          v-for="i in 3"
+          :key="i"
+          class="flex items-center gap-4"
+        >
+          <Skeleton class="h-20 w-20 rounded-md" />
+          <div class="flex-1 space-y-2">
+            <Skeleton class="h-4 w-3/4" />
+            <Skeleton class="h-3 w-1/2" />
+            <div class="flex items-center justify-between pt-2">
+              <Skeleton class="h-8 w-24" />
+              <Skeleton class="h-4 w-16" />
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div
-      v-else-if="isEmpty"
-      class="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center"
-    >
-      <div class="rounded-full bg-gray-100 p-6">
-        <ShoppingCartIcon class="size-10 text-gray-400" />
-      </div>
-      <div class="space-y-1">
-        <h3 class="font-semibold">Your cart is empty</h3>
-        <p class="text-sm text-gray-500">Add products to start shopping</p>
-      </div>
-      <Button
-        outlined
-        class="mt-4"
-        @click="isDrawerOpen = false"
+      <!-- Empty Cart State -->
+      <div
+        v-else-if="isCartEmpty"
+        class="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center"
       >
-        Continue shopping
-      </Button>
-    </div>
-
-    <section
-      v-else
-      class="no-scrollbar h-full flex-1 overflow-y-auto"
-    >
-      <div class="flex flex-col">
-        <div
-          v-for="item in items"
-          :key="item.id"
-          class="flex gap-3 border-b py-6"
+        <div class="rounded-full bg-gray-100 p-6">
+          <ShoppingCartIcon class="size-10 text-gray-400" />
+        </div>
+        <div class="space-y-1">
+          <h3 class="font-semibold">Your cart is empty</h3>
+          <p class="text-sm text-gray-500">Add products to start shopping</p>
+        </div>
+        <Button
+          variant="outline"
+          class="mt-4"
+          @click="isDrawerOpen = false"
         >
-          <RouterLink
-            :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-            class="relative h-30 w-26 shrink-0 overflow-hidden border bg-gray-100"
-            @click="isDrawerOpen = false"
+          Continue shopping
+        </Button>
+      </div>
+
+      <!-- Cart Items -->
+      <section
+        v-else
+        class="no-scrollbar h-full flex-1 overflow-y-auto px-2"
+      >
+        <div class="flex flex-col">
+          <div
+            v-for="(item, index) in cartItems"
+            :key="item.id"
+            class="flex gap-3 px-1 py-5"
+            :class="{
+              'border-b': index < cartItems.length - 1,
+            }"
           >
-            <img
-              :src="item.product.images[0]"
-              :alt="item.product.name"
-              class="h-full w-full object-cover"
-            />
-          </RouterLink>
+            <RouterLink
+              :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+              class="relative h-30 w-26 shrink-0 overflow-hidden border bg-gray-100"
+              @click="isDrawerOpen = false"
+            >
+              <img
+                :src="item.product.images[0]"
+                :alt="item.product.name"
+                class="h-full w-full object-cover"
+              />
+            </RouterLink>
 
-          <div class="flex w-full gap-4">
-            <div class="flex w-2/3 flex-col gap-1">
-              <RouterLink
-                :to="`/products/${item.product.slug}${item.variant && `?${item.variant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-                class="line-clamp-2 font-medium"
-                @click="isDrawerOpen = false"
-              >
-                {{ item.product.name }}
-              </RouterLink>
+            <div class="flex w-full gap-4">
+              <div class="flex w-2/3 flex-col gap-1">
+                <RouterLink
+                  :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+                  class="line-clamp-2 font-medium"
+                  @click="isDrawerOpen = false"
+                >
+                  {{ item.product.name }}
+                </RouterLink>
 
-              <p
-                v-if="item.variant"
-                class="flex flex-col text-xs text-gray-500"
-              >
-                <span v-if="item.variant.productVariantOptions.length > 0">
-                  {{
-                    item.variant.productVariantOptions[0]?.option.attribute
-                      .name
-                  }}:
-                  {{ item.variant.productVariantOptions[0]?.option.name }}
-                </span>
-                <span
-                  v-if="item.variant.productVariantOptions.length > 1"
-                  class="w-fit text-gray-500"
+                <p
+                  v-if="item.productVariant"
+                  class="flex flex-col text-xs text-gray-500"
                 >
-                  +{{ item.variant.productVariantOptions.length - 1 }} more
-                </span>
-              </p>
-
-              <div class="flex w-fit items-center rounded border">
-                <Button
-                  text
-                  size="small"
-                  class="!h-6 !w-6 rounded-none rounded-l"
-                  @click="
-                    handleQuantityChange(
-                      item.productId,
-                      getDisplayQuantity(item.productId, item.variantId) - 1,
-                      item.variantId ?? undefined,
-                      item.product?.slug,
-                    )
-                  "
-                  :disabled="
-                    getDisplayQuantity(item.productId, item.variantId) <= 1 ||
-                    isItemDisabled(item.productId, item.variantId) ||
-                    isItemUpdating(item.productId, item.variantId) ||
-                    isItemRemoving(item.productId, item.variantId)
-                  "
-                >
-                  <Minus class="size-3" />
-                </Button>
-                <span
-                  class="relative flex w-8 items-center justify-center text-center text-sm"
-                >
-                  <span>
-                    {{ getDisplayQuantity(item.productId, item.variantId) }}
+                  <span
+                    v-if="item.productVariant.productVariantOptions.length > 0"
+                  >
+                    {{
+                      item.productVariant.productVariantOptions[0]?.option
+                        .attribute.name
+                    }}:
+                    {{
+                      item.productVariant.productVariantOptions[0]?.option.name
+                    }}
                   </span>
-                </span>
+                  <span
+                    v-if="item.productVariant.productVariantOptions.length > 1"
+                    class="w-fit text-gray-500"
+                  >
+                    +{{ item.productVariant.productVariantOptions.length - 1 }}
+                    more
+                  </span>
+                </p>
+
+                <div class="flex w-fit items-center rounded border">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-6 rounded-none rounded-l p-0"
+                    @click="
+                      handleQuantityChange(
+                        item.productId,
+                        getDisplayQuantity(
+                          item.productId,
+                          item.productVariantId,
+                        ) - 1,
+                        item.productVariantId,
+                      )
+                    "
+                    :disabled="
+                      getDisplayQuantity(
+                        item.productId,
+                        item.productVariantId,
+                      ) <= 1 ||
+                      isItemDisabled(item.productId, item.productVariantId) ||
+                      isItemUpdating(item.productId, item.productVariantId) ||
+                      isItemRemoving(item.productId, item.productVariantId)
+                    "
+                  >
+                    <Minus class="size-3" />
+                  </Button>
+                  <span
+                    class="relative flex w-8 items-center justify-center text-center text-sm"
+                  >
+                    {{
+                      getDisplayQuantity(item.productId, item.productVariantId)
+                    }}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    class="size-6 rounded-none rounded-r p-0"
+                    @click="
+                      handleQuantityChange(
+                        item.productId,
+                        getDisplayQuantity(
+                          item.productId,
+                          item.productVariantId,
+                        ) + 1,
+                        item.productVariantId,
+                      )
+                    "
+                    :disabled="
+                      getDisplayQuantity(
+                        item.productId,
+                        item.productVariantId,
+                      ) >=
+                        getMaxQuantity(item.productId, item.productVariantId) ||
+                      isItemDisabled(item.productId, item.productVariantId) ||
+                      isItemUpdating(item.productId, item.productVariantId) ||
+                      isItemRemoving(item.productId, item.productVariantId)
+                    "
+                  >
+                    <Plus class="size-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <div class="flex w-1/3 flex-col items-end gap-1">
+                <p class="text-sm font-medium">
+                  {{ formatPrice(getItemPrice(item)) }}
+                </p>
+
                 <Button
-                  text
-                  size="small"
-                  class="!h-6 !w-6 rounded-none rounded-r"
+                  variant="ghost"
+                  size="icon"
                   @click="
-                    handleQuantityChange(
+                    openRemoveItemDialog(
                       item.productId,
-                      getDisplayQuantity(item.productId, item.variantId) + 1,
-                      item.variantId ?? undefined,
-                      item.product?.slug,
+                      item.productVariantId,
+                      item.product?.name,
                     )
                   "
                   :disabled="
-                    getDisplayQuantity(item.productId, item.variantId) >=
-                      getMaxQuantity(item.productId, item.variantId) ||
-                    isItemDisabled(item.productId, item.variantId) ||
-                    isItemUpdating(item.productId, item.variantId) ||
-                    isItemRemoving(item.productId, item.variantId)
+                    editingItemId !== null ||
+                    updatingItemId !== null ||
+                    removingItemId !== null
                   "
+                  class="cursor-pointer p-1 text-red-500 hover:text-red-600"
                 >
-                  <Plus class="size-3" />
+                  <Trash2Icon class="size-4" />
                 </Button>
               </div>
             </div>
-
-            <div class="flex w-1/3 flex-col items-end gap-1">
-              <p class="text-sm font-medium">
-                {{
-                  formatPrice(
-                    item.variant?.price ??
-                      item.variant?.basePrice ??
-                      item.product.price ??
-                      item.product.basePrice ??
-                      0,
-                  )
-                }}
-              </p>
-
-              <Button
-                text
-                size="small"
-                @click="
-                  openRemoveItemDialog(
-                    item.productId,
-                    item.variantId ?? undefined,
-                    item.product?.slug,
-                    item.product?.name,
-                  )
-                "
-                :disabled="
-                  isItemDisabled(item.productId, item.variantId) ||
-                  isItemRemoving(item.productId, item.variantId)
-                "
-                class="cursor-pointer p-1 text-red-500 hover:text-red-600"
-              >
-                <Trash2Icon class="size-4" />
-              </Button>
-            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <template
-      #footer
-      v-if="!isEmpty"
-    >
-      <div class="flex flex-col gap-2">
+      <!-- Cart Footer -->
+      <SheetFooter
+        v-if="!isCartEmpty"
+        class="flex flex-col gap-2 border-t p-4"
+      >
         <div class="flex justify-between text-base font-medium">
           <span>Total</span>
-          <span>{{ formatPrice(subtotal) }}</span>
+          <span>{{ formatPrice(cartSubtotal) }}</span>
         </div>
 
         <div class="grid w-full grid-cols-2 gap-2">
           <LoadingButton
             :loading="isClearingCart"
-            outlined
+            variant="outline"
             class="w-full"
             @click="openClearCartDialog"
-            size="large"
-            :disabled="isGlobalActionDisabled()"
+            :disabled="isGlobalActionDisabled"
           >
-            <Trash2Icon class="size-4" />
+            <Trash2Icon class="mr-2 size-4" />
             Clear cart
           </LoadingButton>
 
           <RouterLink
             to="/checkout"
             @click="isDrawerOpen = false"
+            class="w-full"
           >
-            <Button
-              class="w-full"
-              size="large"
-            >
-              Checkout
-            </Button>
+            <Button class="w-full">Checkout</Button>
           </RouterLink>
         </div>
 
@@ -510,27 +506,23 @@ const cancelClearCart = () => {
             View cart
           </RouterLink>
         </div>
-      </div>
-    </template>
-  </Drawer>
+      </SheetFooter>
+    </SheetContent>
+  </Sheet>
 
-  <Dialog
-    v-model:visible="showRemoveItemDialog"
-    modal
-    header="Remove item from cart?"
-    :style="{ width: '25rem' }"
-    :dismissableMask="true"
-    @hide="cancelRemoveItem"
-  >
-    <p class="text-gray-600">
-      Are you sure you want to remove "{{ itemToRemove?.productName }}" from
-      your cart? This action cannot be undone.
-    </p>
-
-    <template #footer>
-      <div class="flex justify-end gap-2">
+  <!-- Remove Item Dialog -->
+  <Dialog v-model:open="showRemoveItemDialog">
+    <DialogContent class="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Remove item from cart?</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to remove "{{ itemToRemove?.productName }}" from
+          your cart? This action cannot be undone.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
         <Button
-          outlined
+          variant="outline"
           @click="cancelRemoveItem"
           :disabled="isRemovingCartItem"
         >
@@ -539,32 +531,28 @@ const cancelClearCart = () => {
         <LoadingButton
           :loading="isRemovingCartItem"
           :disabled="isRemovingCartItem"
-          severity="danger"
+          variant="destructive"
           @click="confirmRemoveItem"
         >
           Remove
         </LoadingButton>
-      </div>
-    </template>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 
-  <Dialog
-    v-model:visible="showClearCartDialog"
-    modal
-    header="Clear your cart?"
-    :style="{ width: '25rem' }"
-    :dismissableMask="true"
-    @hide="cancelClearCart"
-  >
-    <p class="text-gray-600">
-      Are you sure you want to remove all items from your cart? This action
-      cannot be undone.
-    </p>
-
-    <template #footer>
-      <div class="flex justify-end gap-2">
+  <!-- Clear Cart Dialog -->
+  <Dialog v-model:open="showClearCartDialog">
+    <DialogContent class="sm:max-w-[425px]">
+      <DialogHeader>
+        <DialogTitle>Clear your cart?</DialogTitle>
+        <DialogDescription>
+          Are you sure you want to remove all items from your cart? This action
+          cannot be undone.
+        </DialogDescription>
+      </DialogHeader>
+      <DialogFooter>
         <Button
-          outlined
+          variant="outline"
           @click="cancelClearCart"
           :disabled="isClearingCart"
         >
@@ -573,12 +561,12 @@ const cancelClearCart = () => {
         <LoadingButton
           :loading="isClearingCart"
           :disabled="isClearingCart"
-          severity="danger"
+          variant="destructive"
           @click="confirmClearCart"
         >
           Clear cart
         </LoadingButton>
-      </div>
-    </template>
+      </DialogFooter>
+    </DialogContent>
   </Dialog>
 </template>

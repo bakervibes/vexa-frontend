@@ -4,11 +4,11 @@ import { couponCodeSchema } from './common.schemas'
 // ========== Schémas spécifiques ==========
 
 /**
- * Schema for applying a coupon (same as validate but requires cartTotal)
+ * Schema for applying a coupon (same as validate but requires orderTotal)
  */
 export const applyCouponSchema = z.object({
   code: couponCodeSchema,
-  cartTotal: z
+  orderTotal: z
     .number({ message: 'Le total du panier est requis' })
     .min(0, 'Le total du panier doit être positif'),
 })

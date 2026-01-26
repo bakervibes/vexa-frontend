@@ -1,0 +1,30 @@
+<script lang="ts" setup>
+import type { StepperTriggerProps } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+import { reactiveOmit } from '@vueuse/core'
+
+import { StepperTrigger, useForwardProps } from 'reka-ui'
+import { cn } from '@/utils'
+
+const props = defineProps<
+  StepperTriggerProps & { class?: HTMLAttributes['class'] }
+>()
+
+const delegatedProps = reactiveOmit(props, 'class')
+
+const forwarded = useForwardProps(delegatedProps)
+</script>
+
+<template>
+  <StepperTrigger
+    v-bind="forwarded"
+    :class="
+      cn(
+        'flex flex-col items-center gap-2 rounded-md p-2 text-center',
+        props.class,
+      )
+    "
+  >
+    <slot />
+  </StepperTrigger>
+</template>

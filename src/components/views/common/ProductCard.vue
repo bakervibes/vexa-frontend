@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
 import ProductModal from '@/components/views/product/ProductModal.vue'
-import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
+import { useWishlists } from '@/composables/useWishlists'
 import type { ProductWithDetails } from '@/types'
 import { formatPrice } from '@/utils/lib'
 import { HeartIcon } from 'lucide-vue-next'
@@ -17,22 +17,29 @@ const props = defineProps<Props>()
 
 const isModalOpen = ref(false)
 
-const handleAddToCartClick = (e: Event) => {
+const handleaddCartItemClick = (e: Event) => {
   e.preventDefault()
   e.stopPropagation()
   isModalOpen.value = true
 }
 
-const { items } = useWishlists()
 const {
-  addToWishlist,
-  isAddingWishlistItem,
+  wishlistItems,
+  addWishlistItem,
+  isAddingToWishlist,
   removeWishlistItem,
   isRemovingWishlistItem,
-} = useWishlistsMutation()
+} = useWishlists()
 
 const discount = computed(() => {
   if (!props.product.price || !props.product.basePrice) return 0
+  if (props.product.price >= props.product.basePrice) return 0
+
+  // Check if the discount has expired
+  if (props.product.expiresAt) {
+    const expiresAt = new Date(props.product.expiresAt)
+    if (expiresAt <= new Date()) return 0 // Expired
+  }
 
   return Math.round(
     ((props.product.basePrice - props.product.price) /
@@ -41,6 +48,8 @@ const discount = computed(() => {
   )
 })
 
+const hasDiscount = computed(() => discount.value > 0)
+
 const isNew = computed(() => {
   const now = new Date()
   const createdAt = new Date(props.product.createdAt)
@@ -48,17 +57,23 @@ const isNew = computed(() => {
 })
 
 const lowestPrice = computed(() => {
-  if (!props.product.variants) return 0
+  if (!props.product.productVariants) return 0
 
-  return Math.min(...props.product.variants.map((v) => v.price ?? v.basePrice))
+  return Math.min(
+    ...props.product.productVariants.map((v) => v.price ?? v.basePrice),
+  )
 })
 
 const isInWishlist = computed(() => {
-  return items.value.some((item) => item.product.id === props.product.id)
+  return wishlistItems.value.some(
+    (item) => item.product.id === props.product.id,
+  )
 })
 
 const hasVariants = computed(() => {
-  return props.product.variants && props.product.variants.length > 0
+  return (
+    props.product.productVariants && props.product.productVariants.length > 0
+  )
 })
 
 const handleToggleWishlist = async (e: Event) => {
@@ -70,7 +85,7 @@ const handleToggleWishlist = async (e: Event) => {
     return
   }
 
-  if (isAddingWishlistItem.value || isRemovingWishlistItem.value) {
+  if (isAddingToWishlist.value || isRemovingWishlistItem.value) {
     return
   }
 
@@ -78,9 +93,9 @@ const handleToggleWishlist = async (e: Event) => {
   const variantId = hasVariants.value ? undefined : undefined
 
   if (isInWishlist.value) {
-    await removeWishlistItem(props.product.id, variantId, props.product.slug)
+    await removeWishlistItem(props.product.id, variantId)
   } else {
-    await addToWishlist(props.product.id, variantId, props.product.slug)
+    await addWishlistItem(props.product.id, variantId)
   }
 }
 </script>
@@ -89,13 +104,13 @@ const handleToggleWishlist = async (e: Event) => {
   <!-- Actual Product Card -->
   <RouterLink
     :to="`/products/${product.slug}`"
-    class="group h-full w-full shrink-0"
+    class="group h-full w-full shrink-0 sm:max-w-70"
   >
     <div
       class="relative flex h-full flex-col gap-2 transition-transform duration-200"
     >
       <!-- Image Container -->
-      <div class="relative h-80 w-full shrink-0 overflow-hidden sm:h-80">
+      <div class="relative h-80 w-full shrink-0 overflow-hidden">
         <!-- Image 2 (bottom layer - always visible) -->
         <img
           v-if="product.images[1]"
@@ -116,7 +131,7 @@ const handleToggleWishlist = async (e: Event) => {
           class="absolute inset-x-2 bottom-2 z-20 transition-all duration-200 group-hover:translate-y-0 sm:translate-y-2 sm:opacity-0 sm:group-hover:opacity-100"
         >
           <button
-            @click="handleAddToCartClick"
+            @click="handleaddCartItemClick"
             class="w-full cursor-pointer rounded-md bg-black/95 px-4 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-black"
           >
             Add to cart
@@ -134,11 +149,10 @@ const handleToggleWishlist = async (e: Event) => {
             New
           </div>
           <div
-            v-if="discount !== 0"
-            class="rounded px-1.5 py-0.5 text-xs font-semibold text-white shadow-sm"
-            :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
+            v-if="hasDiscount"
+            class="rounded bg-green-500 px-1.5 py-0.5 text-xs font-semibold text-white shadow-sm"
           >
-            {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
+            -{{ discount }}%
           </div>
         </div>
 
@@ -147,10 +161,13 @@ const handleToggleWishlist = async (e: Event) => {
           class="absolute top-2 right-2 z-20 flex flex-col gap-1.5 transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100"
         >
           <LoadingButton
-            :loading="isAddingWishlistItem || isRemovingWishlistItem"
+            severity="secondary"
+            :loading="isAddingToWishlist || isRemovingWishlistItem"
             @click="handleToggleWishlist"
-            :disabled="isAddingWishlistItem || isRemovingWishlistItem"
-            class="rounded-full bg-white/95 p-1.5 text-black shadow-md transition-all duration-200 hover:bg-white"
+            :disabled="isAddingToWishlist || isRemovingWishlistItem"
+            class="rounded-full bg-white p-1.5 text-black shadow hover:bg-white"
+            size="sm"
+            type="button"
           >
             <HeartIcon
               class="size-5"
@@ -171,27 +188,24 @@ const handleToggleWishlist = async (e: Event) => {
         <!-- Price -->
         <div class="flex items-center gap-2">
           <template v-if="product.price || product.basePrice">
-            <p
-              v-if="product.price"
-              class="text-base font-bold"
-            >
-              {{ formatPrice(product.price) }}
+            <!-- Current price (or basePrice if no discount price) -->
+            <p class="text-base font-semibold">
+              {{ formatPrice(product.price ?? product.basePrice ?? 0) }}
             </p>
+            <!-- Base price (crossed out) - only show if there's an active discount -->
             <p
-              v-if="product.basePrice"
-              class="text-sm"
-              :class="{
-                'text-muted-foreground line-through': product.price,
-              }"
+              v-if="hasDiscount && product.basePrice"
+              class="text-muted-foreground text-sm line-through"
             >
               {{ formatPrice(product.basePrice) }}
             </p>
           </template>
           <p
             v-else
-            class="text-muted-foreground text-sm"
+            class="text-base font-semibold"
           >
-            From {{ formatPrice(lowestPrice) }}
+            <span class="font-normal text-gray-500">From</span>
+            {{ formatPrice(lowestPrice) }}
           </p>
         </div>
       </div>

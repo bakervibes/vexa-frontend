@@ -9,6 +9,22 @@ import DiscountSection from '@/components/views/home/discount/DiscountSection.vu
 import HeroSection from '@/components/views/home/hero/HeroSection.vue'
 import ProductsSection from '@/components/views/home/products/ProductsSection.vue'
 import TermSection from '@/components/views/home/terms/TermSection.vue'
+import {
+  useSeo,
+  useOrganizationSchema,
+  useSearchBoxSchema,
+} from '@/composables/useSeo'
+
+// SEO
+useSeo({
+  title: 'Accueil',
+  description:
+    'Vexa - Votre boutique en ligne. Découvrez nos produits de qualité, nos offres exclusives et profitez de la livraison rapide.',
+})
+
+// Structured data
+useOrganizationSchema()
+useSearchBoxSchema()
 </script>
 
 <template>

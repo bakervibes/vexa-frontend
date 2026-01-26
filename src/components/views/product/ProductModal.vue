@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Dialog from 'primevue/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import DetailsSection from './DetailsSection.vue'
 
 defineProps<{
@@ -18,17 +18,14 @@ const handleOpenChange = (value: boolean) => {
 
 <template>
   <Dialog
-    :visible="open"
-    @update:visible="handleOpenChange"
-    modal
-    :style="{ width: '80rem', maxWidth: '90vw' }"
-    :contentStyle="{ maxHeight: '90vh', overflow: 'auto', padding: '1.5rem' }"
-    :dismissableMask="true"
-    :showHeader="false"
+    :open="open"
+    @update:open="handleOpenChange"
   >
-    <DetailsSection
-      :slug="slug"
-      :is-modal="true"
-    />
+    <DialogContent class="max-h-[80vh] w-full max-w-6xl overflow-auto p-6">
+      <DetailsSection
+        :slug="slug"
+        :is-modal="true"
+      />
+    </DialogContent>
   </Dialog>
 </template>

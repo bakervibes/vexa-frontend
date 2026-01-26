@@ -1,17 +1,17 @@
-import type { CartWithItems } from '@/types'
+import type { CartWithItems, ShareCartResponse } from '@/types'
 import { api } from '@/utils/api'
 import type {
-  AddToCartInput,
+  addCartItemInput,
   RemoveCartItemInput,
   UpdateCartItemInput,
 } from '@/validators/carts.validator'
 
-export const cartService = {
+export const cartsService = {
   async getCart() {
     return api<CartWithItems>('/carts', 'GET')
   },
 
-  async addToCart(data: AddToCartInput) {
+  async addCartItem(data: addCartItemInput) {
     return api<CartWithItems>('/carts/items', 'POST', data)
   },
 
@@ -25,5 +25,17 @@ export const cartService = {
 
   async clearCart() {
     return api<CartWithItems>('/carts', 'DELETE')
+  },
+
+  async shareCart() {
+    return api<ShareCartResponse>('/carts/share', 'POST')
+  },
+
+  async getSharedCart(token: string) {
+    return api<CartWithItems>(`/carts/share/${token}`, 'GET')
+  },
+
+  async mergeSharedCart(token: string) {
+    return api<CartWithItems>(`/carts/share/${token}/merge`, 'POST')
   },
 }

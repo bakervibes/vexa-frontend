@@ -9,18 +9,11 @@ const props = defineProps<Props>()
 
 <template>
   <span
-    class="flex h-full w-full items-center justify-center"
+    class="flex h-5 w-7 items-center justify-center overflow-hidden rounded border"
     :title="props.title"
   >
-    <span :class="`fi fi-${props.country.toLowerCase()}`"></span>
+    <span
+      :class="`fi fi-${props.country.toLowerCase()} h-full! w-full! bg-cover!`"
+    ></span>
   </span>
 </template>
-
-<style scoped>
-/* Ajuste la taille du drapeau si tu veux */
-.fi {
-  width: 100%;
-  height: 100%;
-  background-size: cover;
-}
-</style>

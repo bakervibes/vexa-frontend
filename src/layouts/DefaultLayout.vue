@@ -6,7 +6,7 @@
  */
 import AppFooter from '@/components/common/AppFooter.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
-import NewsLetter from '@/components/views/home/newsletter/NewsLetter.vue'
+import NewsLetter from '@/components/views/home/newsletters/NewsLetters.vue'
 import { Toaster } from 'vue-sonner'
 </script>
 
@@ -15,7 +15,11 @@ import { Toaster } from 'vue-sonner'
     <div class="flex min-h-screen flex-col">
       <AppHeader />
 
-      <main class="mt-16 flex-1 sm:mt-18">
+      <main
+        id="main-content"
+        class="mt-16 flex-1 sm:mt-18"
+        tabindex="-1"
+      >
         <RouterView />
       </main>
     </div>

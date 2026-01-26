@@ -1,143 +1,136 @@
 import { orderService } from '@/services/orders.service'
-import type { UserOrder } from '@/types'
+import type { OrderDetails } from '@/types'
 import type { CreateOrderInput } from '@/validators/orders.validator'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { computed, type Ref } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { toast } from 'vue-sonner'
 
 /**
- * Composable pour récupérer les commandes de l'utilisateur
+ * Hook to manage orders state and mutations
  */
-export function useUserOrders() {
-  const query = useQuery({
-    queryKey: ['orders', 'user'],
-    queryFn: () => orderService.getUserOrders(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1,
-  })
-
-  return {
-    orders: computed(() => query.data.value || []),
-    isLoading: computed(() => query.isLoading.value),
-    isError: computed(() => query.isError.value),
-    error: computed(() => query.error.value),
-    refetch: query.refetch,
-  }
-}
-
-/**
- * Composable pour récupérer une commande par son numéro
- */
-export function useOrder(orderNumber: Ref<string | null | undefined>) {
-  const query = useQuery({
-    queryKey: ['orders', 'number', orderNumber],
-    queryFn: () => {
-      if (!orderNumber.value) {
-        throw new Error('Order number is required !')
-      }
-      return orderService.getOrderByNumber(orderNumber.value)
-    },
-    enabled: computed(() => !!orderNumber.value),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1,
-  })
-
-  return {
-    order: computed(() => query.data.value),
-    isLoading: computed(() => query.isLoading.value),
-    isError: computed(() => query.isError.value),
-    error: computed(() => query.error.value),
-    refetch: query.refetch,
-  }
-}
-
-/**
- * Composable pour récupérer une commande par son ID
- */
-export function useOrderById(orderId: Ref<string | null | undefined>) {
-  const query = useQuery({
-    queryKey: ['orders', orderId],
-    queryFn: () => {
-      if (!orderId.value) {
-        throw new Error('Order ID is required !')
-      }
-      return orderService.getOrderById(orderId.value)
-    },
-    enabled: computed(() => !!orderId.value),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1,
-  })
-
-  return {
-    order: computed(() => query.data.value),
-    isLoading: computed(() => query.isLoading.value),
-    isError: computed(() => query.isError.value),
-    error: computed(() => query.error.value),
-    refetch: query.refetch,
-  }
-}
-
-/**
- * Composable pour les mutations de commandes (création, annulation)
- */
-export function useOrdersMutation() {
+export const useOrders = () => {
   const queryClient = useQueryClient()
 
-  // Mutation pour créer une commande
+  const userOrdersQuery = useQuery({
+    queryKey: ['orders', 'user'],
+    queryFn: () => orderService.getUserOrders(),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+
   const createOrderMutation = useMutation({
     mutationFn: (data: CreateOrderInput) => orderService.createOrder(data),
     onSuccess: (order) => {
-      // Invalider les queries du panier et des commandes
       queryClient.invalidateQueries({ queryKey: ['cart'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
-      toast.success('Order placed successfully !')
+      toast.success('Order placed successfully!')
       return order
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to place order !')
+      toast.error(error.message || 'Failed to place order!')
     },
   })
 
-  // Mutation pour annuler une commande
   const cancelOrderMutation = useMutation({
     mutationFn: (orderId: string) => orderService.cancelOrder(orderId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
-      toast.success('Order cancelled successfully !')
+      toast.success('Order cancelled successfully!')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to cancel order !')
+      toast.error(error.message || 'Failed to cancel order!')
     },
   })
 
-  /**
-   * Créer une nouvelle commande
-   */
-  async function createOrder(data: CreateOrderInput): Promise<UserOrder> {
+  const requestRefundMutation = useMutation({
+    mutationFn: (orderId: string) => orderService.requestRefund(orderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      toast.success('Refund requested successfully!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to request refund!')
+    },
+  })
+
+  const orders = computed(() => userOrdersQuery.data.value || [])
+  const isLoadingOrders = computed(() => userOrdersQuery.isLoading.value)
+  const isErrorOrders = computed(() => userOrdersQuery.isError.value)
+  const errorOrders = computed(() => userOrdersQuery.error.value)
+
+  function refetchOrders() {
+    return userOrdersQuery.refetch()
+  }
+
+  async function createOrder(data: CreateOrderInput): Promise<OrderDetails> {
     return createOrderMutation.mutateAsync(data)
   }
 
-  /**
-   * Annuler une commande
-   */
-  async function cancelOrder(orderId: string): Promise<UserOrder> {
+  async function cancelOrder(orderId: string): Promise<OrderDetails> {
     return cancelOrderMutation.mutateAsync(orderId)
   }
 
   return {
-    // Actions
+    orders,
+    isLoadingOrders,
+    isErrorOrders,
+    errorOrders,
+    refetchOrders,
+
     createOrder,
     cancelOrder,
-
-    // Loading states
+    requestRefund: (orderId: string) =>
+      requestRefundMutation.mutateAsync(orderId),
     isCreatingOrder: computed(() => createOrderMutation.isPending.value),
     isCancellingOrder: computed(() => cancelOrderMutation.isPending.value),
-
-    // Error states
+    isRequestingRefund: computed(() => requestRefundMutation.isPending.value),
     createOrderError: computed(() => createOrderMutation.error.value),
     cancelOrderError: computed(() => cancelOrderMutation.error.value),
-
-    // Data from last mutation
+    requestRefundError: computed(() => requestRefundMutation.error.value),
     createdOrder: computed(() => createOrderMutation.data.value),
+  }
+}
+
+export function useOrderByNumber(
+  orderNumberRef: MaybeRefOrGetter<string | null | undefined>,
+) {
+  const orderNumber = computed(() => toValue(orderNumberRef))
+
+  const query = useQuery({
+    queryKey: computed(() => ['orders', 'number', orderNumber.value]),
+    queryFn: () => orderService.getOrderByNumber(orderNumber.value!),
+    enabled: computed(() => !!orderNumber.value),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+
+  return {
+    order: computed(() => query.data.value),
+    isLoadingOrder: query.isLoading,
+    isErrorOrder: query.isError,
+    errorOrder: query.error,
+    refetchOrder: query.refetch,
+  }
+}
+
+export function useOrderById(
+  orderIdRef: MaybeRefOrGetter<string | null | undefined>,
+) {
+  const orderId = computed(() => toValue(orderIdRef))
+
+  const query = useQuery({
+    queryKey: computed(() => ['orders', 'id', orderId.value]),
+    queryFn: () => orderService.getOrderById(orderId.value!),
+    enabled: computed(() => !!orderId.value),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  })
+
+  return {
+    order: computed(() => query.data.value),
+    isLoadingOrder: query.isLoading,
+    isErrorOrder: query.isError,
+    errorOrder: query.error,
+    refetchOrder: query.refetch,
   }
 }

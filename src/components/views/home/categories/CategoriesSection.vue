@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { useBestSellingCategories } from '@/composables/useCategories'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel'
+import { useCategories } from '@/composables/useCategories'
 import { ArrowRightIcon } from 'lucide-vue-next'
-import Carousel from 'primevue/carousel'
-import { computed, ref } from 'vue'
+import { computed, ref, watchEffect } from 'vue'
 
 const {
   bestSellingCategories,
   isLoadingBestSellingCategories,
   isErrorBestSellingCategories,
   refetchBestSellingCategories,
-} = useBestSellingCategories()
+} = useCategories()
 
+const emblaApi = ref<CarouselApi>()
 const currentIndex = ref(0)
+
+watchEffect(() => {
+  if (!emblaApi.value) return
+
+  emblaApi.value.on('select', () => {
+    currentIndex.value = emblaApi.value?.selectedScrollSnap() ?? 0
+  })
+})
 
 const chunkedCategories = computed(() => {
   const bottomItems = bestSellingCategories.value.filter(
@@ -81,8 +95,12 @@ function handleRefetch() {
   refetchBestSellingCategories()
 }
 
-const onPageChange = (event: { page: number }) => {
-  currentIndex.value = event.page
+const goToSlide = (index: number) => {
+  emblaApi.value?.scrollTo(index)
+}
+
+const getUrl = (categorySlug: string) => {
+  return `/shop?categories=${categorySlug}`
 }
 </script>
 
@@ -101,7 +119,7 @@ const onPageChange = (event: { page: number }) => {
           v-for="index in chunkedCategories.length"
           :key="index"
           class="cursor-pointer p-1"
-          @click="currentIndex = index - 1"
+          @click="goToSlide(index - 1)"
         >
           <div
             :class="[
@@ -150,69 +168,133 @@ const onPageChange = (event: { page: number }) => {
     <!-- Success state with data -->
     <Carousel
       v-else
-      :value="chunkedCategories"
-      :numVisible="1"
-      :numScroll="1"
-      :circular="true"
-      :page="currentIndex"
-      @update:page="onPageChange"
-      :showIndicators="false"
-      :showNavigators="false"
+      @init-api="(val) => (emblaApi = val)"
+      :opts="{
+        loop: true,
+      }"
     >
-      <template #item="slotProps">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <!-- First column (1 large item) -->
-          <div
-            v-if="slotProps.data[0]"
-            class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
-          >
-            <img
-              :src="slotProps.data[0].image"
-              :alt="slotProps.data[0].name"
-              class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-
-            <div
-              :class="[
-                'absolute w-max max-w-[calc(100%-2rem)]',
-                getPositionClasses(slotProps.data[0].position),
-              ]"
+      <CarouselContent>
+        <CarouselItem
+          v-for="(chunk, chunkIndex) in chunkedCategories"
+          :key="chunkIndex"
+        >
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <!-- First column (1 large item) -->
+            <RouterLink
+              v-if="chunk[0]"
+              :to="getUrl(chunk[0].slug)"
+              class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
             >
-              <h3 class="text-xl font-bold text-black md:text-2xl">
-                {{ slotProps.data[0].name }}
-              </h3>
-              <div
-                class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
-              >
-                <span>Shop Now</span>
-                <ArrowRightIcon class="size-4" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Middle column (2 items stacked) -->
-          <div class="flex flex-col gap-4">
-            <div
-              v-if="slotProps.data[1]"
-              class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
-            >
-              <div
-                class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              />
               <img
-                :src="slotProps.data[1].image"
-                :alt="slotProps.data[1].name"
+                :src="chunk[0].image ?? undefined"
+                :alt="chunk[0].name"
                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
 
               <div
                 :class="[
                   'absolute w-max max-w-[calc(100%-2rem)]',
-                  getPositionClasses(slotProps.data[1].position),
+                  getPositionClasses(chunk[0].position),
                 ]"
               >
                 <h3 class="text-xl font-bold text-black md:text-2xl">
-                  {{ slotProps.data[1].name }}
+                  {{ chunk[0].name }}
+                </h3>
+                <div
+                  class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
+                >
+                  <span>Shop Now</span>
+                  <ArrowRightIcon class="size-4" />
+                </div>
+              </div>
+            </RouterLink>
+
+            <!-- Middle column (2 items stacked) -->
+            <div class="flex flex-col gap-4">
+              <RouterLink
+                v-if="chunk[1]"
+                :to="getUrl(chunk[1].slug)"
+                class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
+              >
+                <div
+                  class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+                <img
+                  :src="chunk[1].image ?? undefined"
+                  :alt="chunk[1].name"
+                  class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+
+                <div
+                  :class="[
+                    'absolute w-max max-w-[calc(100%-2rem)]',
+                    getPositionClasses(chunk[1].position),
+                  ]"
+                >
+                  <h3 class="text-xl font-bold text-black md:text-2xl">
+                    {{ chunk[1].name }}
+                  </h3>
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
+                  >
+                    <span>Shop Now</span>
+                    <ArrowRightIcon class="size-4" />
+                  </div>
+                </div>
+              </RouterLink>
+
+              <RouterLink
+                v-if="chunk[2]"
+                :to="getUrl(chunk[2].slug)"
+                class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
+              >
+                <div
+                  class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                />
+                <img
+                  :src="chunk[2].image ?? undefined"
+                  :alt="chunk[2].name"
+                  class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+
+                <div
+                  :class="[
+                    'absolute w-max max-w-[calc(100%-2rem)]',
+                    getPositionClasses(chunk[2].position),
+                  ]"
+                >
+                  <h3 class="text-xl font-bold text-black md:text-2xl">
+                    {{ chunk[2].name }}
+                  </h3>
+                  <div
+                    class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
+                  >
+                    <span>Shop Now</span>
+                    <ArrowRightIcon class="size-4" />
+                  </div>
+                </div>
+              </RouterLink>
+            </div>
+
+            <!-- Third column (1 large item) -->
+            <div
+              v-if="chunk[3]"
+              class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
+            >
+              <img
+                :src="chunk[3].image ?? undefined"
+                :alt="chunk[3].name"
+                class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+              />
+
+              <div
+                :class="[
+                  'absolute w-max max-w-[calc(100%-2rem)]',
+                  getPositionClasses(chunk[3].position),
+                ]"
+              >
+                <h3 class="text-xl font-bold text-black md:text-2xl">
+                  {{ chunk[3].name }}
                 </h3>
                 <div
                   class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
@@ -222,69 +304,9 @@ const onPageChange = (event: { page: number }) => {
                 </div>
               </div>
             </div>
-
-            <div
-              v-if="slotProps.data[2]"
-              class="group relative h-40 w-full cursor-pointer overflow-hidden transition-all md:h-48"
-            >
-              <div
-                class="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-              />
-              <img
-                :src="slotProps.data[2].image"
-                :alt="slotProps.data[2].name"
-                class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-
-              <div
-                :class="[
-                  'absolute w-max max-w-[calc(100%-2rem)]',
-                  getPositionClasses(slotProps.data[2].position),
-                ]"
-              >
-                <h3 class="text-xl font-bold text-black md:text-2xl">
-                  {{ slotProps.data[2].name }}
-                </h3>
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
-                >
-                  <span>Shop Now</span>
-                  <ArrowRightIcon class="size-4" />
-                </div>
-              </div>
-            </div>
           </div>
-
-          <!-- Third column (1 large item) -->
-          <div
-            v-if="slotProps.data[3]"
-            class="group relative h-80 w-full cursor-pointer overflow-hidden transition-all md:h-100"
-          >
-            <img
-              :src="slotProps.data[3].image"
-              :alt="slotProps.data[3].name"
-              class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-            />
-
-            <div
-              :class="[
-                'absolute w-max max-w-[calc(100%-2rem)]',
-                getPositionClasses(slotProps.data[3].position),
-              ]"
-            >
-              <h3 class="text-xl font-bold text-black md:text-2xl">
-                {{ slotProps.data[3].name }}
-              </h3>
-              <div
-                class="flex items-center gap-2 text-sm font-medium text-black group-hover:underline"
-              >
-                <span>Shop Now</span>
-                <ArrowRightIcon class="size-4" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
+        </CarouselItem>
+      </CarouselContent>
     </Carousel>
   </section>
 </template>

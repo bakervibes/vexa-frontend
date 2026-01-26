@@ -1,51 +1,49 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useAuthStore } from '@/stores/auth'
-import { registerBodySchema } from '@/validators/auth.validator'
-import { Form } from '@primevue/forms'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
-import Checkbox from 'primevue/checkbox'
-import Message from 'primevue/message'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Checkbox } from '@/components/ui/checkbox'
+import { FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { useAuth } from '@/composables/useAuth'
+import {
+  registerBodySchema,
+  type RegisterInput,
+} from '@/validators/auth.validator'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
+const { register, isRegistering, registerError } = useAuth()
 const redirect = route.query.redirect as string | undefined
 const acceptTerms = ref(false)
 
-const initialValues = {
-  name: '',
-  email: '',
-  password: '',
-}
+const { handleSubmit } = useForm({
+  validationSchema: toTypedSchema(registerBodySchema),
+  initialValues: {
+    name: '',
+    email: '',
+    password: '',
+  },
+})
 
-const resolver = zodResolver(registerBodySchema)
-
-const onFormSubmit = async ({
-  valid,
-  values,
-}: {
-  valid: boolean
-  values: typeof initialValues
-}) => {
-  if (!valid) return
-
-  // Réinitialiser l'erreur
-  authStore.error = null
-
-  const result = await authStore.register({
-    name: values.name,
-    email: values.email,
-    password: values.password,
+const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
+  const result = await register({
+    name: formValues.name,
+    email: formValues.email,
+    password: formValues.password,
   })
 
   if (result.success) {
+    toast.success('Compte créé avec succès', {
+      description: 'Bienvenue sur Vexa !',
+    })
     router.push(redirect || '/')
   }
-}
+})
 </script>
 
 <template>
@@ -65,88 +63,82 @@ const onFormSubmit = async ({
         <h2 class="text-3xl font-bold">Create an account</h2>
 
         <!-- Error Message -->
-        <Message
-          v-if="authStore.error"
-          severity="error"
-          :closable="false"
+        <Alert
+          v-if="registerError"
+          variant="destructive"
         >
-          {{ authStore.error }}
-        </Message>
+          <AlertDescription>
+            {{ registerError }}
+          </AlertDescription>
+        </Alert>
 
         <p class="mt-2 text-gray-600">
           Already have an account?
           <RouterLink
-            to="/auth/sign-in"
+            :to="
+              redirect ? `/auth/sign-in?redirect=${redirect}` : '/auth/sign-in'
+            "
             class="text-blue-600 hover:underline"
           >
             Sign in
           </RouterLink>
         </p>
 
-        <Form
-          v-slot="$form"
-          :initialValues="initialValues"
-          :resolver="resolver"
-          @submit="onFormSubmit"
+        <form
+          @submit="onSubmit"
           class="space-y-4"
         >
           <!-- Name Field -->
-          <div class="flex flex-col gap-1">
-            <CustomInput
-              name="name"
-              label="Username"
-              type="text"
-            />
-            <Message
-              v-if="$form.name?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-            >
-              {{ $form.name.error?.message }}
-            </Message>
-          </div>
+          <FormField
+            v-slot="{ componentField }"
+            name="name"
+          >
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Full Name"
+                type="text"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <!-- Email Field -->
-          <div class="flex flex-col gap-1">
-            <CustomInput
-              name="email"
-              label="Email address"
-              type="email"
-            />
-            <Message
-              v-if="$form.email?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-            >
-              {{ $form.email.error?.message }}
-            </Message>
-          </div>
+          <FormField
+            v-slot="{ componentField }"
+            name="email"
+          >
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Email address"
+                type="email"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <!-- Password Field -->
-          <div class="flex flex-col gap-1">
-            <CustomInput
-              name="password"
-              label="Password"
-              type="password"
-            />
-            <Message
-              v-if="$form.password?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-            >
-              {{ $form.password.error?.message }}
-            </Message>
-          </div>
+          <FormField
+            v-slot="{ componentField }"
+            name="password"
+          >
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Password"
+                type="password"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <!-- Options -->
           <div class="flex items-center">
             <label class="flex items-center gap-2">
               <Checkbox
-                v-model="acceptTerms"
-                :binary="true"
+                :checked="acceptTerms"
+                @update:checked="acceptTerms = $event"
               />
               <span class="text-gray-600">
                 I agree to the
@@ -158,10 +150,10 @@ const onFormSubmit = async ({
                 </RouterLink>
                 and
                 <RouterLink
-                  to="/terms-and-conditions"
+                  to="/privacy-policy"
                   class="text-blue-600 hover:underline"
                 >
-                  conditions of use
+                  privacy policy
                 </RouterLink>
               </span>
             </label>
@@ -170,13 +162,13 @@ const onFormSubmit = async ({
           <!-- Submit Button -->
           <LoadingButton
             type="submit"
-            :disabled="authStore.isLoading"
-            :loading="authStore.isLoading"
+            :disabled="isRegistering"
+            :loading="isRegistering"
             class="w-full"
           >
             Create an account
           </LoadingButton>
-        </Form>
+        </form>
       </div>
     </div>
   </div>

@@ -9,19 +9,23 @@ import {
 
 /**
  * Schema for adding a review
+ * Aligned with backend CreateReviewDto:
+ * - comment: optional (backend)
  */
 export const addReviewSchema = z.object({
   productId: cuidSchema,
   rating: ratingSchema,
-  comment: commentSchema,
+  comment: commentSchema.optional(),
 })
 
 /**
  * Schema for updating a review
+ * Aligned with backend UpdateReviewDto:
+ * - comment: optional (backend)
  */
 export const updateReviewSchema = z.object({
   rating: ratingSchema,
-  comment: commentSchema,
+  comment: commentSchema.optional(),
 })
 
 /**

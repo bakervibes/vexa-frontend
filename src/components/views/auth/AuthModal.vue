@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Dialog from 'primevue/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { ref, watch } from 'vue'
 import ModalSignInForm from './ModalSignInForm.vue'
 import ModalSignUpForm from './ModalSignUpForm.vue'
@@ -53,31 +53,26 @@ const handleOpenChange = (value: boolean) => {
 
 <template>
   <Dialog
-    :visible="open"
-    @update:visible="handleOpenChange"
-    modal
-    :header="currentMode === 'login' ? 'Sign in' : 'Create an account'"
-    :style="{ width: '80vw', maxWidth: '1024px' }"
-    :contentStyle="{ padding: 0 }"
-    :showHeader="false"
-    :dismissableMask="true"
-    class="overflow-hidden"
+    :open="open"
+    @update:open="handleOpenChange"
   >
-    <Transition
-      name="fade"
-      mode="out-in"
-    >
-      <ModalSignInForm
-        v-if="currentMode === 'login'"
-        @switch-to-register="switchToRegister"
-        @success="handleSuccess"
-      />
-      <ModalSignUpForm
-        v-else
-        @switch-to-login="switchToLogin"
-        @success="handleSuccess"
-      />
-    </Transition>
+    <DialogContent class="max-w-[80vw] overflow-hidden p-0 md:max-w-[1024px]">
+      <Transition
+        name="fade"
+        mode="out-in"
+      >
+        <ModalSignInForm
+          v-if="currentMode === 'login'"
+          @switch-to-register="switchToRegister"
+          @success="handleSuccess"
+        />
+        <ModalSignUpForm
+          v-else
+          @switch-to-login="switchToLogin"
+          @success="handleSuccess"
+        />
+      </Transition>
+    </DialogContent>
   </Dialog>
 </template>
 

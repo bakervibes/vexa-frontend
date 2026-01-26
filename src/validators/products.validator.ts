@@ -13,7 +13,6 @@ import {
   priceRangeFilterSchema,
   priceSchema,
   searchSchema,
-  skuSchema,
   slugSchema,
   sortBySchema,
   sortOrderSchema,
@@ -42,26 +41,30 @@ const variantOptionSchema = z.object({
 
 /**
  * Schéma pour les variantes de produit
+ * Note: price is optional (backend generates it if not provided)
  */
 const productVariantSchema = z.object({
-  sku: skuSchema,
   basePrice: priceSchema,
-  price: priceSchema,
+  price: priceSchema.optional(),
   stock: stockSchema,
   options: z.array(variantOptionSchema).optional(),
 })
 
 /**
  * Schéma de validation pour la création d'un produit
+ * Aligned with backend CreateProductDto:
+ * - categoryId: optional (backend)
+ * - images: optional (backend)
+ * - slug: optional (backend auto-generates from name)
  */
 export const createProductSchema = z.object({
-  categoryId: cuidSchema,
+  categoryId: cuidSchema.optional(),
   name: nameLongSchema,
-  slug: slugSchema,
+  slug: slugSchema.optional(),
   description: descriptionSchema,
   basePrice: priceSchema,
-  price: priceSchema,
-  images: imagesSchema,
+  price: priceSchema.optional(),
+  images: imagesSchema.optional(),
   metaTitle: metaTitleSchema,
   metaDescription: metaDescriptionSchema,
   variants: z.array(productVariantSchema).optional(),

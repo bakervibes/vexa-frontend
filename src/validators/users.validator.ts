@@ -1,17 +1,26 @@
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { z } from 'zod'
-import { emailSchema, nameSchema, passwordSchema } from './common.schemas'
+import { nameSchema, passwordSchema } from './common.schemas'
 
 // ========== Schémas de validation ==========
 
+/**
+ * Schema for updating user profile (name, phone only)
+ * Email is handled separately via better-auth changeEmail
+ */
 export const updateProfileSchema = z.object({
-  name: nameSchema,
-  email: emailSchema,
-  phone: z.string().refine((value) => isValidPhoneNumber(value), {
-    message: 'Veuillez entrer un numéro de téléphone valide',
-  }),
+  name: nameSchema.optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine((value) => !value || isValidPhoneNumber(value), {
+      message: 'Veuillez entrer un numéro de téléphone valide',
+    }),
 })
 
+/**
+ * Schema for changing password via better-auth
+ */
 export const changePasswordSchema = z
   .object({
     currentPassword: passwordSchema,
@@ -23,12 +32,7 @@ export const changePasswordSchema = z
     path: ['confirmPassword'],
   })
 
-export const updateProfileImageSchema = z.object({
-  imageUrl: z.url('Invalid image URL'),
-})
-
 // ========== Types inférés ==========
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
-export type UpdateProfileImageInput = z.infer<typeof updateProfileImageSchema>
