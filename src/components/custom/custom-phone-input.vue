@@ -1,11 +1,28 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { cn } from '@/utils/lib'
 import {
   AsYouType,
   getCountries,
   getCountryCallingCode,
   type CountryCode,
 } from 'libphonenumber-js'
-import Select from 'primevue/select'
+import { Check } from 'lucide-vue-next'
 import fr from 'react-phone-number-input/locale/fr.json'
 import { computed, ref, watch } from 'vue'
 import FlagComponent from './FlagComponent.vue'
@@ -29,13 +46,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emits = defineEmits<{
   'update:modelValue': [value: string]
-  blur: [e: FocusEvent]
   change: [e: Event]
   input: [e: Event]
 }>()
 
+const open = ref(false)
 const selectedCountry = ref<CountryCode>(props.defaultCountry)
 const internalValue = ref('')
+const inputRef = ref<HTMLInputElement | null>(null)
 
 // Fonction pour obtenir les données du téléphone
 const getPhoneData = (phone: string) => {
@@ -96,10 +114,9 @@ watch(selectedCountry, () => {
   }
 })
 
-// Gestion de l'input
-const handleInput = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  let inputValue = target.value
+// Gestion de l'input avec le composant Input de shadcn
+const handleInputUpdate = (value: string | number) => {
+  let inputValue = String(value)
 
   // Si l'utilisateur efface tout, réinitialiser au code pays
   if (inputValue.length < `+${countryCallingCode.value}`.length) {
@@ -156,88 +173,106 @@ const handlePaste = (e: ClipboardEvent) => {
   }
 }
 
-// Gestion du change (non utilisé, mais gardé pour la compatibilité)
-const handleChange = (e: Event) => {
-  // Vee-validate gère déjà le change via update:modelValue
-}
-
 // Sélection d'un pays
-const handleCountrySelect = (event: any) => {
-  const countryCode = event.value as CountryCode
+const handleCountrySelect = (countryCode: CountryCode) => {
   selectedCountry.value = countryCode
   const newValue = `+${getCountryCallingCode(countryCode)}`
   internalValue.value = newValue
   emits('update:modelValue', newValue)
+  open.value = false
 }
 </script>
 
 <template>
-  <div class="relative flex w-full items-end gap-2 border-b border-gray-300">
-    <!-- Country Selector -->
-    <Select
-      v-model="selectedCountry"
-      :options="countries"
-      optionLabel="label"
-      optionValue="value"
-      filter
-      :disabled="disabled"
-      placeholder="Sélectionner un pays"
-      @change="handleCountrySelect"
-      class="shrink-0 !border-none"
-      panelClass="w-80"
+  <div class="flex w-full flex-col gap-1 border-b border-gray-300">
+    <Label
+      :for="inputId"
+      class="font-normal text-gray-600"
     >
-      <template #value="slotProps">
-        <div
-          v-if="slotProps.value"
-          class="flex items-center gap-1.5"
-        >
-          <span class="flex h-5 w-7 overflow-hidden rounded">
-            <FlagComponent
-              :country="slotProps.value"
-              :title="selectedCountryData?.label || slotProps.value"
-            />
-          </span>
-        </div>
-      </template>
-      <template #option="slotProps">
-        <div class="flex items-center gap-2">
-          <span class="flex h-5 w-7 overflow-hidden rounded">
-            <FlagComponent
-              :country="slotProps.option.value"
-              :title="slotProps.option.label"
-            />
-          </span>
-          <span class="flex-1 text-sm">{{ slotProps.option.label }}</span>
-          <span class="text-sm text-gray-500">
-            {{ slotProps.option.indicatif }}
-          </span>
-        </div>
-      </template>
-    </Select>
+      {{ label }}
+    </Label>
 
-    <!-- Input with floating label -->
-    <div class="flex-1">
-      <input
+    <div class="flex w-full flex-1 items-center gap-2 px-0.5">
+      <Popover v-model:open="open">
+        <PopoverTrigger
+          as-child
+          class="h-fit"
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            role="combobox"
+            :aria-expanded="open"
+            :disabled="disabled"
+            size="sm"
+            class="p-0! hover:bg-transparent"
+          >
+            <FlagComponent
+              v-if="selectedCountry"
+              :country="selectedCountry"
+              :title="selectedCountryData?.label || selectedCountry"
+            />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent class="w-full max-w-lg p-0">
+          <Command>
+            <CommandInput placeholder="Rechercher un pays..." />
+            <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
+            <CommandList>
+              <CommandGroup>
+                <CommandItem
+                  v-for="country in countries"
+                  :key="country.value"
+                  :value="country.label"
+                  @select="handleCountrySelect(country.value)"
+                  class="hover:bg-muted cursor-pointer py-2"
+                >
+                  <Check
+                    :class="
+                      cn(
+                        'mr-1 h-4 w-4',
+                        selectedCountry === country.value
+                          ? 'opacity-100'
+                          : 'opacity-0',
+                      )
+                    "
+                  />
+                  <div class="flex w-full items-center gap-2">
+                    <span class="flex h-4 w-6 overflow-hidden rounded">
+                      <FlagComponent
+                        :country="country.value"
+                        :title="country.label"
+                      />
+                    </span>
+                    <div>
+                      <span>
+                        {{ country.label }}
+                        <span class="text-muted-foreground ml-auto">
+                          {{ country.indicatif }}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      <Input
         :id="inputId"
+        ref="inputRef"
         :name="name"
         type="tel"
-        pattern="[\d\s\-\(\)\+]+"
-        :value="internalValue"
-        @input="handleInput"
-        @change="handleChange"
+        :model-value="internalValue"
+        @update:model-value="handleInputUpdate"
         @paste="handlePaste"
-        @blur="emits('blur', $event)"
         :required="required"
         :disabled="disabled"
-        class="peer w-full border-none pt-8 pb-1 transition-all focus:ring-0 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        class="w-full rounded-none border-none bg-transparent px-0 pb-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
         placeholder=" "
       />
-      <label
-        :for="inputId"
-        class="pointer-events-none absolute top-0 left-0 text-sm text-gray-500 transition-all duration-200 ease-in-out"
-      >
-        {{ label }}
-      </label>
     </div>
   </div>
 </template>

@@ -5,7 +5,7 @@ export * from '@/utils/api'
 export * from './models'
 
 // Types spécifiques par domaine
-export * from './auth'
+export * from './admin'
 export * from './carts'
 export * from './categories'
 export * from './coupons'

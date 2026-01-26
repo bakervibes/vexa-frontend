@@ -1,40 +1,29 @@
 <script setup lang="ts">
+import type { ButtonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { Loader2Icon } from 'lucide-vue-next'
-import Button from 'primevue/button'
 import type { HTMLAttributes } from 'vue'
 
-interface ButtonProps {
-  severity?:
-    | 'primary'
-    | 'secondary'
-    | 'success'
-    | 'info'
-    | 'warn'
-    | 'danger'
-    | 'contrast'
-  size?: 'small' | 'large'
-  text?: boolean
-  outlined?: boolean
+interface Props {
+  variant?: ButtonVariants['variant']
+  size?: ButtonVariants['size']
   class?: HTMLAttributes['class']
-}
-
-interface ExtraProps {
   loading?: boolean
   disabled?: boolean
 }
 
-const props = withDefaults(defineProps<ButtonProps & ExtraProps>(), {
+const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  variant: 'default',
+  size: 'default',
 })
 </script>
 
 <template>
   <Button
     :disabled="props.disabled || props.loading"
-    :severity="props.severity"
+    :variant="props.variant"
     :size="props.size"
-    :text="props.text"
-    :outlined="props.outlined"
     :class="props.class"
     class="relative"
   >

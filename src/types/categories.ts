@@ -5,8 +5,8 @@ import type { Category, Product } from './models'
  * Correspond au retour de getAll et getBestSelling
  */
 export interface CategoryWithChildren extends Category {
-  parent: Category | null
-  children: Category[]
+  parentCategory: Category | null
+  childCategories: Category[]
   _count: {
     products: number
   }
@@ -32,7 +32,9 @@ export type CategoryDetailResponse = CategoryWithProducts
 
 /**
  * Réponse pour create et update
+ * Aligned with backend Prisma relations:
+ * - parentCategory (not parent)
  */
 export interface CategoryResponse extends Category {
-  parent: Category | null
+  parentCategory: Category | null
 }

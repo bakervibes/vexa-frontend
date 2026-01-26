@@ -1,37 +1,41 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { EyeIcon, EyeOffIcon } from 'lucide-vue-next'
-import Button from 'primevue/button'
 import { computed, ref } from 'vue'
 
 interface Props {
   id?: string
-  label: string
+  label?: string
   type?: string
   required?: boolean
+  placeholder?: string
   modelValue?: string | number
+  disabled?: boolean
+  showBorder?: boolean
   // Props venant de vee-validate via v-bind="componentField"
   name?: string
-  onBlur?: (e: FocusEvent) => void
   onChange?: (e: Event) => void
   onInput?: (e: Event) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'text',
-  placeholder: '',
   required: false,
   modelValue: '',
+  disabled: false,
+  showBorder: true,
 })
 
 const emits = defineEmits<{
   'update:modelValue': [value: string | number]
-  blur: [e: FocusEvent]
   change: [e: Event]
   input: [e: Event]
 }>()
 
 const displayPassword = ref(false)
-const type = computed(() => {
+const inputType = computed(() => {
   if (props.type === 'password') {
     return displayPassword.value ? 'text' : 'password'
   }
@@ -44,54 +48,55 @@ const inputId = computed(
 )
 
 // Gestion des événements
-const handleInput = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  emits('update:modelValue', target.value)
-  emits('input', e)
-  props.onInput?.(e)
-}
-
-const handleChange = (e: Event) => {
-  emits('change', e)
-  props.onChange?.(e)
+const handleInput = (value: string | number) => {
+  emits('update:modelValue', value)
 }
 </script>
 
 <template>
-  <div class="relative w-full border-b border-gray-300">
-    <input
-      :id="inputId"
-      :name="name"
-      :type="type"
-      :value="modelValue"
-      @input="handleInput"
-      @change="handleChange"
-      :required="required"
-      class="peer w-full border-none pt-8 pb-1 transition-all focus:ring-0 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-    />
-    <label
+  <div
+    class="flex w-full flex-col gap-1"
+    :class="{ 'border-b border-gray-300': showBorder }"
+  >
+    <Label
+      v-if="label"
       :for="inputId"
-      class="pointer-events-none absolute top-0 left-0 text-sm text-gray-500 transition-all duration-200 ease-in-out"
+      class="font-normal text-gray-600"
     >
       {{ label }}
-    </label>
-    <Button
-      v-if="props.type === 'password'"
-      text
-      plain
-      type="button"
-      @click="displayPassword = !displayPassword"
-      class="absolute top-5 right-0 !p-2"
-      aria-label="Toggle password visibility"
-    >
-      <EyeIcon
-        v-if="displayPassword"
-        class="size-4"
+    </Label>
+
+    <div class="relative flex w-full items-center px-0.5">
+      <Input
+        :id="inputId"
+        :name="name"
+        :type="inputType"
+        :model-value="modelValue"
+        @update:model-value="handleInput"
+        :placeholder="placeholder"
+        :required="required"
+        :disabled="disabled"
+        class="w-full rounded-none border-none bg-transparent px-0 pb-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
       />
-      <EyeOffIcon
-        v-else
-        class="size-4"
-      />
-    </Button>
+
+      <Button
+        v-if="props.type === 'password'"
+        variant="ghost"
+        size="icon"
+        type="button"
+        @click="displayPassword = !displayPassword"
+        class="h-6 w-10 hover:bg-transparent"
+        aria-label="Toggle password visibility"
+      >
+        <EyeIcon
+          v-if="displayPassword"
+          class="size-4"
+        />
+        <EyeOffIcon
+          v-else
+          class="size-4"
+        />
+      </Button>
+    </div>
   </div>
 </template>

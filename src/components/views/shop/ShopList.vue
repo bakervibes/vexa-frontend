@@ -1,59 +1,88 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { useProducts } from '@/composables/useProducts'
+import { useInfiniteScroll } from '@vueuse/core'
 import { SlidersHorizontalIcon } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Drawer from 'primevue/drawer'
-import Paginator from 'primevue/paginator'
-import { computed, ref } from 'vue'
+import { ref, watch } from 'vue'
 import ProductCard from '../common/ProductCard.vue'
 import ProductCardSkeleton from '../common/ProductCardSkeleton.vue'
 import ShopFilter from './ShopFilter.vue'
 import ShopSort from './ShopSort.vue'
 
-const { products, paginationProducts, filters, setFilters, isLoadingProducts } =
-  useProducts()
+const {
+  products,
+  paginationProducts,
+  isLoadingProducts,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  filters,
+} = useProducts()
 
-const currentPage = computed(() => Number(filters.value.page) || 1)
 const isFilterDrawerOpen = ref(false)
 
-const onPageChange = (event: { page: number }) => {
-  setFilters({ page: String(event.page + 1) }, false)
-}
+const { reset } = useInfiniteScroll(
+  window,
+  () => {
+    fetchNextPage()
+  },
+  {
+    distance: 3000,
+    canLoadMore: () => {
+      return hasNextPage.value && !isFetchingNextPage.value
+    },
+  },
+)
+
+watch(
+  filters,
+  () => {
+    reset()
+  },
+  { deep: true },
+)
 </script>
 
 <template>
   <section class="flex flex-1 flex-col gap-4">
     <div class="flex items-center justify-between gap-2">
       <Button
-        outlined
-        class="flex !h-11 items-center gap-2 lg:hidden"
+        variant="outline"
+        class="flex items-center gap-2 lg:hidden"
         @click="isFilterDrawerOpen = true"
       >
-        <h1 class="text-xl font-bold">Filter</h1>
-        <SlidersHorizontalIcon class="size-6 text-black/40" />
+        <span class="text-base font-medium sm:text-lg">Filter</span>
+        <SlidersHorizontalIcon class="size-5 text-black/40" />
       </Button>
 
-      <Drawer
-        v-model:visible="isFilterDrawerOpen"
-        position="left"
-        :style="{ width: '25rem' }"
-        class="block lg:hidden"
-      >
-        <template #header>
-          <div>
-            <h1 class="text-2xl font-bold">Filter</h1>
-            <p class="text-sm text-gray-500">
+      <Sheet v-model:open="isFilterDrawerOpen">
+        <SheetContent
+          side="left"
+          class="flex h-full w-full flex-col pr-0 sm:w-100 sm:max-w-none"
+        >
+          <SheetHeader class="pr-8 text-left">
+            <SheetTitle class="text-2xl font-bold">Filter</SheetTitle>
+            <SheetDescription>
               Use the available filters to refine your product search.
-            </p>
+            </SheetDescription>
+          </SheetHeader>
+
+          <div class="flex-1 overflow-y-auto pr-8">
+            <ShopFilter />
           </div>
-        </template>
+        </SheetContent>
+      </Sheet>
 
-        <div class="h-full overflow-y-auto">
-          <ShopFilter />
-        </div>
-      </Drawer>
-
-      <h1>{{ paginationProducts?.total || 0 }} products</h1>
+      <h1 class="hidden sm:block">
+        {{ paginationProducts?.total || 0 }} products
+      </h1>
 
       <!-- Sort by -->
       <ShopSort />
@@ -111,14 +140,16 @@ const onPageChange = (event: { page: number }) => {
       />
     </div>
 
-    <Paginator
-      v-if="paginationProducts && paginationProducts.totalPages > 1"
-      :rows="21"
-      :totalRecords="paginationProducts.total"
-      :first="(currentPage - 1) * 21"
-      @page="onPageChange"
-      template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink"
-    />
+    <!-- Infinite Scroll Loading Trigger -->
+    <div
+      v-if="isFetchingNextPage"
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
+    >
+      <ProductCardSkeleton
+        v-for="i in 9"
+        :key="i"
+      />
+    </div>
   </section>
 </template>
 

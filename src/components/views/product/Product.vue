@@ -10,11 +10,9 @@ const slug = computed(() => route.params.slug as string)
 </script>
 
 <template>
-  <section class="flex flex-col">
-    <DetailsSection :slug="slug" />
+  <DetailsSection :slug="slug" />
 
-    <ReviewsSection :slug="slug" />
+  <ReviewsSection :slug="slug" />
 
-    <RelatedSection :slug="slug" />
-  </section>
+  <RelatedSection :slug="slug" />
 </template>

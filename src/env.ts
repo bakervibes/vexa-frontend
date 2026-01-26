@@ -7,7 +7,10 @@ import { z } from 'zod'
 const envSchema = z.object({
   // Application
   VITE_APP_NAME: z.string().min(1, "Le nom de l'application est requis"),
-  VITE_APP_VERSION: z.string().min(1, "La version de l'application est requise"),
+  VITE_APP_VERSION: z
+    .string()
+    .min(1, "La version de l'application est requise"),
+  VITE_APP_URL: z.string().url("L'URL de l'application doit être valide"),
 
   // API Configuration
   VITE_API_URL: z.string().url("L'URL de l'API doit être valide"),
@@ -30,6 +33,28 @@ const envSchema = z.object({
   VITE_ENV: z.enum(['development', 'staging', 'production'], {
     message: "L'environnement doit être development, staging ou production",
   }),
+
+  // Stripe
+  VITE_STRIPE_PUBLISHABLE_KEY: z
+    .string()
+    .min(1, 'La clé publique Stripe est requise'),
+  VITE_KKIAPAY_PUBLIC_KEY: z
+    .string()
+    .min(1, 'La clé publique Kkiapay est requise'),
+  VITE_MONEROO_PUBLIC_KEY: z
+    .string()
+    .min(1, 'La clé publique Moneroo est requise'),
+
+  // Exchange Rate Host API Key
+  VITE_EXCHANGE_RATE_HOST_API_KEY: z
+    .string()
+    .min(1, "L'API Key de Exchange Rate Host est requise"),
+
+  // Mapbox Access Token (optional for contact page map)
+  VITE_MAPBOX_ACCESS_TOKEN: z.string().optional().default(''),
+
+  // WhatsApp Business Phone (for wa.me links)
+  VITE_WHATSAPP_BUSINESS_PHONE: z.string().optional().default('+2290166386436'),
 })
 
 /**

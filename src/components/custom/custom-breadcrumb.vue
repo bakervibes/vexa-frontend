@@ -1,9 +1,20 @@
 <script setup lang="ts">
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-vue-next'
-import Breadcrumb from 'primevue/breadcrumb'
-import Menu from 'primevue/menu'
-import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed } from 'vue'
 
 // Props
 interface BreadcrumbItemType {
@@ -15,89 +26,96 @@ const props = defineProps<{
   items: BreadcrumbItemType[]
 }>()
 
-const menu = ref()
+// Logique : dropdown dès qu'il y a 4 éléments ou plus pour raccourcir
+// En shadcn on garde souvent plus d'items, mais reproduisons la logique "collapse" si beaucoup d'items
+// Ici la logique était "si 3 items ou plus, afficher seulement le dernier et un menu"
+// Adaptons pour shadcn : Afficher le premier, ... (menu), et le dernier si > 3 items
 
-// Logique : dropdown dès qu'il y a 3 éléments ou plus
-const shouldShowDropdown = computed(() => props.items.length >= 3)
+const ITEMS_TO_DISPLAY = 3
 
-// Transformation des items pour PrimeVue Breadcrumb
-const breadcrumbItems = computed(() => {
-  if (props.items.length < 3) {
-    // Moins de 3 éléments : affichage normal
-    return props.items.map((item) => ({
-      label: item.label,
-      to: item.link,
-    }))
-  }
+const shouldCollapse = computed(() => props.items.length > ITEMS_TO_DISPLAY)
 
-  // 3 éléments ou plus : afficher uniquement le dernier
-  const lastItem = props.items[props.items.length - 1]
-  if (!lastItem) return []
-  return [
-    {
-      label: lastItem.label,
-      to: lastItem.link,
-    },
-  ]
+const firstItem = computed(() => props.items[0])
+const lastItem = computed(() => props.items[props.items.length - 1])
+const middleItems = computed(() => {
+  if (!shouldCollapse.value) return []
+  return props.items.slice(1, props.items.length - 1)
 })
-
-// Items pour le menu dropdown
-const menuItems = computed(() => {
-  if (props.items.length < 3) return []
-
-  return props.items.slice(0, -1).map((item) => ({
-    label: item.label,
-    command: () => {
-      if (item.link) {
-        window.location.href = item.link
-      }
-    },
-  }))
-})
-
-const toggleMenu = (event: Event) => {
-  menu.value?.toggle(event)
-}
 </script>
 
 <template>
-  <div class="flex shrink-0 items-center gap-2">
-    <!-- Bouton dropdown si 3+ éléments -->
-    <button
-      v-if="shouldShowDropdown"
-      @click="toggleMenu"
-      class="hover:text-primary flex cursor-pointer items-center gap-1 transition-colors"
-      aria-label="Afficher les éléments du chemin"
-    >
-      <MoreHorizontal class="h-4 w-4" />
-    </button>
-
-    <Menu
-      v-if="shouldShowDropdown"
-      ref="menu"
-      :model="menuItems"
-      :popup="true"
-    />
-
-    <!-- Breadcrumb PrimeVue -->
-    <Breadcrumb :model="breadcrumbItems">
-      <template #item="{ item, props }">
-        <RouterLink
-          v-if="item.to"
-          :to="item.to"
-          v-bind="props.action"
-          class="hover:text-primary truncate text-lg transition-colors"
+  <Breadcrumb>
+    <BreadcrumbList>
+      <!-- Si pas de collapse, afficher tout -->
+      <template v-if="!shouldCollapse">
+        <template
+          v-for="(item, index) in items"
+          :key="index"
         >
-          {{ item.label }}
-        </RouterLink>
-        <span
-          v-else
-          v-bind="props.action"
-          class="truncate text-lg"
-        >
-          {{ item.label }}
-        </span>
+          <BreadcrumbItem>
+            <BreadcrumbLink
+              v-if="item.link && index < items.length - 1"
+              :href="item.link"
+            >
+              {{ item.label }}
+            </BreadcrumbLink>
+            <BreadcrumbPage v-else>
+              {{ item.label }}
+            </BreadcrumbPage>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator v-if="index < items.length - 1" />
+        </template>
       </template>
-    </Breadcrumb>
-  </div>
+
+      <!-- Si collapse -->
+      <template v-else>
+        <!-- Premier item -->
+        <BreadcrumbItem>
+          <BreadcrumbLink
+            v-if="firstItem?.link"
+            :href="firstItem.link"
+          >
+            {{ firstItem.label }}
+          </BreadcrumbLink>
+          <BreadcrumbPage v-else>
+            {{ firstItem?.label }}
+          </BreadcrumbPage>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+
+        <!-- Menu Dropdown -->
+        <BreadcrumbItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger class="flex items-center gap-1">
+              <MoreHorizontal class="h-4 w-4" />
+              <span class="sr-only">Toggle menu</span>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                v-for="(item, index) in middleItems"
+                :key="index"
+              >
+                <a
+                  v-if="item.link"
+                  :href="item.link"
+                  class="w-full"
+                >
+                  {{ item.label }}
+                </a>
+                <span v-else>{{ item.label }}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+
+        <!-- Dernier item -->
+        <BreadcrumbItem>
+          <BreadcrumbPage>
+            {{ lastItem?.label }}
+          </BreadcrumbPage>
+        </BreadcrumbItem>
+      </template>
+    </BreadcrumbList>
+  </Breadcrumb>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EmailForm from './EmailForm.vue'
 import PasswordForm from './PasswordForm.vue'
 import ProfileForm from './ProfileForm.vue'
 import ProfileImageUpload from './ProfileImageUpload.vue'
@@ -13,6 +14,9 @@ import ProfileImageUpload from './ProfileImageUpload.vue'
 
     <!-- Account Details Form -->
     <ProfileForm />
+
+    <!-- Email Change Form -->
+    <EmailForm />
 
     <!-- Password Change Form -->
     <PasswordForm />

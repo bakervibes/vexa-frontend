@@ -1,16 +1,15 @@
 <script setup lang="ts">
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { computed } from 'vue'
 
 interface Props {
   id?: string
   label?: string
   description?: string
-  modelValue?: boolean
+  modelValue?: boolean | string
   disabled?: boolean
-  // Props venant de vee-validate via v-bind="componentField"
   name?: string
-  onBlur?: (e: FocusEvent) => void
-  onChange?: (value: boolean) => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,8 +19,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emits = defineEmits<{
   'update:modelValue': [value: boolean]
-  blur: [e: FocusEvent]
-  change: [value: boolean]
 }>()
 
 // Utilise soit l'id fourni, soit le name de vee-validate
@@ -29,43 +26,35 @@ const inputId = computed(
   () => props.id || props.name || `switch-${Math.random()}`,
 )
 
-// Gestion des événements
-const handleInput = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  const newValue = target.checked
-  emits('update:modelValue', newValue)
-  props.onChange?.(newValue)
-}
+// Normalise la valeur en boolean (vee-validate peut envoyer "on" au lieu de true)
+const normalizedValue = computed((): boolean => {
+  if (typeof props.modelValue === 'boolean') {
+    return props.modelValue
+  }
+  return props.modelValue === 'on' || props.modelValue === 'true'
+})
 
-const handleChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  const newValue = target.checked
-  emits('change', newValue)
-}
-
-const handleBlur = (e: FocusEvent) => {
-  emits('blur', e)
-  props.onBlur?.(e)
+function handleChange(value: boolean) {
+  emits('update:modelValue', value)
 }
 </script>
 
 <template>
-  <div
-    class="flex items-center justify-between rounded-lg border p-4"
+  <Label
+    :for="inputId"
+    class="flex cursor-pointer items-center justify-between rounded-lg border p-4"
     :class="{ 'cursor-not-allowed opacity-50': disabled }"
   >
     <div
       v-if="label || description"
       class="space-y-0.5"
     >
-      <label
+      <div
         v-if="label"
-        :for="inputId"
-        class="cursor-pointer text-sm font-medium"
-        :class="{ 'cursor-not-allowed': disabled }"
+        class="flex items-center gap-2 text-sm leading-none font-normal text-gray-800 select-none"
       >
         {{ label }}
-      </label>
+      </div>
       <p
         v-if="description"
         class="text-xs text-gray-500"
@@ -74,26 +63,12 @@ const handleBlur = (e: FocusEvent) => {
       </p>
     </div>
 
-    <!-- Switch Toggle -->
-    <label
-      :for="inputId"
-      class="relative inline-flex cursor-pointer items-center"
-      :class="{ 'cursor-not-allowed': disabled }"
-    >
-      <input
-        :id="inputId"
-        :name="name"
-        type="checkbox"
-        :checked="modelValue"
-        :disabled="disabled"
-        @input="handleInput"
-        @change="handleChange"
-        @blur="handleBlur"
-        class="peer sr-only"
-      />
-      <div
-        class="peer h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-blue-600 peer-focus:ring-4 peer-focus:ring-blue-300 peer-focus:outline-none after:absolute after:start-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full"
-      ></div>
-    </label>
-  </div>
+    <Switch
+      :id="inputId"
+      :name="name"
+      :model-value="normalizedValue"
+      :disabled="disabled"
+      @update:model-value="handleChange"
+    />
+  </Label>
 </template>

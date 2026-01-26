@@ -9,9 +9,18 @@ import { computed } from 'vue'
 import { toast } from 'vue-sonner'
 
 /**
- * Composable pour récupérer les adresses de l'utilisateur
+ * Hook for managing user addresses
  */
-export function useUserAddresses() {
+export const useAddresses = () => {
+  const queryClient = useQueryClient()
+
+  // ========================================
+  // Queries
+  // ========================================
+
+  /**
+   * Query pour récupérer les adresses de l'utilisateur
+   */
   const query = useQuery({
     queryKey: ['addresses'],
     queryFn: () => addressService.getUserAddresses(),
@@ -19,29 +28,15 @@ export function useUserAddresses() {
     retry: 1,
   })
 
-  return {
-    addresses: computed(() => query.data.value || []),
-    defaultAddress: computed(
-      () =>
-        query.data.value?.find((addr) => addr.isDefault) ||
-        query.data.value?.[0],
-    ),
-    isLoading: computed(() => query.isLoading.value),
-    isError: computed(() => query.isError.value),
-    error: computed(() => query.error.value),
-    refetch: query.refetch,
-  }
-}
+  // ========================================
+  // Mutations
+  // ========================================
 
-/**
- * Composable pour les mutations d'adresses (création, mise à jour, suppression)
- */
-export function useAddressesMutation() {
-  const queryClient = useQueryClient()
-
-  // Mutation pour créer une adresse
+  /**
+   * Mutation pour créer une adresse
+   */
   const createAddressMutation = useMutation({
-    mutationFn: (data: CreateAddressInput) =>
+    mutationFn: ({ data }: { data: CreateAddressInput }) =>
       addressService.createAddress(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
@@ -52,7 +47,9 @@ export function useAddressesMutation() {
     },
   })
 
-  // Mutation pour mettre à jour une adresse
+  /**
+   * Mutation pour mettre à jour une adresse
+   */
   const updateAddressMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateAddressInput }) =>
       addressService.updateAddress(id, data),
@@ -65,7 +62,9 @@ export function useAddressesMutation() {
     },
   })
 
-  // Mutation pour supprimer une adresse
+  /**
+   * Mutation pour supprimer une adresse
+   */
   const deleteAddressMutation = useMutation({
     mutationFn: (id: string) => addressService.deleteAddress(id),
     onSuccess: () => {
@@ -77,7 +76,9 @@ export function useAddressesMutation() {
     },
   })
 
-  // Mutation pour définir une adresse par défaut
+  /**
+   * Mutation pour définir une adresse par défaut
+   */
   const setDefaultAddressMutation = useMutation({
     mutationFn: (id: string) => addressService.setDefaultAddress(id),
     onSuccess: () => {
@@ -89,11 +90,50 @@ export function useAddressesMutation() {
     },
   })
 
+  // ========================================
+  // Getters (computed)
+  // ========================================
+
+  const addresses = computed(() => query.data.value || [])
+
+  const defaultAddress = computed(
+    () =>
+      query.data.value?.find((addr) => addr.isDefault) || query.data.value?.[0],
+  )
+
+  const isLoadingAddresses = computed(() => query.isLoading.value)
+  const isErrorAddresses = computed(() => query.isError.value)
+  const errorAddresses = computed(() => query.error.value)
+
+  // Loading states for mutations
+  const isCreatingAddress = computed(
+    () => createAddressMutation.isPending.value,
+  )
+  const isUpdatingAddress = computed(
+    () => updateAddressMutation.isPending.value,
+  )
+  const isDeletingAddress = computed(
+    () => deleteAddressMutation.isPending.value,
+  )
+  const isSettingDefault = computed(
+    () => setDefaultAddressMutation.isPending.value,
+  )
+
+  // Error states for mutations
+  const createAddressError = computed(() => createAddressMutation.error.value)
+  const updateAddressError = computed(() => updateAddressMutation.error.value)
+  const deleteAddressError = computed(() => deleteAddressMutation.error.value)
+  const setDefaultError = computed(() => setDefaultAddressMutation.error.value)
+
+  // ========================================
+  // Actions
+  // ========================================
+
   /**
    * Créer une nouvelle adresse
    */
   async function createAddress(data: CreateAddressInput): Promise<Address> {
-    return createAddressMutation.mutateAsync(data)
+    return createAddressMutation.mutateAsync({ data })
   }
 
   /**
@@ -120,23 +160,50 @@ export function useAddressesMutation() {
     return setDefaultAddressMutation.mutateAsync(id)
   }
 
+  /**
+   * Rafraîchir les adresses
+   */
+  async function refetchAddresses() {
+    await query.refetch()
+  }
+
+  // ========================================
+  // Return (expose public API)
+  // ========================================
+
   return {
+    // Data
+    addresses,
+    defaultAddress,
+
+    // Query states
+    isLoadingAddresses,
+    isErrorAddresses,
+    errorAddresses,
+
+    // Mutation loading states
+    isCreatingAddress,
+    isUpdatingAddress,
+    isDeletingAddress,
+    isSettingDefault,
+
+    // Mutation error states
+    createAddressError,
+    updateAddressError,
+    deleteAddressError,
+    setDefaultError,
+
     // Actions
     createAddress,
     updateAddress,
     deleteAddress,
     setDefaultAddress,
+    refetchAddresses,
 
-    // Loading states
-    isCreatingAddress: computed(() => createAddressMutation.isPending.value),
-    isUpdatingAddress: computed(() => updateAddressMutation.isPending.value),
-    isDeletingAddress: computed(() => deleteAddressMutation.isPending.value),
-    isSettingDefault: computed(() => setDefaultAddressMutation.isPending.value),
-
-    // Error states
-    createAddressError: computed(() => createAddressMutation.error.value),
-    updateAddressError: computed(() => updateAddressMutation.error.value),
-    deleteAddressError: computed(() => deleteAddressMutation.error.value),
-    setDefaultError: computed(() => setDefaultAddressMutation.error.value),
+    // Expose mutations for advanced usage
+    createAddressMutation,
+    updateAddressMutation,
+    deleteAddressMutation,
+    setDefaultAddressMutation,
   }
 }

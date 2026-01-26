@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/vue-query'
 import { computed } from 'vue'
 
 /**
- * Composable to fetch all available filters for the shop
+ * Hook to fetch all available filters for the shop
  * Returns categories, attributes with options, and price range
  */
-export function useFilters() {
+export const useFilters = () => {
   const query = useQuery({
     queryKey: ['filters'],
     queryFn: () => filtersService.getFilters(),
@@ -14,25 +14,42 @@ export function useFilters() {
     retry: 1,
   })
 
+  // ========================================
+  // Computed
+  // ========================================
+  const categories = computed(() => query.data.value?.categories || [])
+  const attributes = computed(() => query.data.value?.attributes || [])
+  const priceRange = computed(
+    () =>
+      query.data.value?.priceRange || {
+        min: 0,
+        max: 0,
+      },
+  )
+
+  const isLoadingFilters = computed(() => query.isLoading.value)
+  const isErrorFilters = computed(() => query.isError.value)
+
+  // ========================================
+  // Actions
+  // ========================================
+  function refetchFilters() {
+    return query.refetch()
+  }
+
   return {
     // Categories
-    categories: computed(() => query.data.value?.categories || []),
+    categories,
 
     // Attributes with their options
-    attributes: computed(() => query.data.value?.attributes || []),
+    attributes,
 
     // Price range (min/max)
-    priceRange: computed(
-      () =>
-        query.data.value?.priceRange || {
-          min: 0,
-          max: 0,
-        },
-    ),
+    priceRange,
 
     // Loading/error states
-    isLoadingFilters: computed(() => query.isLoading.value),
-    isErrorFilters: computed(() => query.isError.value),
-    refetchFilters: query.refetch,
+    isLoadingFilters,
+    isErrorFilters,
+    refetchFilters,
   }
 }

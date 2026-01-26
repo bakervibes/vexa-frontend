@@ -1,100 +1,84 @@
-import {
-  reviewService,
-  type PaginatedReviewsResponse,
-} from '@/services/reviews.service'
+import { reviewService } from '@/services/reviews.service'
 import type { ReviewWithUser } from '@/types'
 import type {
   AddReviewInput,
   UpdateReviewInput,
 } from '@/validators/reviews.validator'
-import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, type Ref } from 'vue'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/vue-query'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { toast } from 'vue-sonner'
 
-/**
- * Composable for fetching paginated reviews for a product
- */
-export function useProductReviews(productId: Ref<string | undefined>) {
-  const reviews = ref<ReviewWithUser[]>([])
-  const pagination = ref<PaginatedReviewsResponse['pagination'] | null>(null)
-  const isLoading = ref(false)
-  const isLoadingMore = ref(false)
-  const error = ref<Error | null>(null)
-  const currentPage = ref(1)
+export const useReviews = (
+  productIdRef: MaybeRefOrGetter<string | undefined>,
+) => {
+  const queryClient = useQueryClient()
   const limit = 5
 
-  const hasMore = computed(() => pagination.value?.hasMore ?? false)
-  const totalReviews = computed(() => pagination.value?.total ?? 0)
+  // Computed productId for reactivity
+  const productId = computed(() => toValue(productIdRef))
 
-  const fetchReviews = async (page: number = 1, append: boolean = false) => {
-    if (!productId.value) return
+  // ================================
+  // QUERY -- fetch reviews (Infinite)
+  // ================================
+  const reviewsQuery = useInfiniteQuery({
+    queryKey: computed(() => ['reviews', productId.value]),
+    queryFn: ({ pageParam = 1 }) => {
+      const id = productId.value
+      if (!id) throw new Error('Missing product ID')
 
-    if (append) {
-      isLoadingMore.value = true
-    } else {
-      isLoading.value = true
-    }
-    error.value = null
-
-    try {
-      const result = await reviewService.getReviews(productId.value, {
-        page: page.toString(),
+      return reviewService.getReviews(id, {
+        page: pageParam.toString(),
         limit: limit.toString(),
       })
-
-      if (append) {
-        reviews.value = [...reviews.value, ...result.reviews]
-      } else {
-        reviews.value = result.reviews
+    },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.meta.hasMore) {
+        return lastPage.meta.page + 1
       }
-      pagination.value = result.pagination
-      currentPage.value = page
-    } catch (e) {
-      error.value = e as Error
-    } finally {
-      isLoading.value = false
-      isLoadingMore.value = false
+      return undefined
+    },
+    enabled: computed(() => !!productId.value),
+  })
+
+  // Flatten all pages to get a single list of reviews
+  const reviews = computed<ReviewWithUser[]>(
+    () => reviewsQuery.data.value?.pages.flatMap((page) => page.data) ?? [],
+  )
+
+  // Get total from the first page (or 0 if no data)
+  const totalReviews = computed(
+    () => reviewsQuery.data.value?.pages[0]?.meta.total ?? 0,
+  )
+
+  const hasMoreReviews = computed(() => reviewsQuery.hasNextPage.value)
+
+  // Load more
+  async function loadMoreReviews() {
+    if (hasMoreReviews.value && !reviewsQuery.isFetchingNextPage.value) {
+      await reviewsQuery.fetchNextPage()
     }
   }
 
-  const loadMore = async () => {
-    if (!hasMore.value || isLoadingMore.value) return
-    await fetchReviews(currentPage.value + 1, true)
+  // Reset + refresh
+  function resetReviews() {
+    // Invalidate resets the infinite query to page 1
+    queryClient.invalidateQueries({ queryKey: ['reviews', productId.value] })
   }
 
-  const reset = () => {
-    reviews.value = []
-    pagination.value = null
-    currentPage.value = 1
-    error.value = null
+  async function refreshReviews() {
+    await queryClient.invalidateQueries({
+      queryKey: ['reviews', productId.value],
+    })
   }
 
-  const refresh = async () => {
-    reset()
-    await fetchReviews(1)
-  }
-
-  return {
-    reviews: computed(() => reviews.value),
-    pagination: computed(() => pagination.value),
-    totalReviews,
-    hasMore,
-    isLoading: computed(() => isLoading.value),
-    isLoadingMore: computed(() => isLoadingMore.value),
-    error: computed(() => error.value),
-    fetchReviews,
-    loadMore,
-    refresh,
-    reset,
-  }
-}
-
-/**
- * Composable for review mutations (add, update, delete)
- */
-export function useReviewsMutation() {
-  const queryClient = useQueryClient()
-
+  // ================================
+  // MUTATIONS
+  // ================================
   const addReviewMutation = useMutation({
     mutationFn: (data: AddReviewInput & { slug: string }) =>
       reviewService.addReview({
@@ -102,13 +86,12 @@ export function useReviewsMutation() {
         comment: data.comment,
         rating: data.rating,
       }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['products', variables.slug] })
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['products', vars.slug] })
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId.value] })
       toast.success('Review added successfully')
     },
-    onError: (err) => {
-      toast.error(err.message || 'Error adding review')
-    },
+    onError: (err) => toast.error(err.message),
   })
 
   const updateReviewMutation = useMutation({
@@ -116,32 +99,47 @@ export function useReviewsMutation() {
       id,
       data,
     }: { id: string; data: UpdateReviewInput } & { slug: string }) =>
-      reviewService.updateReview(id, {
-        comment: data.comment,
-        rating: data.rating,
-      }),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['products', variables.slug] })
+      reviewService.updateReview(id, data),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['products', vars.slug] })
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId.value] })
       toast.success('Review updated successfully')
     },
-    onError: (err) => {
-      toast.error(err.message || 'Error updating review')
-    },
+    onError: (err) => toast.error(err.message),
   })
 
   const deleteReviewMutation = useMutation({
     mutationFn: ({ id }: { id: string } & { slug: string }) =>
       reviewService.deleteReview(id),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['products', variables.slug] })
-      toast.success('Review deleted successfully !')
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['products', vars.slug] })
+      queryClient.invalidateQueries({ queryKey: ['reviews', productId.value] })
+      toast.success('Review deleted successfully')
     },
-    onError: (err) => {
-      toast.error(err.message || 'Error deleting review')
-    },
+    onError: (err) => toast.error(err.message),
   })
 
   return {
+    // data
+    reviews,
+    totalReviews,
+    hasMoreReviews,
+    // pagination: not strictly needed exposed as 'pagination' object anymore,
+    // but we exposed individual fields. If 'pagination' object was used, it needs check.
+    // Checking usage in ReviewSection... it was only used to derive total/hasMore within this file.
+    // Except... wait, let me check strict usage in ReviewsSection.vue one more time.
+
+    // loadings
+    isLoadingReviews: computed(() => reviewsQuery.isLoading.value),
+    isFetchingReviews: computed(() => reviewsQuery.isFetchingNextPage.value), // Mapped to next page fetch for the button
+    errorReviews: computed(() => reviewsQuery.error.value),
+
+    // actions
+    loadMoreReviews,
+    resetReviews,
+    refreshReviews,
+
+    // mutations
     addReview: addReviewMutation.mutateAsync,
     updateReview: updateReviewMutation.mutateAsync,
     deleteReview: deleteReviewMutation.mutateAsync,

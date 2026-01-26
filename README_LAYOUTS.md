@@ -83,9 +83,9 @@ Le store gère :
 
 ```vue
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth'
+import { useAuth } from '@/stores/auth'
 
-const authStore = useAuthStore()
+const authStore = useAuth()
 
 // Vérifier l'authentification
 console.log(authStore.isAuthenticated) // true/false
@@ -321,7 +321,7 @@ router.beforeEach((to, from, next) => {
 Alternative moderne à Vuex pour la gestion d'état :
 
 ```typescript
-export const useAuthStore = defineStore('auth', () => {
+export const useAuth = defineStore('auth', () => {
   const user = ref(null) // State
   const isAuthenticated = computed(() => !!user.value) // Getter
 

@@ -28,11 +28,23 @@ export const cuidSchema = z.cuid('ID invalide')
 export const emailSchema = z.email('Email invalide').toLowerCase().trim()
 
 /**
- * Schéma pour un mot de passe avec validation minimale
+ * Schéma pour un mot de passe avec validation de complexité
+ * - Minimum 8 caractères
+ * - Au moins une majuscule
+ * - Au moins une minuscule
+ * - Au moins un chiffre
+ * - Au moins un caractère spécial
  */
 export const passwordSchema = z
   .string({ message: 'Mot de passe requis' })
   .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+  .regex(/[A-Z]/, 'Le mot de passe doit contenir au moins une majuscule')
+  .regex(/[a-z]/, 'Le mot de passe doit contenir au moins une minuscule')
+  .regex(/[0-9]/, 'Le mot de passe doit contenir au moins un chiffre')
+  .regex(
+    /[^A-Za-z0-9]/,
+    'Le mot de passe doit contenir au moins un caractère spécial',
+  )
 
 /**
  * Schéma pour un nom (2-100 caractères)
@@ -64,14 +76,6 @@ export const slugSchema = z
     'Le slug doit être en minuscules et ne peut contenir que des lettres, chiffres et tirets',
   )
   .trim()
-
-/**
- * Schéma pour un SKU (1-100 caractères)
- */
-export const skuSchema = z
-  .string({ message: 'Le SKU est requis' })
-  .min(1, 'Le SKU est requis')
-  .max(100, 'Le SKU ne peut pas dépasser 100 caractères')
 
 /**
  * Schéma pour une description optionnelle
@@ -248,7 +252,7 @@ export const refreshTokenSchema = z.string({ message: 'Refresh token requis' })
  * Note: Removed .refine() to be compatible with vee-validate-zod's getDefaults()
  */
 export const addressSchema = z.object({
-  id: z.string().nullable(),
+  id: z.string().optional().nullable(),
   name: z.string().min(1, 'Le nom est requis'),
   email: z.email('Email invalide').toLowerCase().trim(),
   phone: z.string().refine((value) => isValidPhoneNumber(value), {

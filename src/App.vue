@@ -8,15 +8,16 @@
  * - DefaultLayout pour les pages publiques (Home, Shop)
  * - AdminLayout pour /admin/* (Dashboard, etc.)
  */
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 import AuthModal from '@/components/views/auth/AuthModal.vue'
-import { useAuthModal } from '@/composables/useAuthModal'
+import { useAuth } from '@/composables/useAuth'
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 
-const { isOpen, initialMode, handleSuccess } = useAuthModal()
+const { isModalOpen, modalMode, handleAuthSuccess } = useAuth()
 
 onMounted(() => {
-  // Générer un ID de session pour les invités s'il n'existe pas
+  // Initialize session ID
   if (!localStorage.getItem('session_id')) {
     localStorage.setItem('session_id', crypto.randomUUID())
   }
@@ -24,13 +25,22 @@ onMounted(() => {
 </script>
 
 <template>
-  <RouterView />
+  <!-- Skip to main content link for accessibility -->
+  <a
+    href="#main-content"
+    class="focus:bg-primary focus:text-primary-foreground focus:ring-ring sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-100 focus:rounded-md focus:px-4 focus:py-2 focus:ring-2 focus:outline-none"
+  >
+    Aller au contenu principal
+  </a>
 
-  <!-- Global Auth Modal -->
+  <ErrorBoundary>
+    <RouterView />
+  </ErrorBoundary>
+
   <AuthModal
-    v-model:open="isOpen"
-    :initial-mode="initialMode"
-    @success="handleSuccess"
+    v-model:open="isModalOpen"
+    :initial-mode="modalMode"
+    @success="handleAuthSuccess"
   />
 </template>
 

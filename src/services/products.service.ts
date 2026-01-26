@@ -8,7 +8,52 @@ import type {
 
 export const productsService = {
   async getAll(filters?: Partial<FilterInput>) {
-    return api<ProductsResponse>('/products', 'POST', filters || {})
+    const params = new URLSearchParams()
+    if (filters) {
+      // Map frontend filters to backend format
+      if (filters.search) {
+        params.append('search', filters.search)
+      }
+      if (
+        filters.categories &&
+        filters.categories.length > 0 &&
+        filters.categories[0]
+      ) {
+        // Backend expects categorySlug as single value, use first category
+        params.append('categorySlug', filters.categories[0])
+      }
+      if (filters.priceRange) {
+        if (filters.priceRange.min !== undefined) {
+          params.append('minPrice', String(filters.priceRange.min))
+        }
+        if (filters.priceRange.max !== undefined) {
+          params.append('maxPrice', String(filters.priceRange.max))
+        }
+      }
+      if (filters.page) {
+        params.append('page', String(filters.page))
+      }
+      if (filters.sortBy) {
+        // Map sortBy + sortOrder to backend sortBy format
+        const sortOrder = filters.sortOrder || 'asc'
+        if (filters.sortBy === 'price') {
+          params.append(
+            'sortBy',
+            sortOrder === 'asc' ? 'price_asc' : 'price_desc',
+          )
+        } else if (filters.sortBy === 'createdAt') {
+          params.append('sortBy', 'newest')
+        } else if (filters.sortBy === 'name') {
+          params.append('sortBy', 'name')
+        }
+      }
+      // Handle options filter - encode as JSON for complex objects
+      if (filters.options && filters.options.length > 0) {
+        params.append('options', JSON.stringify(filters.options))
+      }
+    }
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    return api<ProductsResponse>(`/products${queryString}`, 'GET')
   },
 
   async getOne(slug: string) {

@@ -1,4 +1,4 @@
-import type { OrderDetails, UserOrder } from '@/types'
+import type { OrderDetails, OrderStatus } from '@/types'
 import { api } from '@/utils/api'
 import type { CreateOrderInput } from '@/validators/orders.validator'
 
@@ -6,11 +6,11 @@ export type { CreateOrderInput }
 
 export const orderService = {
   async createOrder(data: CreateOrderInput) {
-    return api<UserOrder>('/orders', 'POST', data)
+    return api<OrderDetails>('/orders', 'POST', data)
   },
 
   async getUserOrders() {
-    return api<UserOrder[]>('/orders/me', 'GET')
+    return api<OrderDetails[]>('/orders/me', 'GET')
   },
 
   async getOrderById(id: string) {
@@ -22,6 +22,28 @@ export const orderService = {
   },
 
   async cancelOrder(id: string) {
-    return api<UserOrder>(`/orders/${id}/cancel`, 'PATCH')
+    return api<OrderDetails>(`/orders/${id}/cancel`, 'PATCH')
+  },
+
+  async requestRefund(id: string) {
+    return api<OrderDetails>(`/orders/${id}/refund-request`, 'PATCH')
+  },
+
+  async downloadInvoice(id: string) {
+    return api<Blob>(`/orders/${id}/invoice`, 'GET', undefined, {
+      responseType: 'blob',
+    })
+  },
+
+  // Admin methods
+  async getById(id: string) {
+    return api<OrderDetails>(`/admin/orders/${id}`, 'GET')
+  },
+
+  async updateStatus(id: string, status: OrderStatus) {
+    return api<OrderDetails>(`/admin/orders/${id}/status`, 'PATCH', { status })
   },
 }
+
+// Alias for backwards compatibility
+export const ordersService = orderService

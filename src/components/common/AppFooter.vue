@@ -34,22 +34,22 @@ import { Facebook, Instagram, Youtube } from 'lucide-vue-next'
             Shop
           </router-link>
           <router-link
-            to="/product"
+            to="/about"
             class="text-sm transition-colors hover:text-gray-300"
           >
-            Product
-          </router-link>
-          <router-link
-            to="/blog"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Blog
+            About
           </router-link>
           <router-link
             to="/contact"
             class="text-sm transition-colors hover:text-gray-300"
           >
-            Contact Us
+            Contact
+          </router-link>
+          <router-link
+            to="/faq"
+            class="text-sm transition-colors hover:text-gray-300"
+          >
+            FAQ
           </router-link>
         </nav>
       </div>
@@ -83,22 +83,22 @@ import { Facebook, Instagram, Youtube } from 'lucide-vue-next'
             Shop
           </router-link>
           <router-link
-            to="/product"
+            to="/about"
             class="text-sm transition-colors hover:text-gray-300"
           >
-            Product
-          </router-link>
-          <router-link
-            to="/blog"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Blog
+            About
           </router-link>
           <router-link
             to="/contact"
             class="text-sm transition-colors hover:text-gray-300"
           >
-            Contact Us
+            Contact
+          </router-link>
+          <router-link
+            to="/faq"
+            class="text-sm transition-colors hover:text-gray-300"
+          >
+            FAQ
           </router-link>
         </nav>
       </div>
@@ -119,16 +119,22 @@ import { Facebook, Instagram, Youtube } from 'lucide-vue-next'
           </span>
           <div class="order-1 flex gap-6 md:order-2">
             <router-link
-              to="/privacy"
+              to="/privacy-policy"
               class="text-xs font-semibold text-white"
             >
               Privacy Policy
             </router-link>
             <router-link
-              to="/terms"
+              to="/terms-and-conditions"
               class="text-xs font-semibold text-white"
             >
               Terms of Use
+            </router-link>
+            <router-link
+              to="/legal"
+              class="text-xs font-semibold text-white"
+            >
+              Legal
             </router-link>
           </div>
         </div>

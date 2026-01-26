@@ -13,15 +13,45 @@ import { Toaster } from 'vue-sonner'
 const route = useRoute()
 const router = useRouter()
 
-const steps = [
-  { step: 1, title: 'Cart', route: '/cart', name: 'cart' },
-  { step: 2, title: 'Checkout', route: '/checkout', name: 'checkout' },
-  { step: 3, title: 'Completed', route: '/complete', name: 'complete' },
-]
+// On récupère toutes les query actuelles
+const currentQuery = route.query
+
+// Fonction utilitaire pour reconstruire les query string
+const buildQueryString = (query: Record<string, unknown>) => {
+  const params = new URLSearchParams()
+  Object.entries(query).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      params.set(key, String(value))
+    }
+  })
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+const steps = computed(() => [
+  {
+    step: 1,
+    title: 'Cart',
+    route: `/cart${buildQueryString(currentQuery)}`,
+    name: 'cart',
+  },
+  {
+    step: 2,
+    title: 'Checkout',
+    route: `/checkout${buildQueryString(currentQuery)}`,
+    name: 'checkout',
+  },
+  {
+    step: 3,
+    title: 'Completed',
+    route: `/complete${buildQueryString(currentQuery)}`,
+    name: 'complete',
+  },
+])
 
 const currentStep = computed(() => {
   const routeName = route.name as string
-  const stepIndex = steps.findIndex((s) => s.name === routeName)
+  const stepIndex = steps.value.findIndex((s) => s.name === routeName)
   return stepIndex >= 0 ? stepIndex + 1 : 1
 })
 
@@ -41,7 +71,7 @@ const pageTitle = computed(() => {
 const handleStepClick = (step: number) => {
   // Only allow going back to previous steps, not forward
   if (step < currentStep.value) {
-    const targetStep = steps[step - 1]
+    const targetStep = steps.value[step - 1]
     if (targetStep) {
       router.push(targetStep.route)
     }
@@ -95,9 +125,9 @@ const handleStepClick = (step: number) => {
                   :class="
                     cn(
                       'text-sm font-medium',
-                      stepItem.step <= currentStep
+                      stepItem.step < currentStep
                         ? 'text-emerald-600'
-                        : 'text-gray-500',
+                        : 'text-gray-600',
                     )
                   "
                 >

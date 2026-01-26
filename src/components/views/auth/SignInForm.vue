@@ -1,59 +1,50 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useAuthStore } from '@/stores/auth'
-import { loginBodySchema } from '@/validators/auth.validator'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
-import { Form } from '@primevue/forms'
-import Message from 'primevue/message'
-import Checkbox from 'primevue/checkbox'
-import { useRoute, useRouter } from 'vue-router'
-import { ref, watch } from 'vue'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Checkbox } from '@/components/ui/checkbox'
+import { FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { useAuth } from '@/composables/useAuth'
+import { loginBodySchema, type LoginInput } from '@/validators/auth.validator'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
+import { ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
+const { login, error, isAdmin, isLogingIn } = useAuth()
 const redirect = route.query.redirect as string | undefined
 const rememberMe = ref(false)
 
-const initialValues = {
-  email: '',
-  password: '',
-}
+const { handleSubmit } = useForm({
+  validationSchema: toTypedSchema(loginBodySchema),
+  initialValues: {
+    email: '',
+    password: '',
+  },
+})
 
-const resolver = zodResolver(loginBodySchema)
-
-// Réinitialiser l'erreur quand le formulaire change
-watch(
-  () => authStore.error,
-  () => {},
-)
-
-const onFormSubmit = async ({
-  valid,
-  values,
-}: {
-  valid: boolean
-  values: typeof initialValues
-}) => {
-  if (!valid) return
-
-  // Réinitialiser l'erreur
-  authStore.error = null
-
-  const result = await authStore.login({
-    email: values.email,
-    password: values.password,
+const onSubmit = handleSubmit(async (formValues: LoginInput) => {
+  const result = await login({
+    email: formValues.email,
+    password: formValues.password,
   })
 
   if (result.success) {
-    if (authStore.isAdmin) {
+    toast.success('Connexion réussie', {
+      description: 'Bienvenue !',
+    })
+    if (redirect) {
+      router.push(redirect)
+    } else if (isAdmin.value) {
       router.push('/admin/dashboard')
     } else {
-      router.push(redirect || '/')
+      router.push('/')
     }
   }
-}
+})
 </script>
 
 <template>
@@ -73,13 +64,14 @@ const onFormSubmit = async ({
         <h2 class="text-3xl font-bold">Sign in</h2>
 
         <!-- Error Message -->
-        <Message
-          v-if="authStore.error"
-          severity="error"
-          :closable="false"
+        <Alert
+          v-if="error"
+          variant="destructive"
         >
-          {{ authStore.error }}
-        </Message>
+          <AlertDescription>
+            {{ error }}
+          </AlertDescription>
+        </Alert>
 
         <p class="mt-2 text-gray-600">
           Don't have an account?
@@ -93,75 +85,68 @@ const onFormSubmit = async ({
           </RouterLink>
         </p>
 
-        <Form
-          v-slot="$form"
-          :initialValues="initialValues"
-          :resolver="resolver"
-          @submit="onFormSubmit"
+        <form
+          @submit="onSubmit"
           class="space-y-4"
         >
           <!-- Email Field -->
-          <div class="flex flex-col gap-1">
-            <CustomInput
-              name="email"
-              label="Email address"
-              type="text"
-            />
-            <Message
-              v-if="$form.email?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-            >
-              {{ $form.email.error?.message }}
-            </Message>
-          </div>
+          <FormField
+            v-slot="{ componentField }"
+            name="email"
+          >
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Email address"
+                type="text"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <!-- Password Field -->
-          <div class="flex flex-col gap-1">
-            <CustomInput
-              name="password"
-              label="Password"
-              type="password"
-            />
-            <Message
-              v-if="$form.password?.invalid"
-              severity="error"
-              size="small"
-              variant="simple"
-            >
-              {{ $form.password.error?.message }}
-            </Message>
-          </div>
+          <FormField
+            v-slot="{ componentField }"
+            name="password"
+          >
+            <FormItem>
+              <CustomInput
+                v-bind="componentField"
+                label="Password"
+                type="password"
+              />
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
           <!-- Options -->
           <div class="flex items-center justify-between">
             <label class="flex items-center gap-2">
               <Checkbox
-                v-model="rememberMe"
-                :binary="true"
+                :checked="rememberMe"
+                @update:checked="rememberMe = $event"
               />
               <span class="text-gray-600">Remember me</span>
             </label>
 
-            <a
-              href="#"
+            <RouterLink
+              :to="'/auth/forgot-password'"
               class="text-blue-600 hover:underline"
             >
               Forgot password?
-            </a>
+            </RouterLink>
           </div>
 
           <!-- Submit Button -->
           <LoadingButton
             type="submit"
-            :disabled="authStore.isLoading"
-            :loading="authStore.isLoading"
+            :disabled="isLogingIn"
+            :loading="isLogingIn"
             class="h-12 w-full"
           >
             Sign in
           </LoadingButton>
-        </Form>
+        </form>
       </div>
     </div>
   </div>

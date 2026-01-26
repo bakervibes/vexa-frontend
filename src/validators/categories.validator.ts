@@ -12,10 +12,12 @@ import {
 
 export const createCategorySchema = z.object({
   name: nameLongSchema,
-  description: descriptionSchema,
+  slug: slugSchema.optional(),
+  description: descriptionSchema.optional(),
   image: urlSchema,
   position: positionSchema,
-  parentId: cuidSchema.optional(),
+  parentCategoryId: cuidSchema.nullish(),
+  isActive: z.boolean().optional(),
 })
 
 export const updateCategorySchema = z.object({
@@ -23,7 +25,7 @@ export const updateCategorySchema = z.object({
   description: descriptionSchema.optional(),
   image: urlSchema.optional(),
   position: positionSchema.optional(),
-  parentId: cuidSchema.optional(),
+  parentCategoryId: cuidSchema.optional(),
 })
 
 export const categoryIdSchema = z.object({

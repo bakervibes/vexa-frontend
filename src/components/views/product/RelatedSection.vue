@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import { useRelatedProducts } from '@/composables/useProducts'
 import { ArrowRightIcon } from 'lucide-vue-next'
-import Button from 'primevue/button'
+import { RouterLink } from 'vue-router'
 import ProductCard from '../common/ProductCard.vue'
 
 const props = defineProps<{
   slug: string
 }>()
 
-const { relatedProducts } = useRelatedProducts(props.slug)
+const { relatedProducts } = useRelatedProducts(() => props.slug)
 </script>
 
 <template>
@@ -20,7 +21,7 @@ const { relatedProducts } = useRelatedProducts(props.slug)
       </h2>
 
       <RouterLink to="/shop">
-        <Button link>
+        <Button variant="link">
           More products
           <ArrowRightIcon />
         </Button>

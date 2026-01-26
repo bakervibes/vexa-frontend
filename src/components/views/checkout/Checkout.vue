@@ -3,58 +3,94 @@ import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import CustomSelect from '@/components/custom/custom-select.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useUserAddresses } from '@/composables/useAddresses'
-import { useAuthModal } from '@/composables/useAuthModal'
+import { Button } from '@/components/ui/button'
+import { FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAddresses } from '@/composables/useAddresses'
+import { useAuth } from '@/composables/useAuth'
 import { useCarts } from '@/composables/useCarts'
 import { useCoupons } from '@/composables/useCoupons'
-import { useOrdersMutation } from '@/composables/useOrders'
-import { useAuthStore } from '@/stores/auth'
-import { PaymentProvider, type Address } from '@/types'
+import { useOrders } from '@/composables/useOrders'
+import { useSharedCart } from '@/composables/useSharedCarts'
+import { cartsService } from '@/services/carts.service'
+import { paymentService } from '@/services/payments.service'
+import { PaymentProvider, ShippingType, type Address } from '@/types'
 import { getAllCountries } from '@/utils/countries'
-import { formatPrice } from '@/utils/lib'
+import { convertCurrency, formatPrice } from '@/utils/lib'
 import {
-  createOrderSchema,
+  checkoutFormSchema,
+  type CheckoutFormInput,
   type CreateOrderInput,
 } from '@/validators/orders.validator'
-import { Form, type FormSubmitEvent } from '@primevue/forms'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useClipboard } from '@vueuse/core'
 import {
+  addFailedListener,
+  addKkiapayCloseListener,
+  addSuccessListener,
+  openKkiapayWidget,
+} from 'kkiapay'
+import {
+  AlertTriangleIcon,
   CreditCardIcon,
+  GlobeIcon,
   MapPinIcon,
   PlusIcon,
+  Share2Icon,
   ShoppingCartIcon,
+  SmartphoneIcon,
   TagIcon,
   TruckIcon,
+  WalletIcon,
 } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import RadioButton from 'primevue/radiobutton'
-import Skeleton from 'primevue/skeleton'
-import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useForm } from 'vee-validate'
+import { computed, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
-const { openAuthModal } = useAuthModal()
-const { subtotal, items, isLoadingCart, isEmpty } = useCarts()
-const { createOrder, isCreatingOrder } = useOrdersMutation()
+const { copy } = useClipboard()
+const { openAuthModal, isAuthenticated } = useAuth()
+const { cartSubtotal, cartItems, isLoadingCart, isCartEmpty } = useCarts()
 const {
-  addresses,
-  defaultAddress,
-  isLoading: isLoadingAddresses,
-} = useUserAddresses()
+  shareToken,
+  sharedCartSubtotal,
+  sharedCartItems,
+  isLoadingShared,
+  errorShared,
+} = useSharedCart()
 
-// Initialize coupon composable with cart subtotal
+// Share checkout state
+const isSharingCheckout = ref(false)
+
+const subtotal = computed(() =>
+  !!shareToken.value ? sharedCartSubtotal.value : cartSubtotal.value,
+)
+const items = computed(() =>
+  !!shareToken.value ? sharedCartItems.value : cartItems.value,
+)
+const isLoading = computed(() =>
+  !!shareToken.value ? isLoadingShared.value : isLoadingCart.value,
+)
+const isEmpty = computed(() =>
+  !!shareToken.value ? sharedCartItems.value.length === 0 : isCartEmpty.value,
+)
+
+const { createOrder, isCreatingOrder } = useOrders()
+const { defaultAddress, addresses, createAddress } = useAddresses()
 const {
   couponCode,
   appliedCoupon,
-  discountAmount,
   hasAppliedCoupon,
   isApplyingCoupon,
   applyCoupon,
   removeCoupon,
-} = useCoupons(() => subtotal.value)
+  discountAmount,
+} = useCoupons({ cartSubtotal: subtotal })
 
 // Shipping options
 interface ShippingOption {
@@ -75,41 +111,45 @@ const selectedShippingId = ref<string>('free')
 const addressMode = ref<'existing' | 'new'>('existing')
 const selectedAddressId = ref<string | null>(null)
 const paymentMethod = ref<PaymentProvider>(PaymentProvider.STRIPE)
-const cardDetails = ref({
-  number: '',
-  expiry: '',
-  cvc: '',
-})
-const formKey = ref(0)
 
-// Initial form values
-const initialValues = ref({
-  address: {
-    id: undefined as string | undefined,
-    country: '',
-    name: '',
-    email: '',
-    phone: '',
-    street: '',
-    city: '',
-  },
-  payment: {
-    provider: PaymentProvider.STRIPE,
-    transactionId: '1234567890',
-    metadata: {},
-  },
-  coupon: null as string | null,
-  shippingOption: {
-    id: shippingOptions[0]!.id,
-    label: shippingOptions[0]!.label,
-    price: shippingOptions[0]!.price,
-    isPercentage: shippingOptions[0]!.isPercentage ?? false,
+// Payment modal state
+
+const { handleSubmit, setFieldValue, values } = useForm({
+  validationSchema: toTypedSchema(checkoutFormSchema),
+  initialValues: {
+    address: {
+      id: defaultAddress.value?.id ?? undefined,
+      country: defaultAddress.value?.country ?? '',
+      name: defaultAddress.value?.name ?? '',
+      email: defaultAddress.value?.email ?? '',
+      phone: defaultAddress.value?.phone ?? '',
+      street: defaultAddress.value?.street ?? '',
+      city: defaultAddress.value?.city ?? '',
+    },
+    payment: {
+      provider: PaymentProvider.STRIPE,
+      transactionId: Date.now().toString(),
+      metadata: {},
+    },
+    coupon: null,
+    shippingOption: {
+      id: shippingOptions[0]!.id,
+      label: shippingOptions[0]!.label,
+      price: shippingOptions[0]!.price,
+      isPercentage: shippingOptions[0]!.isPercentage ?? false,
+    },
   },
 })
-
-const resolver = zodResolver(createOrderSchema)
 
 // Initialize from URL on mount
+onMounted(async () => {
+  const couponParam = route.query.coupon as string
+
+  if (couponParam) {
+    setFieldValue('coupon', couponParam)
+  }
+})
+
 watch(
   () => route.query.shipping,
   (shippingParam) => {
@@ -143,14 +183,17 @@ const shippingCost = computed(() => {
 
 // Total = (subtotal - discount) + shipping
 const total = computed(
-  () => subtotal.value - discountAmount.value + shippingCost.value,
+  () =>
+    subtotal.value -
+    (appliedCoupon.value?.discountAmount ?? 0) +
+    shippingCost.value,
 )
 
 // Helper functions for item prices
 const getItemPrice = (item: (typeof items.value)[0]) => {
   return (
-    item.variant?.price ??
-    item.variant?.basePrice ??
+    item.productVariant?.price ??
+    item.productVariant?.basePrice ??
     item.product?.price ??
     item.product?.basePrice ??
     0
@@ -163,13 +206,12 @@ const getItemSubtotal = (item: (typeof items.value)[0]) => {
 
 // Update shipping option in form
 function updateShippingInForm(option: ShippingOption) {
-  initialValues.value.shippingOption = {
+  setFieldValue('shippingOption', {
     id: option.id,
     label: option.label,
     price: option.price,
     isPercentage: option.isPercentage ?? false,
-  }
-  formKey.value++
+  })
 }
 
 // Change shipping option
@@ -207,7 +249,7 @@ watch(
 // Watch for address mode changes
 watch(addressMode, (newMode) => {
   if (newMode === 'new') {
-    initialValues.value.address = {
+    setFieldValue('address', {
       id: undefined,
       name: '',
       email: '',
@@ -215,9 +257,8 @@ watch(addressMode, (newMode) => {
       city: '',
       country: '',
       phone: '',
-    }
+    })
     selectedAddressId.value = null
-    formKey.value++
   } else if (newMode === 'existing' && addresses.value.length > 0) {
     const addr = defaultAddress.value ?? addresses.value[0]
     if (addr) {
@@ -229,26 +270,21 @@ watch(addressMode, (newMode) => {
 
 // Watch for payment method changes
 watch(paymentMethod, (newMethod) => {
-  initialValues.value.payment.provider = newMethod
-  formKey.value++
+  setFieldValue('payment.provider', newMethod)
 })
 
 // Watch for applied coupon changes and update form
-watch(
-  () => appliedCoupon.value,
-  (newCoupon) => {
-    if (newCoupon) {
-      initialValues.value.coupon = newCoupon.code
-    } else {
-      initialValues.value.coupon = null
-    }
-    formKey.value++
-  },
-)
+watch(appliedCoupon, (newCoupon) => {
+  if (newCoupon) {
+    setFieldValue('coupon', newCoupon.code)
+  } else {
+    setFieldValue('coupon', null)
+  }
+})
 
 // Fill form with address data
 function fillFormWithAddress(address: Address) {
-  initialValues.value.address = {
+  setFieldValue('address', {
     id: address.id,
     name: address.name,
     email: address.email,
@@ -256,8 +292,7 @@ function fillFormWithAddress(address: Address) {
     city: address.city,
     country: address.country,
     phone: address.phone,
-  }
-  formKey.value++
+  })
 }
 
 // Handle address selection
@@ -271,34 +306,224 @@ const handleApplyCoupon = async () => {
   await applyCoupon()
 }
 
-const handleRemoveCoupon = () => {
+const _handleRemoveCoupon = () => {
   removeCoupon()
 }
 
-const onFormSubmit = async ({ valid, values }: FormSubmitEvent) => {
-  if (!valid) return
-
-  if (!authStore.isAuthenticated) {
+const onSubmit = handleSubmit(async (formValues: CheckoutFormInput) => {
+  if (!isAuthenticated.value) {
     openAuthModal('login', () => {
-      proceedWithOrder(values as CreateOrderInput)
+      proceedWithOrder(formValues)
     })
     return
   }
 
-  proceedWithOrder(values as CreateOrderInput)
+  proceedWithOrder(formValues)
+})
+
+/**
+ * Map shipping option ID to ShippingType enum
+ */
+const mapShippingOptionToType = (optionId: string): ShippingType => {
+  switch (optionId) {
+    case 'express':
+      return ShippingType.EXPRESS
+    case 'pickup':
+      return ShippingType.PICKUP
+    case 'free':
+    default:
+      return ShippingType.STANDARD
+  }
 }
 
-const proceedWithOrder = async (values: CreateOrderInput) => {
+const proceedWithOrder = async (formValues: CheckoutFormInput) => {
   try {
-    const order = await createOrder(values)
-    router.push({
-      name: 'complete',
-      query: {
-        orderNumber: order.orderNumber,
-      },
-    })
+    // 1. Get or create address ID
+    let addressId: string
+
+    if (formValues.address.id) {
+      // Use existing address
+      addressId = formValues.address.id
+    } else {
+      // Create new address
+      const newAddress = await createAddress({
+        name: formValues.address.name,
+        email: formValues.address.email,
+        phone: formValues.address.phone,
+        street: formValues.address.street,
+        city: formValues.address.city,
+        country: formValues.address.country,
+        isDefault: false,
+      })
+      addressId = newAddress.id
+    }
+
+    // 2. Build order payload (API format)
+    const orderPayload: CreateOrderInput = {
+      addressId,
+      shippingType: mapShippingOptionToType(formValues.shippingOption.id),
+      couponCode: formValues.coupon || undefined,
+    }
+
+    // 3. Create the order (with PENDING status)
+    const order = await createOrder(orderPayload)
+    const orderId = order.id
+    const provider = formValues.payment.provider
+
+    // 4. Create payment session for the order
+    const paymentData = await paymentService.createPaymentSession(
+      orderId,
+      provider,
+    )
+
+    // 5. Handle based on provider
+    if (provider === PaymentProvider.KKIAPAY) {
+      const amount = await convertCurrency(
+        paymentData.totalAmount,
+        'EUR',
+        'XOF',
+      )
+
+      handleOpenKkiapayWidget(orderId, amount)
+    } else if (paymentData.redirectUrl) {
+      window.location.href = paymentData.redirectUrl
+    } else {
+      toast.error('Failed to get payment URL. Please try again.')
+    }
   } catch (error) {
     console.error('Error placing order:', error)
+    toast.error('Failed to place order. Please try again.')
+  }
+}
+
+// Store current Kkiapay order ID for callback reference
+const currentKkiapayOrderId = ref<string | null>(null)
+
+// Handle Kkiapay widget opening
+const handleOpenKkiapayWidget = (orderId: string, amount: number) => {
+  // Store the orderId for the callback
+  currentKkiapayOrderId.value = orderId
+
+  // Open the Kkiapay widget using the imported function
+  openKkiapayWidget({
+    amount: Math.round(amount), // Kkiapay expects integer amount in XOF
+    position: 'center',
+    name: `${values.address?.name}`, // Assuming 'name' in address contains full name
+    email: values.address?.email,
+    phone: '97000000',
+    data: JSON.stringify({ orderId }), // Pass orderId in data for reference
+    theme: '#000000',
+    key: import.meta.env.VITE_KKIAPAY_PUBLIC_KEY,
+    sandbox: import.meta.env.VITE_ENV !== 'production',
+  })
+}
+
+// Handle Kkiapay success callback
+const handleKkiapaySuccess = async (response: { transactionId: string }) => {
+  const orderId = currentKkiapayOrderId.value
+
+  if (!orderId) {
+    console.error('No orderId found for Kkiapay callback')
+    toast.error('Payment error: Order not found')
+    return
+  }
+
+  try {
+    await paymentService.verifyKkiapay(orderId, response.transactionId)
+    currentKkiapayOrderId.value = null
+    onPaymentSuccess(orderId)
+  } catch (error) {
+    console.error('Kkiapay verification failed:', error)
+    currentKkiapayOrderId.value = null
+    onPaymentError('Payment verification failed')
+  }
+}
+
+// Handle Kkiapay failure callback
+const handleKkiapayFailed = (_data: { transactionId: string }) => {
+  currentKkiapayOrderId.value = null
+  toast.error('Payment failed. Please try again.')
+}
+
+// Handle Kkiapay widget close
+const handleKkiapayClose = () => {
+  // Only show message if there was an active payment
+  if (currentKkiapayOrderId.value) {
+    toast.info('Payment cancelled')
+    currentKkiapayOrderId.value = null
+  }
+}
+
+// Set up Kkiapay listeners on mount
+onMounted(() => {
+  addSuccessListener(handleKkiapaySuccess)
+  addFailedListener(handleKkiapayFailed)
+  addKkiapayCloseListener(handleKkiapayClose)
+})
+
+// Handle successful payment
+const onPaymentSuccess = (orderId: string) => {
+  toast.success('Payment successful!')
+  router.push({
+    name: 'complete',
+    query: { orderId },
+  })
+}
+
+// Handle payment error
+const onPaymentError = (errorMsg: string) => {
+  console.error('Payment error:', errorMsg)
+  toast.error(errorMsg || 'Payment failed. Please try again.')
+}
+
+// Handle share checkout
+const handleShareCheckout = async () => {
+  if (isSharingCheckout.value) return
+
+  try {
+    isSharingCheckout.value = true
+
+    // Create share token
+    const data = await cartsService.shareCart()
+
+    // Build URL with all existing query parameters plus the share token
+    const params = new URLSearchParams()
+
+    // Include all existing query parameters (shipping, coupon, etc.)
+    Object.entries(route.query).forEach(([key, value]) => {
+      if (key !== 'share' && value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach((v) => params.append(key, String(v)))
+        } else {
+          params.set(key, String(value))
+        }
+      }
+    })
+
+    // Add coupon if applied
+    if (hasAppliedCoupon.value && appliedCoupon.value) {
+      params.set('coupon', appliedCoupon.value.code)
+    }
+
+    // Add shipping option
+    if (selectedShippingId.value) {
+      params.set('shipping', selectedShippingId.value)
+    }
+
+    // Add or replace the share token
+    params.set('share', data.shareToken)
+
+    const queryString = params.toString()
+    const shareUrl = `${window.location.origin}/checkout?${queryString}`
+
+    copy(shareUrl)
+    toast.success('Checkout link copied to clipboard')
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error ? err.message : 'Could not create share link'
+    toast.error(message)
+  } finally {
+    isSharingCheckout.value = false
   }
 }
 </script>
@@ -306,7 +531,7 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
 <template>
   <!-- Loading State -->
   <div
-    v-if="isLoadingCart"
+    v-if="isLoading"
     class="flex flex-col gap-4 py-8"
   >
     <div
@@ -324,6 +549,30 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Shared Cart Error State -->
+  <div
+    v-else-if="errorShared"
+    class="flex flex-col items-center justify-center gap-4 py-16 text-center"
+  >
+    <div class="rounded-full bg-red-100 p-6">
+      <AlertTriangleIcon class="h-10 w-10 text-red-500" />
+    </div>
+    <div class="space-y-1">
+      <h3 class="text-lg font-semibold text-red-900">
+        Unable to load shared cart
+      </h3>
+      <p class="text-sm text-red-600">{{ errorShared }}</p>
+    </div>
+    <RouterLink to="/cart">
+      <Button
+        variant="outline"
+        class="mt-4"
+      >
+        Return to my cart
+      </Button>
+    </RouterLink>
   </div>
 
   <!-- Empty Cart State -->
@@ -350,80 +599,51 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
 
   <div
     v-else
-    class="grid gap-8 lg:grid-cols-3"
+    class="flex flex-col gap-8"
   >
-    <!-- Left Column - Forms -->
-    <div class="space-y-6 lg:col-span-2">
-      <Form
-        v-slot="$form"
-        :key="formKey"
-        :initialValues="initialValues"
-        :resolver="resolver"
-        @submit="onFormSubmit"
-      >
-        <!-- Contact Information -->
-        <div class="mb-6 rounded border p-6">
-          <h2 class="mb-6 text-xl font-semibold">Contact Information</h2>
+    <div
+      v-if="!!shareToken"
+      class="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4"
+    >
+      <div class="rounded-full bg-blue-100 p-2">
+        <TruckIcon class="h-5 w-5 text-blue-600" />
+      </div>
+      <div>
+        <h3 class="font-semibold text-blue-900">Paying for a Shared Cart</h3>
+        <p class="text-sm text-blue-700">
+          You are processing payment for a shared cart. The items and total
+          amount are managed by the cart owner.
+        </p>
+      </div>
+    </div>
 
-          <div class="space-y-4">
-            <div class="flex flex-col gap-1">
-              <CustomInput
-                name="address.name"
-                label="Full Name *"
-                type="text"
-              />
-              <Message
-                v-if="$form['address.name']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
-              >
-                {{ $form['address.name'].error?.message }}
-              </Message>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <CustomInput
-                name="address.email"
-                label="Email Address *"
-                type="email"
-              />
-              <Message
-                v-if="$form['address.email']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
-              >
-                {{ $form['address.email'].error?.message }}
-              </Message>
-            </div>
-
-            <div class="flex flex-col gap-1">
-              <CustomPhoneInput
-                name="address.phone"
-                label="Phone Number *"
-              />
-              <Message
-                v-if="$form['address.phone']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
-              >
-                {{ $form['address.phone'].error?.message }}
-              </Message>
-            </div>
-          </div>
+    <div class="grid gap-8 lg:grid-cols-5">
+      <!-- Left Column - Forms -->
+      <div class="space-y-4 lg:col-span-3">
+        <div
+          v-if="!shareToken"
+          class="flex justify-end"
+        >
+          <LoadingButton
+            :loading="isSharingCheckout"
+            :disabled="isSharingCheckout"
+            variant="outline"
+            @click="handleShareCheckout"
+          >
+            <Share2Icon class="h-4 w-4" />
+            <span class="hidden text-sm sm:block">Share</span>
+          </LoadingButton>
         </div>
 
-        <!-- Address Section -->
-        <div class="mb-6 rounded border p-6">
-          <h2 class="mb-6 text-xl font-semibold">Delivery Address</h2>
+        <form @submit="onSubmit">
+          <!-- Address Selection Section -->
+          <div class="mb-6 rounded border p-6">
+            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold">
+              <MapPinIcon class="h-5 w-5" />
+              Contact & Delivery Address
+            </h2>
 
-          <!-- Address Selection -->
-          <div
-            v-if="authStore.isAuthenticated && addresses.length > 0"
-            class="mb-6"
-          >
+            <!-- Address Mode Selection -->
             <div class="mb-4 flex gap-4">
               <Button
                 type="button"
@@ -482,6 +702,9 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
                       Default
                     </span>
                   </div>
+                  <p class="text-sm text-gray-600">
+                    {{ address.street }}, {{ address.city }}
+                  </p>
                   <p class="text-sm text-gray-600">{{ address.country }}</p>
                   <p
                     v-if="address.phone"
@@ -493,7 +716,6 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
               </div>
             </div>
 
-            <!-- Info about modifying address -->
             <p
               v-if="addressMode === 'existing' && selectedAddressId"
               class="mb-4 text-sm text-gray-500"
@@ -501,344 +723,429 @@ const proceedWithOrder = async (values: CreateOrderInput) => {
               You can modify the fields below. If you make changes, the address
               will be updated.
             </p>
-          </div>
 
-          <!-- Address Form Fields -->
-          <div class="space-y-4">
-            <div class="flex flex-col gap-1">
-              <CustomInput
+            <div
+              class="space-y-4"
+              :class="{
+                'mt-8': addressMode !== 'existing',
+              }"
+            >
+              <FormField
+                v-slot="{ componentField }"
+                name="address.name"
+              >
+                <FormItem>
+                  <CustomInput
+                    v-bind="componentField"
+                    label="Full Name *"
+                    type="text"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField
+                v-slot="{ componentField }"
+                name="address.email"
+              >
+                <FormItem>
+                  <CustomInput
+                    v-bind="componentField"
+                    label="Email Address *"
+                    type="email"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField
+                v-slot="{ componentField }"
+                name="address.phone"
+              >
+                <FormItem>
+                  <CustomPhoneInput
+                    v-bind="componentField"
+                    label="Phone Number *"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
+
+              <FormField
+                v-slot="{ componentField }"
                 name="address.street"
-                label="Street Address *"
-                type="text"
-              />
-              <Message
-                v-if="$form['address.street']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
               >
-                {{ $form['address.street'].error?.message }}
-              </Message>
-            </div>
+                <FormItem>
+                  <CustomInput
+                    v-bind="componentField"
+                    label="Street Address *"
+                    type="text"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-            <div class="flex flex-col gap-1">
-              <CustomSelect
+              <FormField
+                v-slot="{ value, handleChange }"
                 name="address.country"
-                label="Country *"
-                :options="
-                  getAllCountries().map((country) => ({
-                    label: country.name,
-                    value: country.name,
-                  }))
-                "
-                search-placeholder="Search country..."
-                placeholder="Select a country"
-              />
-              <Message
-                v-if="$form['address.country']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
               >
-                {{ $form['address.country'].error?.message }}
-              </Message>
-            </div>
+                <FormItem>
+                  <CustomSelect
+                    :model-value="value"
+                    @update:model-value="handleChange"
+                    label="Country *"
+                    :options="
+                      getAllCountries().map((country) => ({
+                        label: country.name,
+                        value: country.name,
+                      }))
+                    "
+                    search-placeholder="Search country..."
+                    placeholder="Select a country"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
 
-            <div class="flex flex-col gap-1">
-              <CustomInput
+              <FormField
+                v-slot="{ componentField }"
                 name="address.city"
-                label="Town / City *"
-                type="text"
-              />
-              <Message
-                v-if="$form['address.city']?.invalid"
-                severity="error"
-                size="small"
-                variant="simple"
               >
-                {{ $form['address.city'].error?.message }}
-              </Message>
-            </div>
-          </div>
-        </div>
-
-        <!-- Shipping Method -->
-        <div class="mb-6 rounded border p-6">
-          <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold">
-            <TruckIcon class="h-5 w-5" />
-            Shipping Method
-          </h2>
-
-          <div class="space-y-3">
-            <div
-              v-for="option in shippingOptions"
-              :key="option.id"
-              class="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors"
-              :class="{
-                'border-black bg-gray-50': selectedShippingId === option.id,
-                'hover:border-gray-300': selectedShippingId !== option.id,
-              }"
-              @click="changeShippingOption(option.id)"
-            >
-              <div class="flex items-center gap-3">
-                <RadioButton
-                  :inputId="option.id"
-                  name="shipping"
-                  :value="option.id"
-                  :modelValue="selectedShippingId"
-                  @update:modelValue="changeShippingOption"
-                />
-                <label
-                  :for="option.id"
-                  class="cursor-pointer font-normal"
-                >
-                  {{ option.label }}
-                </label>
-              </div>
-              <span class="text-sm font-medium">
-                {{
-                  option.price === 0
-                    ? formatPrice(0)
-                    : option.isPercentage
-                      ? `${option.price}%`
-                      : formatPrice(option.price)
-                }}
-              </span>
+                <FormItem>
+                  <CustomInput
+                    v-bind="componentField"
+                    label="Town / City *"
+                    type="text"
+                  />
+                  <FormMessage />
+                </FormItem>
+              </FormField>
             </div>
           </div>
 
-          <p class="mt-3 text-xs text-gray-500">
-            Note: Shipping cost is not affected by coupon discounts.
-          </p>
-        </div>
+          <!-- Shipping Method -->
+          <div class="mb-6 rounded border p-6">
+            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold">
+              <TruckIcon class="h-5 w-5" />
+              Shipping Method
+            </h2>
 
-        <!-- Payment Method -->
-        <div class="mb-6 rounded border p-6">
-          <h2 class="mb-6 text-xl font-semibold">Payment method</h2>
-
-          <div class="space-y-3">
-            <div
-              class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
-              :class="{
-                'border-black bg-gray-50':
-                  paymentMethod === PaymentProvider.STRIPE,
-                'hover:border-gray-300':
-                  paymentMethod !== PaymentProvider.STRIPE,
-              }"
-              @click="paymentMethod = PaymentProvider.STRIPE"
+            <RadioGroup
+              :model-value="selectedShippingId"
+              @update:model-value="changeShippingOption"
+              class="space-y-3"
             >
-              <div class="flex items-center gap-3">
-                <RadioButton
-                  :inputId="'stripe'"
-                  name="payment"
-                  :value="PaymentProvider.STRIPE"
-                  v-model="paymentMethod"
-                />
-                <label
-                  for="stripe"
-                  class="cursor-pointer font-normal"
-                >
-                  Pay by Card Credit
-                </label>
-              </div>
-              <CreditCardIcon class="h-5 w-5 text-gray-400" />
-            </div>
-
-            <div
-              class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
-              :class="{
-                'border-black bg-gray-50':
-                  paymentMethod === PaymentProvider.PAYPAL,
-                'hover:border-gray-300':
-                  paymentMethod !== PaymentProvider.PAYPAL,
-              }"
-              @click="paymentMethod = PaymentProvider.PAYPAL"
-            >
-              <div class="flex items-center gap-3">
-                <RadioButton
-                  :inputId="'paypal'"
-                  name="payment"
-                  :value="PaymentProvider.PAYPAL"
-                  v-model="paymentMethod"
-                />
-                <label
-                  for="paypal"
-                  class="cursor-pointer font-normal"
-                >
-                  Paypal
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Details (shown when Stripe is selected) -->
-          <div
-            v-if="paymentMethod === PaymentProvider.STRIPE"
-            class="mt-6 space-y-4 border-t pt-6"
-          >
-            <CustomInput
-              id="cardNumber"
-              label="Card Number"
-              v-model="cardDetails.number"
-            />
-
-            <div class="grid gap-4 sm:grid-cols-2">
-              <CustomInput
-                id="expiry"
-                label="Expiration Date (MM/YY)"
-                v-model="cardDetails.expiry"
-              />
-              <CustomInput
-                id="cvc"
-                label="CVC"
-                v-model="cardDetails.cvc"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Place Order Button -->
-        <LoadingButton
-          type="submit"
-          :loading="isCreatingOrder"
-          :disabled="isCreatingOrder"
-          class="h-14 w-full text-base"
-        >
-          Place Order
-        </LoadingButton>
-      </Form>
-    </div>
-
-    <!-- Right Column - Order Summary -->
-    <div class="lg:col-span-1">
-      <div class="sticky top-4 rounded border p-6">
-        <h2 class="mb-6 text-xl font-semibold">Order summary</h2>
-
-        <!-- Cart Items -->
-        <div class="space-y-4">
-          <div
-            v-for="item in items"
-            :key="item.id"
-            class="flex gap-4 border-b pb-4"
-          >
-            <div
-              class="relative h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100"
-            >
-              <img
-                :src="item.product.images[0]"
-                :alt="item.product.name"
-                class="h-full w-full object-cover"
-              />
-            </div>
-            <div class="flex flex-1 flex-col justify-between gap-2">
-              <div>
-                <h4 class="font-medium">{{ item.product.name }}</h4>
-                <p
-                  v-if="item.variant"
-                  class="flex flex-col text-sm text-gray-500"
-                >
-                  <span
-                    v-for="option in item.variant.productVariantOptions"
-                    :key="option.id"
-                  >
-                    {{ option.option.attribute.name }}:
-                    {{ option.option.name }}
-                  </span>
-                </p>
-              </div>
               <div
-                class="flex h-7 w-16 items-center justify-center rounded border px-3 text-center text-sm"
+                v-for="option in shippingOptions"
+                :key="option.id"
+                class="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors"
+                :class="{
+                  'border-black bg-gray-50': selectedShippingId === option.id,
+                  'hover:border-gray-300': selectedShippingId !== option.id,
+                }"
+                @click="changeShippingOption(option.id)"
               >
-                {{ item.quantity }}
+                <div class="flex items-center gap-3">
+                  <RadioGroupItem
+                    :id="option.id"
+                    :value="option.id"
+                  />
+                  <Label
+                    :for="option.id"
+                    class="cursor-pointer font-normal"
+                  >
+                    {{ option.label }}
+                  </Label>
+                </div>
+                <span class="text-sm font-medium">
+                  {{
+                    option.price === 0
+                      ? formatPrice(0)
+                      : option.isPercentage
+                        ? `${option.price}%`
+                        : formatPrice(option.price)
+                  }}
+                </span>
+              </div>
+            </RadioGroup>
+
+            <p class="mt-3 text-sm text-gray-500">
+              Note: Shipping cost is not affected by coupon discounts.
+            </p>
+          </div>
+
+          <!-- Payment Method -->
+          <div class="mb-6 rounded border p-6">
+            <h2 class="mb-6 text-xl font-semibold">Payment method</h2>
+
+            <RadioGroup
+              v-model="paymentMethod"
+              class="grid gap-3 sm:grid-cols-2"
+            >
+              <!-- Stripe -->
+              <div
+                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                :class="{
+                  'border-black bg-gray-50':
+                    paymentMethod === PaymentProvider.STRIPE,
+                  'hover:border-gray-300':
+                    paymentMethod !== PaymentProvider.STRIPE,
+                }"
+                @click="paymentMethod = PaymentProvider.STRIPE"
+              >
+                <div class="flex items-center gap-3">
+                  <RadioGroupItem
+                    id="stripe"
+                    :value="PaymentProvider.STRIPE"
+                  />
+                  <Label
+                    for="stripe"
+                    class="cursor-pointer font-normal"
+                  >
+                    Credit Card
+                  </Label>
+                </div>
+                <CreditCardIcon class="h-5 w-5 text-gray-400" />
+              </div>
+
+              <!-- PayPal -->
+              <div
+                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                :class="{
+                  'border-black bg-gray-50':
+                    paymentMethod === PaymentProvider.PAYPAL,
+                  'hover:border-gray-300':
+                    paymentMethod !== PaymentProvider.PAYPAL,
+                }"
+                @click="paymentMethod = PaymentProvider.PAYPAL"
+              >
+                <div class="flex items-center gap-3">
+                  <RadioGroupItem
+                    id="paypal"
+                    :value="PaymentProvider.PAYPAL"
+                  />
+                  <Label
+                    for="paypal"
+                    class="cursor-pointer font-normal"
+                  >
+                    PayPal
+                  </Label>
+                </div>
+                <WalletIcon class="h-5 w-5 text-blue-500" />
+              </div>
+
+              <!-- Kkiapay -->
+              <div
+                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                :class="{
+                  'border-black bg-gray-50':
+                    paymentMethod === PaymentProvider.KKIAPAY,
+                  'hover:border-gray-300':
+                    paymentMethod !== PaymentProvider.KKIAPAY,
+                }"
+                @click="paymentMethod = PaymentProvider.KKIAPAY"
+              >
+                <div class="flex items-center gap-3">
+                  <RadioGroupItem
+                    id="kkiapay"
+                    :value="PaymentProvider.KKIAPAY"
+                  />
+                  <Label
+                    for="kkiapay"
+                    class="cursor-pointer font-normal"
+                  >
+                    Kkiapay
+                  </Label>
+                </div>
+                <SmartphoneIcon class="h-5 w-5 text-orange-500" />
+              </div>
+
+              <!-- Moneroo -->
+              <div
+                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                :class="{
+                  'border-black bg-gray-50':
+                    paymentMethod === PaymentProvider.MONEROO,
+                  'hover:border-gray-300':
+                    paymentMethod !== PaymentProvider.MONEROO,
+                }"
+                @click="paymentMethod = PaymentProvider.MONEROO"
+              >
+                <div class="flex items-center gap-3">
+                  <RadioGroupItem
+                    id="moneroo"
+                    :value="PaymentProvider.MONEROO"
+                  />
+                  <Label
+                    for="moneroo"
+                    class="cursor-pointer font-normal"
+                  >
+                    Moneroo
+                  </Label>
+                </div>
+                <GlobeIcon class="h-5 w-5 text-purple-500" />
+              </div>
+            </RadioGroup>
+
+            <p class="mt-4 text-sm text-gray-500">
+              You will complete payment after placing your order.
+            </p>
+          </div>
+
+          <!-- Place Order Button -->
+          <LoadingButton
+            type="submit"
+            :loading="isCreatingOrder"
+            :disabled="isCreatingOrder"
+            class="h-14 w-full text-base"
+          >
+            Place Order
+          </LoadingButton>
+        </form>
+      </div>
+
+      <!-- Right Column - Order Summary -->
+      <div class="lg:col-span-2">
+        <div class="sticky top-24 rounded border p-6">
+          <div class="mb-6 flex items-center justify-between">
+            <h2 class="text-xl font-semibold">Order summary</h2>
+          </div>
+
+          <!-- Cart Items -->
+          <div class="space-y-4">
+            <div
+              v-for="item in items"
+              :key="item.id"
+              class="flex gap-4 border-b pb-4"
+            >
+              <RouterLink
+                :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+                class="relative aspect-square w-26 shrink-0 overflow-hidden rounded bg-gray-100"
+              >
+                <img
+                  :src="item.product.images[0]"
+                  :alt="item.product.name"
+                  class="h-full w-full object-cover"
+                />
+              </RouterLink>
+              <div class="flex flex-1 flex-col gap-2">
+                <div>
+                  <RouterLink
+                    :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+                    class="font-medium"
+                  >
+                    {{ item.product.name }}
+                  </RouterLink>
+                  <p
+                    v-if="item.productVariant"
+                    class="flex flex-col text-sm text-gray-500"
+                  >
+                    <span
+                      v-for="option in item.productVariant
+                        .productVariantOptions"
+                      :key="option.id"
+                    >
+                      {{ option.option.attribute.name }}:
+                      {{ option.option.name }}
+                    </span>
+                  </p>
+                </div>
+                <div class="flex items-center gap-1 text-sm">
+                  <span class="text-gray-700">{{ item.quantity }}</span>
+                  <span class="text-xs text-gray-500">x</span>
+                  <span class="text-gray-700">
+                    {{ formatPrice(getItemPrice(item)) }}
+                  </span>
+                </div>
+              </div>
+              <div class="text-right font-medium">
+                {{ formatPrice(getItemSubtotal(item)) }}
               </div>
             </div>
-            <div class="text-right font-medium">
-              {{ formatPrice(getItemSubtotal(item)) }}
-            </div>
           </div>
-        </div>
 
-        <!-- Coupon Section -->
-        <div class="mt-4">
-          <h3 class="mb-2 text-lg font-semibold">Have a coupon?</h3>
-          <p class="mb-4 text-sm text-gray-500">
-            Add your code for an instant cart discount
-          </p>
+          <!-- Coupon Section -->
+          <div class="mt-4">
+            <h3 class="mb-2 text-lg font-semibold">Have a coupon?</h3>
+            <p class="mb-4 text-sm text-gray-500">
+              Add your code for an instant cart discount
+            </p>
 
-          <!-- Applied Coupon Display -->
-          <div
-            v-if="hasAppliedCoupon && appliedCoupon"
-            class="mb-4 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 p-3"
-          >
-            <div class="flex items-center gap-2">
-              <TagIcon class="h-4 w-4 text-emerald-600" />
-              <span class="font-medium text-emerald-700">
-                {{ appliedCoupon.code }}
-              </span>
-              <span class="text-sm text-emerald-600">
-                (-{{
-                  appliedCoupon.type === 'PERCENTAGE'
-                    ? `${appliedCoupon.value}%`
-                    : formatPrice(appliedCoupon.discountAmount)
-                }})
-              </span>
-            </div>
-            <button
-              @click="handleRemoveCoupon"
-              class="text-sm text-red-500 hover:text-red-700"
+            <!-- Applied Coupon Display -->
+            <div
+              v-if="hasAppliedCoupon && appliedCoupon"
+              class="mb-4 flex h-10 items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3"
             >
-              Remove
-            </button>
-          </div>
-
-          <!-- Coupon Input -->
-          <div
-            v-else
-            class="flex max-w-md items-end gap-2"
-          >
-            <div class="flex-1">
-              <CustomInput
-                v-model="couponCode"
-                label="Coupon Code"
-                :disabled="isApplyingCoupon"
-                @keyup.enter="handleApplyCoupon"
-              />
+              <div class="flex items-center gap-2">
+                <TagIcon class="h-4 w-4 text-emerald-600" />
+                <span class="font-medium text-emerald-700">
+                  {{ appliedCoupon.code }}
+                </span>
+                <span class="text-sm text-emerald-600">
+                  (-{{
+                    appliedCoupon.type === 'PERCENTAGE'
+                      ? `${appliedCoupon.value}%`
+                      : formatPrice(appliedCoupon.discountAmount)
+                  }})
+                </span>
+              </div>
+              <button
+                @click="removeCoupon"
+                class="cursor-pointer text-sm text-red-500 hover:text-red-600"
+              >
+                Remove
+              </button>
             </div>
-            <Button
-              type="button"
-              class="h-10 px-6"
-              @click="handleApplyCoupon"
-              :disabled="isApplyingCoupon || !couponCode.trim()"
-            >
-              {{ isApplyingCoupon ? 'Applying...' : 'Apply' }}
-            </Button>
-          </div>
-        </div>
 
-        <!-- Totals -->
-        <div class="mt-6 space-y-3 border-t pt-6">
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500">Subtotal</span>
-            <span>{{ formatPrice(subtotal) }}</span>
+            <!-- Coupon Input -->
+            <div
+              v-else
+              class="flex w-full items-end gap-2"
+            >
+              <div class="relative flex-1">
+                <Input
+                  v-model="couponCode"
+                  placeholder="Coupon Code"
+                  class="h-10 w-full pl-10 uppercase"
+                  :disabled="isApplyingCoupon"
+                  @keyup.enter="handleApplyCoupon"
+                />
+                <TagIcon
+                  class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                />
+              </div>
+              <LoadingButton
+                class="h-10 px-6"
+                @click="handleApplyCoupon"
+                :disabled="isApplyingCoupon || !couponCode"
+                :loading="isApplyingCoupon"
+              >
+                Apply
+              </LoadingButton>
+            </div>
           </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-gray-500">
-              Shipping ({{ selectedShippingOption.label }})
-            </span>
-            <span>
-              {{ shippingCost === 0 ? 'Free' : formatPrice(shippingCost) }}
-            </span>
-          </div>
-          <div
-            v-if="hasAppliedCoupon && discountAmount > 0"
-            class="flex justify-between text-sm text-emerald-600"
-          >
-            <span>Discount</span>
-            <span>-{{ formatPrice(discountAmount) }}</span>
-          </div>
-          <div class="flex justify-between text-lg font-semibold">
-            <span>Total</span>
-            <span>{{ formatPrice(total) }}</span>
+
+          <!-- Summary Totals -->
+          <div class="mt-6 space-y-3 border-t pt-6">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Subtotal</span>
+              <span>{{ formatPrice(subtotal) }}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Shipping</span>
+              <span>{{ formatPrice(shippingCost) }}</span>
+            </div>
+            <div
+              v-if="hasAppliedCoupon"
+              class="flex justify-between text-sm text-emerald-600"
+            >
+              <span>Discount</span>
+              <span>-{{ formatPrice(discountAmount) }}</span>
+            </div>
+            <div class="flex justify-between text-lg font-semibold">
+              <span>Total</span>
+              <span>{{ formatPrice(total) }}</span>
+            </div>
           </div>
         </div>
       </div>

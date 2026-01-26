@@ -134,7 +134,7 @@ onUnmounted(() => {
           <p class="mb-3 text-sm font-medium text-gray-600">
             Offer expires in:
           </p>
-          <div class="flex gap-3">
+          <div class="flex items-center gap-3">
             <div class="flex flex-col items-center">
               <div
                 class="flex h-16 w-16 items-center justify-center bg-white text-2xl font-bold text-gray-900 md:h-20 md:w-20 md:text-3xl"
@@ -144,6 +144,8 @@ onUnmounted(() => {
               <span class="mt-2 text-xs font-medium text-gray-600">Days</span>
             </div>
 
+            <span class="mb-6 text-xl font-medium text-gray-600">:</span>
+
             <div class="flex flex-col items-center">
               <div
                 class="flex h-16 w-16 items-center justify-center bg-white text-2xl font-bold text-gray-900 md:h-20 md:w-20 md:text-3xl"
@@ -152,6 +154,8 @@ onUnmounted(() => {
               </div>
               <span class="mt-2 text-xs font-medium text-gray-600">Hours</span>
             </div>
+
+            <span class="mb-6 text-xl font-medium text-gray-600">:</span>
 
             <div class="flex flex-col items-center">
               <div
@@ -163,6 +167,8 @@ onUnmounted(() => {
                 Minutes
               </span>
             </div>
+
+            <span class="mb-6 text-xl font-medium text-gray-600">:</span>
 
             <div class="flex flex-col items-center">
               <div

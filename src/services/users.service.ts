@@ -1,37 +1,15 @@
 import type { User } from '@/types/models'
 import { api } from '@/utils/api'
-import type {
-  ChangePasswordInput,
-  UpdateProfileImageInput,
-  UpdateProfileInput,
-} from '@/validators/users.validator'
 
+/**
+ * User service for non-auth related operations
+ * Auth operations (password, email, name, image) are handled by better-auth
+ */
 export const userService = {
   /**
-   * Get current user profile
+   * Update user profile (phone only - other fields handled by better-auth)
    */
-  async getProfile() {
-    return api<User>('/users/me', 'GET')
-  },
-
-  /**
-   * Update current user profile
-   */
-  async updateProfile(data: UpdateProfileInput) {
+  async updateProfile(data: { phone?: string }) {
     return api<User>('/users/me', 'PATCH', data)
-  },
-
-  /**
-   * Update profile image
-   */
-  async updateProfileImage(data: UpdateProfileImageInput) {
-    return api<User>('/users/me/image', 'PATCH', data)
-  },
-
-  /**
-   * Change password
-   */
-  async changePassword(data: ChangePasswordInput) {
-    return api<void>('/users/me/password', 'PATCH', data)
   },
 }

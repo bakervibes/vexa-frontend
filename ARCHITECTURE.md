@@ -184,7 +184,7 @@ router.beforeEach((to, from, next) => {
 1. **Créer un store Pinia** (`src/stores/auth.ts`) :
 
 ```typescript
-export const useAuthStore = defineStore('auth', {
+export const useAuth = defineStore('auth', {
   state: () => ({
     user: null,
     token: null,
@@ -208,7 +208,7 @@ export const useAuthStore = defineStore('auth', {
 
 ```typescript
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore()
+  const authStore = useAuth()
   const isAuthenticated = authStore.isAuthenticated
   const isAdmin = authStore.user?.role === 'admin'
 
@@ -220,7 +220,7 @@ router.beforeEach((to, from, next) => {
 
 - `SignInForm.vue` appelle `authStore.login()`
 - `SignUpForm.vue` appelle `authStore.register()`
-- AdminLayout affiche `authStore.user.name`
+- AdminLayout affiche `authStore.user.username`
 
 ---
 

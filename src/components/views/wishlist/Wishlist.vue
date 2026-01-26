@@ -1,80 +1,190 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useCarts, useCartsMutation } from '@/composables/useCarts'
-import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { useCarts } from '@/composables/useCarts'
+import { useSharedWishlists } from '@/composables/useSharedWishlists'
+import { useWishlists } from '@/composables/useWishlists'
 import type { WishlistItemWithDetails } from '@/types'
-import { formatPrice } from '@/utils/lib'
+import { formatPrice, formatRelativeTime } from '@/utils/lib'
 import {
   ArrowLeftIcon,
   CheckIcon,
   HeartIcon,
+  ImportIcon,
+  Share2Icon,
   Trash2Icon,
   XIcon,
 } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Column from 'primevue/column'
-import DataTable from 'primevue/datatable'
-import Skeleton from 'primevue/skeleton'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-const { items, isLoadingWishlist } = useWishlists()
-const { items: cartItems } = useCarts()
+const { cartItems, addCartItem } = useCarts()
+
 const {
+  wishlistItems,
+  wishlistUpdatedAt,
+  isLoadingWishlist,
+  isClearingWishlist,
   removeWishlistItem,
   isRemovingWishlistItem,
   clearWishlist,
-  isClearingWishlist,
-} = useWishlistsMutation()
-const { addToCart } = useCartsMutation()
+  addWishlistItem,
+} = useWishlists()
 
-// État local pour suivre quel item est en cours d'ajout
-const addingItemId = ref<string | null>(null)
+const {
+  shareToken,
+  isLoadingShared,
+  shareWishlist,
+  importSharedWishlist,
+  isImportingSharedWishlist,
+  sharedWishlistItems,
+  sharedWishlistUpdatedAt,
+  isLoadingShareToken,
+} = useSharedWishlists()
+
+const items = computed(() =>
+  !!shareToken.value ? sharedWishlistItems.value : wishlistItems.value,
+)
+
+const isLoading = computed(() =>
+  !!shareToken.value ? isLoadingShared.value : isLoadingWishlist.value,
+)
+
+const lastModified = computed(() =>
+  !!shareToken.value ? sharedWishlistUpdatedAt.value : wishlistUpdatedAt.value,
+)
+
+// Track individual item actions
+const cartActionItemId = ref<string | null>(null)
+const removeActionItemId = ref<string | null>(null)
+const wishlistActionItemId = ref<string | null>(null)
+
+// Check if any global action is in progress
+const isGlobalActionInProgress = computed(
+  () =>
+    isLoadingShareToken.value ||
+    isClearingWishlist.value ||
+    isImportingSharedWishlist.value,
+)
+
+// Check if any item action is in progress
+const isItemActionInProgress = computed(
+  () =>
+    cartActionItemId.value !== null ||
+    removeActionItemId.value !== null ||
+    wishlistActionItemId.value !== null,
+)
+
+// Check if any action at all is in progress
+const isAnyActionInProgress = computed(
+  () => isGlobalActionInProgress.value || isItemActionInProgress.value,
+)
+
+const getItemKey = (productId: string, variantId?: string | null) => {
+  return variantId ? `${productId}-${variantId}` : productId
+}
 
 const getItemPrice = (item: WishlistItemWithDetails) => {
   return (
-    item.variant?.price ??
-    item.variant?.basePrice ??
+    item.productVariant?.price ??
+    item.productVariant?.basePrice ??
     item.product?.price ??
     item.product?.basePrice ??
-    Math.min(...item.product.variants.map((v) => v.price ?? v.basePrice))
+    Math.min(...item.product.productVariants.map((v) => v.price ?? v.basePrice))
   )
 }
 
-const handleAddToCart = async (item: WishlistItemWithDetails) => {
-  // Créer un identifiant unique pour cet item
-  const itemId = `${item.product.id}-${item.variant?.id || 'no-variant'}`
+const needsVariantSelection = (item: WishlistItemWithDetails) => {
+  return !item.product.basePrice && !item.productVariant
+}
 
+const isInCart = (productId: string, variantId?: string | null) => {
+  return cartItems.value.some(
+    (cartItem) =>
+      cartItem.product.id === productId &&
+      (cartItem.productVariant?.id ?? null) === (variantId ?? null),
+  )
+}
+
+const isInMyWishlist = (productId: string, variantId?: string | null) => {
+  return wishlistItems.value.some(
+    (item) =>
+      item.productId === productId &&
+      (item.productVariantId ?? null) === (variantId ?? null),
+  )
+}
+
+// Check if specific item has cart action in progress
+const isCartActioning = (productId: string, variantId?: string | null) => {
+  return cartActionItemId.value === getItemKey(productId, variantId)
+}
+
+// Check if specific item has remove action in progress
+const isRemoveActioning = (productId: string, variantId?: string | null) => {
+  return removeActionItemId.value === getItemKey(productId, variantId)
+}
+
+// Check if specific item has wishlist toggle action in progress
+const isWishlistActioning = (productId: string, variantId?: string | null) => {
+  return wishlistActionItemId.value === getItemKey(productId, variantId)
+}
+
+const handleAddCartItem = async (item: WishlistItemWithDetails) => {
+  if (isAnyActionInProgress.value) return
+
+  const key = getItemKey(item.product.id, item.productVariant?.id)
+  cartActionItemId.value = key
   try {
-    addingItemId.value = itemId
-    await addToCart(item.product.id, 1, item.variant?.id, item.product.slug)
+    await addCartItem(item.product.id, 1, item.productVariant?.id)
+  } catch {
+    // Error already handled by useCarts toast
   } finally {
-    addingItemId.value = null
+    cartActionItemId.value = null
   }
 }
 
 const handleRemoveItem = async (item: WishlistItemWithDetails) => {
-  await removeWishlistItem(item.product.id, item.variant?.id)
+  if (isAnyActionInProgress.value) return
+
+  const key = getItemKey(item.product.id, item.productVariant?.id)
+  removeActionItemId.value = key
+  try {
+    await removeWishlistItem(item.product.id, item.productVariant?.id)
+  } catch {
+    // Error already handled by useWishlists toast
+  } finally {
+    removeActionItemId.value = null
+  }
 }
 
-const isItemLoading = (item: WishlistItemWithDetails) => {
-  const itemId = `${item.product.id}-${item.variant?.id || 'no-variant'}`
-  return addingItemId.value === itemId
-}
+const handleToggleMyWishlist = async (
+  productId: string,
+  variantId?: string | null,
+) => {
+  if (isAnyActionInProgress.value) return
 
-const isAnyItemLoading = () => {
-  return addingItemId.value !== null
-}
-
-// Vérifie si le produit nécessite une sélection de variante
-const needsVariantSelection = (item: WishlistItemWithDetails) => {
-  // Produit avec variantes (pas de basePrice) mais aucune variante sélectionnée
-  return !item.product.basePrice && !item.variant
-}
-
-// Pour l'affichage du prix avec "From"
-const displayFrom = (item: WishlistItemWithDetails) => {
-  return needsVariantSelection(item)
+  const key = getItemKey(productId, variantId)
+  wishlistActionItemId.value = key
+  try {
+    if (isInMyWishlist(productId, variantId)) {
+      await removeWishlistItem(productId, variantId ?? undefined)
+    } else {
+      await addWishlistItem(productId, variantId ?? undefined)
+    }
+  } catch {
+    // Error already handled by useWishlists toast
+  } finally {
+    wishlistActionItemId.value = null
+  }
 }
 </script>
 
@@ -82,7 +192,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
   <div class="flex flex-col gap-8">
     <!-- Loading State -->
     <div
-      v-if="isLoadingWishlist"
+      v-if="isLoading"
       class="flex flex-col gap-4 py-8"
     >
       <div
@@ -90,29 +200,13 @@ const displayFrom = (item: WishlistItemWithDetails) => {
         :key="i"
         class="flex items-center gap-4"
       >
-        <Skeleton
-          width="6rem"
-          height="6rem"
-          class="rounded-md"
-        />
+        <Skeleton class="h-24 w-24 rounded-md" />
         <div class="flex-1 space-y-2">
-          <Skeleton
-            width="75%"
-            height="1rem"
-          />
-          <Skeleton
-            width="50%"
-            height="0.75rem"
-          />
+          <Skeleton class="h-4 w-3/4" />
+          <Skeleton class="h-3 w-1/2" />
           <div class="flex items-center justify-between pt-2">
-            <Skeleton
-              width="6rem"
-              height="2rem"
-            />
-            <Skeleton
-              width="4rem"
-              height="1rem"
-            />
+            <Skeleton class="h-8 w-24" />
+            <Skeleton class="h-4 w-16" />
           </div>
         </div>
       </div>
@@ -132,7 +226,7 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       </div>
       <RouterLink to="/shop">
         <Button
-          outlined
+          variant="outline"
           class="mt-4"
         >
           Continue browsing
@@ -145,149 +239,239 @@ const displayFrom = (item: WishlistItemWithDetails) => {
       v-else
       class="flex flex-col gap-6"
     >
+      <!-- Shared Wishlist Banner -->
+      <div
+        v-if="!!shareToken"
+        class="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4"
+      >
+        <div class="flex items-center gap-3">
+          <div class="rounded-full bg-blue-100 p-2">
+            <Share2Icon class="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h3 class="font-semibold text-blue-900">
+              Viewing a Shared Wishlist
+            </h3>
+            <p class="text-sm text-blue-700">
+              Updates are synced in real-time. You cannot edit this wishlist
+              directly.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <LoadingButton
+            :loading="isImportingSharedWishlist"
+            :disabled="isAnyActionInProgress"
+            variant="outline"
+            size="sm"
+            @click="importSharedWishlist"
+          >
+            <ImportIcon class="mr-2 h-4 w-4" />
+            Import to my wishlist
+          </LoadingButton>
+        </div>
+      </div>
+
+      <!-- Header -->
       <div class="flex items-center justify-between">
-        <h1 class="flex items-center gap-1">
-          <span class="text-2xl font-bold">My wishlist</span>
-          <span class="text-xl font-medium text-gray-500">
-            ({{ items.length }})
-          </span>
-        </h1>
+        <div class="flex flex-col gap-1">
+          <h1 class="flex items-center gap-1">
+            <span class="text-2xl font-bold">My wishlist</span>
+            <span class="text-xl font-medium text-gray-500">
+              ({{ items.length }})
+            </span>
+          </h1>
+          <p
+            v-if="lastModified"
+            class="text-sm text-gray-500"
+          >
+            Last modified {{ formatRelativeTime(lastModified) }}
+          </p>
+        </div>
 
         <div class="flex items-center gap-2">
-          <RouterLink to="/shop">
-            <Button link>
-              <ArrowLeftIcon class="h-4 w-4" />
-              <span class="block text-sm sm:hidden">Shop</span>
-              <span class="hidden sm:block">Continue shopping</span>
-            </Button>
-          </RouterLink>
+          <template v-if="!shareToken">
+            <LoadingButton
+              :loading="isLoadingShareToken"
+              :disabled="isAnyActionInProgress"
+              variant="outline"
+              @click="shareWishlist"
+            >
+              <Share2Icon class="h-4 w-4" />
+              <span class="hidden text-sm sm:block">Share</span>
+            </LoadingButton>
 
-          <LoadingButton
-            :loading="isClearingWishlist"
-            :disabled="isClearingWishlist"
-            severity="danger"
-            size="large"
-            @click="clearWishlist(items.map((item) => item.product.slug))"
-          >
-            <Trash2Icon class="h-4 w-4" />
-            <span class="block text-sm sm:hidden">Clear</span>
-            <span class="hidden sm:block">Clear wishlist</span>
-          </LoadingButton>
+            <LoadingButton
+              :loading="isClearingWishlist"
+              :disabled="isAnyActionInProgress"
+              variant="destructive"
+              @click="clearWishlist()"
+            >
+              <Trash2Icon class="h-4 w-4" />
+              <span class="hidden text-sm sm:block md:hidden">Clear</span>
+              <span class="hidden md:block">Clear wishlist</span>
+            </LoadingButton>
+          </template>
+
+          <template v-else>
+            <RouterLink to="/wishlist">
+              <Button variant="outline">Exit Shared View</Button>
+            </RouterLink>
+          </template>
         </div>
       </div>
 
       <!-- Desktop View -->
       <div class="hidden md:block">
-        <DataTable :value="items">
-          <Column
-            header="Product"
-            style="width: 50%"
-          >
-            <template #body="slotProps">
-              <div class="flex items-center gap-6 py-3">
-                <button
-                  @click="handleRemoveItem(slotProps.data)"
-                  class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
-                  :disabled="isRemovingWishlistItem"
-                  aria-label="Remove item"
-                >
-                  <XIcon class="h-5 w-5" />
-                </button>
-                <RouterLink
-                  :to="`/products/${slotProps.data.product.slug}${slotProps.data.variant && `?${slotProps.data.variant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}`}`"
-                  class="flex items-center gap-4"
-                >
-                  <div class="h-24 w-24 overflow-hidden rounded bg-gray-100">
-                    <img
-                      :src="slotProps.data.product.images[0]"
-                      :alt="slotProps.data.product.name"
-                      class="h-full w-full object-cover"
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead class="w-[50%]">Product</TableHead>
+              <TableHead class="text-center">Price</TableHead>
+              <TableHead class="text-right"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="item in items"
+              :key="item.id"
+            >
+              <TableCell>
+                <div class="flex items-center gap-6 py-3">
+                  <button
+                    v-if="!shareToken"
+                    @click="handleRemoveItem(item)"
+                    class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
+                    :disabled="isAnyActionInProgress"
+                    :class="{
+                      'animate-pulse': isRemoveActioning(
+                        item.product.id,
+                        item.productVariant?.id,
+                      ),
+                    }"
+                    aria-label="Remove item"
+                  >
+                    <XIcon class="h-5 w-5" />
+                  </button>
+                  <button
+                    v-else
+                    @click="
+                      handleToggleMyWishlist(
+                        item.product.id,
+                        item.productVariant?.id,
+                      )
+                    "
+                    class="cursor-pointer text-gray-500 transition-colors hover:text-pink-500"
+                    :class="{
+                      'text-pink-500': isInMyWishlist(
+                        item.product.id,
+                        item.productVariant?.id,
+                      ),
+                    }"
+                    :disabled="isAnyActionInProgress"
+                  >
+                    <HeartIcon
+                      class="h-5 w-5"
+                      :class="{
+                        'fill-current': isInMyWishlist(
+                          item.product.id,
+                          item.productVariant?.id,
+                        ),
+                        'animate-pulse': isWishlistActioning(
+                          item.product.id,
+                          item.productVariant?.id,
+                        ),
+                      }"
                     />
-                  </div>
-                  <div>
-                    <div class="text-base font-medium">
-                      {{ slotProps.data.product.name }}
+                  </button>
+                  <RouterLink
+                    :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
+                    class="flex items-center gap-4"
+                  >
+                    <div class="h-24 w-24 overflow-hidden rounded bg-gray-100">
+                      <img
+                        :src="item.product.images[0]"
+                        :alt="item.product.name"
+                        class="h-full w-full object-cover"
+                      />
                     </div>
-                    <div v-if="!!slotProps.data.variant">
-                      <div
-                        v-for="option in slotProps.data.variant
-                          .productVariantOptions"
-                        :key="option.id"
-                        class="text-sm text-gray-600"
-                      >
-                        <span class="font-medium">
-                          {{ option.option.attribute.name }}:
-                        </span>
-                        <span>{{ option.option.name }}</span>
+                    <div>
+                      <div class="text-base font-medium">
+                        {{ item.product.name }}
+                      </div>
+                      <div v-if="!!item.productVariant">
+                        <div
+                          v-for="option in item.productVariant
+                            .productVariantOptions"
+                          :key="option.id"
+                          class="text-sm text-gray-600"
+                        >
+                          <span class="font-medium">
+                            {{ option.option.attribute.name }}:
+                          </span>
+                          <span>{{ option.option.name }}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </RouterLink>
-              </div>
-            </template>
-          </Column>
-          <Column
-            header="Price"
-            class="text-center"
-          >
-            <template #body="slotProps">
-              <div class="text-base">
-                <span v-if="displayFrom(slotProps.data)">From</span>
-                {{ formatPrice(getItemPrice(slotProps.data)) }}
-              </div>
-            </template>
-          </Column>
-          <Column
-            header=""
-            class="text-right"
-          >
-            <template #body="slotProps">
-              <!-- Produit nécessitant une sélection de variante -->
-              <div
-                v-if="needsVariantSelection(slotProps.data)"
-                class="flex w-full justify-end"
-              >
-                <RouterLink
-                  :to="`/products/${slotProps.data.product.slug}`"
-                  class="flex w-fit items-center"
+                  </RouterLink>
+                </div>
+              </TableCell>
+              <TableCell class="text-center">
+                <div class="text-base">
+                  <span
+                    v-if="needsVariantSelection(item)"
+                    class="text-gray-500"
+                  >
+                    From
+                  </span>
+                  {{ formatPrice(getItemPrice(item)) }}
+                </div>
+              </TableCell>
+              <TableCell class="text-right">
+                <!-- Product needs variant selection -->
+                <div
+                  v-if="needsVariantSelection(item)"
+                  class="flex w-full justify-end"
                 >
-                  <Button link>
-                    <ArrowLeftIcon class="h-4 w-4" />
-                    Select options
-                  </Button>
-                </RouterLink>
-              </div>
+                  <RouterLink
+                    :to="`/products/${item.product.slug}`"
+                    class="flex w-fit items-center"
+                  >
+                    <Button variant="link">
+                      <ArrowLeftIcon class="h-4 w-4" />
+                      Select options
+                    </Button>
+                  </RouterLink>
+                </div>
 
-              <!-- Produit déjà dans le panier -->
-              <div
-                v-else-if="
-                  cartItems.some(
-                    (cartItem) =>
-                      cartItem.product.id === slotProps.data.product.id &&
-                      cartItem.variant?.id === slotProps.data.variant?.id,
-                  )
-                "
-                class="rounded-md text-green-500"
-              >
-                <span class="flex items-center justify-end gap-2">
-                  <CheckIcon class="h-4 w-4" />
-                  Already in cart
-                </span>
-              </div>
+                <!-- Product already in cart -->
+                <div
+                  v-else-if="isInCart(item.product.id, item.productVariant?.id)"
+                  class="rounded-md text-green-500"
+                >
+                  <span class="flex items-center justify-end gap-2">
+                    <CheckIcon class="h-4 w-4" />
+                    Already in cart
+                  </span>
+                </div>
 
-              <!-- Bouton d'ajout au panier -->
-              <LoadingButton
-                v-else
-                :loading="isItemLoading(slotProps.data)"
-                @click="handleAddToCart(slotProps.data)"
-                :disabled="isAnyItemLoading()"
-                class="h-10 w-26"
-              >
-                Add to cart
-              </LoadingButton>
-            </template>
-          </Column>
-        </DataTable>
+                <!-- Add to cart button -->
+                <LoadingButton
+                  v-else
+                  :loading="
+                    isCartActioning(item.product.id, item.productVariant?.id)
+                  "
+                  @click="handleAddCartItem(item)"
+                  :disabled="isAnyActionInProgress"
+                  class="h-10 w-26"
+                >
+                  Add to cart
+                </LoadingButton>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </div>
 
       <!-- Mobile View -->
@@ -301,15 +485,50 @@ const displayFrom = (item: WishlistItemWithDetails) => {
         >
           <div class="flex items-center gap-4">
             <button
+              v-if="!shareToken"
               @click="handleRemoveItem(item)"
               class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
-              :disabled="isRemovingWishlistItem"
+              :disabled="isAnyActionInProgress"
+              :class="{
+                'animate-pulse': isRemoveActioning(
+                  item.product.id,
+                  item.productVariant?.id,
+                ),
+              }"
               aria-label="Remove item"
             >
               <XIcon class="h-5 w-5" />
             </button>
+            <button
+              v-else
+              @click="
+                handleToggleMyWishlist(item.product.id, item.productVariant?.id)
+              "
+              class="cursor-pointer text-gray-500 transition-colors hover:text-pink-500"
+              :class="{
+                'text-pink-500': isInMyWishlist(
+                  item.product.id,
+                  item.productVariant?.id,
+                ),
+              }"
+              :disabled="isAnyActionInProgress"
+            >
+              <HeartIcon
+                class="h-5 w-5"
+                :class="{
+                  'fill-current': isInMyWishlist(
+                    item.product.id,
+                    item.productVariant?.id,
+                  ),
+                  'animate-pulse': isWishlistActioning(
+                    item.product.id,
+                    item.productVariant?.id,
+                  ),
+                }"
+              />
+            </button>
 
-            <div class="h-24 w-24 shrink-0 overflow-hidden rounded bg-gray-100">
+            <div class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100">
               <img
                 :src="item.product.images[0]"
                 :alt="item.product.name"
@@ -320,29 +539,38 @@ const displayFrom = (item: WishlistItemWithDetails) => {
             <div class="flex flex-col justify-center gap-1">
               <div class="text-base font-medium">{{ item.product.name }}</div>
               <div
-                v-if="item.variant"
+                v-if="item.productVariant"
                 class="text-sm text-gray-500"
               >
                 <span
-                  v-for="(option, index) in item.variant.productVariantOptions"
+                  v-for="(option, index) in item.productVariant
+                    .productVariantOptions"
                   :key="option.id"
                 >
                   {{ option.option.attribute.name }}: {{ option.option.name }}
                   <span
-                    v-if="index < item.variant.productVariantOptions.length - 1"
+                    v-if="
+                      index <
+                      item.productVariant.productVariantOptions.length - 1
+                    "
                   >
                     ,
                   </span>
                 </span>
               </div>
               <div class="mt-1 font-medium">
-                <span v-if="displayFrom(item)">From</span>
+                <span
+                  v-if="needsVariantSelection(item)"
+                  class="text-gray-500"
+                >
+                  From
+                </span>
                 {{ formatPrice(getItemPrice(item)) }}
               </div>
             </div>
           </div>
 
-          <!-- Produit nécessitant une sélection de variante -->
+          <!-- Product needs variant selection -->
           <div
             v-if="needsVariantSelection(item)"
             class="flex w-full justify-end"
@@ -351,35 +579,28 @@ const displayFrom = (item: WishlistItemWithDetails) => {
               :to="`/products/${item.product.slug}`"
               class="flex w-fit items-center"
             >
-              <Button link>
+              <Button variant="link">
                 <ArrowLeftIcon class="h-4 w-4" />
                 Select options
               </Button>
             </RouterLink>
           </div>
 
-          <!-- Produit déjà dans le panier (mobile) -->
+          <!-- Product already in cart (mobile) -->
           <div
-            v-else-if="
-              cartItems.some(
-                (cartItem) =>
-                  cartItem.product.id === item.product.id &&
-                  cartItem.variant?.id === item.variant?.id,
-              )
-            "
-            class="flex h-12 w-full items-center justify-center gap-2 rounded-md border border-green-500 text-green-500"
+            v-else-if="isInCart(item.product.id, item.productVariant?.id)"
+            class="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-green-500 text-green-500"
           >
             <CheckIcon class="h-4 w-4" />
             Already in cart
           </div>
 
-          <!-- Bouton d'ajout au panier (mobile) -->
+          <!-- Add to cart button (mobile) -->
           <LoadingButton
             v-else
-            class="h-12 w-full"
-            :loading="isItemLoading(item)"
-            @click="handleAddToCart(item)"
-            :disabled="isAnyItemLoading()"
+            :loading="isCartActioning(item.product.id, item.productVariant?.id)"
+            @click="handleAddCartItem(item)"
+            :disabled="isAnyActionInProgress"
           >
             Add to cart
           </LoadingButton>

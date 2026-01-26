@@ -1,67 +1,51 @@
 import { wishlistService } from '@/services/wishlists.service'
 import type {
-  AddToWishlistInput,
-  RemoveWishlistItemInput,
+  addWishlistItemInput,
+  removeWishlistItemInput,
 } from '@/validators/wishlists.validator'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { toast } from 'vue-sonner'
 
-/**
- * Composable to fetch and display the wishlist
- */
-export function useWishlists() {
+export const useWishlists = () => {
+  const queryClient = useQueryClient()
+
   const query = useQuery({
     queryKey: ['wishlist'],
     queryFn: () => wishlistService.getWishlist(),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 1,
   })
 
-  return {
-    // Data
-    wishlist: computed(() => query.data.value),
-    items: computed(() => query.data.value?.items || []),
-    isEmpty: computed(() => query.data.value?.items.length === 0),
+  const wishlist = computed(() => query.data.value)
 
-    // Loading states
-    isLoadingWishlist: computed(() => query.isLoading.value),
-    isErrorWishlist: computed(() => query.isError.value),
-    refetchWishlist: query.refetch,
-  }
-}
+  const wishlistItems = computed(() => query.data.value?.wishlistItems || [])
 
-/**
- * Composable for wishlist mutations (add, update, remove, clear)
- */
-export function useWishlistsMutation() {
-  const queryClient = useQueryClient()
+  const isEmptyWishlist = computed(
+    () => query.data.value?.wishlistItems.length === 0,
+  )
 
-  // ========================================
-  // Helper function to invalidate product queries
-  // ========================================
-  function invalidateProductQueries(slugs: string[]) {
-    for (const slug of slugs) {
-      queryClient.invalidateQueries({ queryKey: ['products', slug] })
-    }
+  const wishlistUpdatedAt = computed(() => query.data.value?.updatedAt)
 
+  const isLoadingWishlist = computed(() => query.isLoading.value)
+
+  const isErrorWishlist = computed(() => query.isError.value)
+
+  const errorWishlist = computed(() => query.error.value?.message)
+
+  function invalidateProductQueries() {
     queryClient.invalidateQueries({ queryKey: ['products'] })
     queryClient.invalidateQueries({ queryKey: ['wishlist'] })
-    queryClient.invalidateQueries({ queryKey: ['products', 'featured'] })
-    queryClient.invalidateQueries({ queryKey: ['products', 'related'] })
   }
 
   // ========================================
   // Mutations
   // ========================================
-  const addToWishlistMutation = useMutation({
-    mutationFn: (data: AddToWishlistInput & { slug: string }) =>
-      wishlistService.addToWishlist({
-        productId: data.productId,
-        variantId: data.variantId,
-      }),
-    onSuccess: (_data, variables) => {
-      invalidateProductQueries([variables.slug])
+  const addWishlistItemMutation = useMutation({
+    mutationFn: (data: addWishlistItemInput) =>
+      wishlistService.addWishlistItem(data),
+    onSuccess: () => {
+      invalidateProductQueries()
       toast.success('Product added to wishlist')
     },
     onError: (err) => {
@@ -70,13 +54,10 @@ export function useWishlistsMutation() {
   })
 
   const removeWishlistItemMutation = useMutation({
-    mutationFn: (data: RemoveWishlistItemInput & { slug: string }) =>
-      wishlistService.removeWishlistItem({
-        productId: data.productId,
-        variantId: data.variantId,
-      }),
-    onSuccess: (_data, variables) => {
-      invalidateProductQueries([variables.slug])
+    mutationFn: (data: removeWishlistItemInput) =>
+      wishlistService.removeWishlistItem(data),
+    onSuccess: () => {
+      invalidateProductQueries()
       toast.success('Product removed from wishlist')
     },
     onError: (err) => {
@@ -85,9 +66,9 @@ export function useWishlistsMutation() {
   })
 
   const clearWishlistMutation = useMutation({
-    mutationFn: (_data: { slugs: string[] }) => wishlistService.clearWishlist(),
-    onSuccess: (_data, variables) => {
-      invalidateProductQueries(variables.slugs)
+    mutationFn: () => wishlistService.clearWishlist(),
+    onSuccess: () => {
+      invalidateProductQueries()
       toast.success('Wishlist cleared')
     },
     onError: (err) => {
@@ -95,44 +76,71 @@ export function useWishlistsMutation() {
     },
   })
 
+  const importFromCartMutation = useMutation({
+    mutationFn: (token: string | null) => wishlistService.importFromCart(token),
+    onSuccess: () => {
+      invalidateProductQueries()
+      toast.success('Items imported from cart')
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Error importing from cart')
+    },
+  })
+
   // ========================================
   // Actions
   // ========================================
-  function addToWishlist(productId: string, variantId?: string, slug?: string) {
-    return addToWishlistMutation.mutateAsync({
+  function refetchWishlist() {
+    return query.refetch()
+  }
+
+  function addWishlistItem(productId: string, variantId?: string) {
+    return addWishlistItemMutation.mutateAsync({
       productId,
       variantId,
-      slug: slug || '',
     })
   }
 
-  function removeWishlistItem(
-    productId: string,
-    variantId?: string,
-    slug?: string,
-  ) {
+  function removeWishlistItem(productId: string, variantId?: string) {
     return removeWishlistItemMutation.mutateAsync({
       productId,
       variantId,
-      slug: slug || '',
     })
   }
 
-  function clearWishlist(slugs: string[]) {
-    return clearWishlistMutation.mutateAsync({ slugs })
+  function clearWishlist() {
+    return clearWishlistMutation.mutateAsync()
+  }
+
+  function importFromCart(shareToken: string | null) {
+    return importFromCartMutation.mutateAsync(shareToken)
   }
 
   return {
+    // Data
+    wishlist,
+    wishlistItems,
+    wishlistUpdatedAt,
+    isEmptyWishlist,
+
+    // Query states
+    isLoadingWishlist,
+    isErrorWishlist,
+    errorWishlist,
+    refetchWishlist,
+
     // Actions
-    addToWishlist,
+    addWishlistItem,
     removeWishlistItem,
     clearWishlist,
+    importFromCart,
 
-    // Loading states
-    isAddingWishlistItem: computed(() => addToWishlistMutation.isPending.value),
+    // Mutation loading states
+    isAddingToWishlist: computed(() => addWishlistItemMutation.isPending.value),
     isRemovingWishlistItem: computed(
       () => removeWishlistItemMutation.isPending.value,
     ),
     isClearingWishlist: computed(() => clearWishlistMutation.isPending.value),
+    isImportingFromCart: computed(() => importFromCartMutation.isPending.value),
   }
 }

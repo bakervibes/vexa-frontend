@@ -2,135 +2,128 @@
 import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useUsersMutation } from '@/composables/useUsers'
-import { useAuthStore } from '@/stores/auth'
-import {
-  updateProfileSchema,
-  type UpdateProfileInput,
-} from '@/validators/users.validator'
-import { Form } from '@primevue/forms'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
-import Message from 'primevue/message'
+import { FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { useAuth } from '@/composables/useAuth'
+import { userService } from '@/services/users.service'
+import { updateProfileSchema } from '@/validators/users.validator'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
 import { ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 
-const authStore = useAuthStore()
-const { updateProfile, isUpdatingProfile } = useUsersMutation()
+const { user, updateProfile, isUpdatingProfile } = useAuth()
+const isUpdatingPhone = ref(false)
 
-// Initial values pour le formulaire
-const initialValues = ref({
-  name: '',
-  email: '',
-  phone: '',
+const form = useForm({
+  validationSchema: toTypedSchema(updateProfileSchema),
+  initialValues: {
+    name: '',
+    phone: '',
+  },
 })
 
-// Mettre à jour les valeurs initiales quand l'utilisateur est disponible
+// Mettre à jour les valeurs quand l'utilisateur est disponible
 watch(
-  () => authStore.user,
-  (user) => {
-    if (user) {
-      initialValues.value = {
-        name: user.name || '',
-        email: user.email || '',
-        phone: user.phone || '',
-      }
+  user,
+  (currentUser) => {
+    if (currentUser) {
+      form.setValues({
+        name: currentUser.name || '',
+        phone: currentUser.phone || '',
+      })
     }
   },
   { immediate: true },
 )
 
-const resolver = zodResolver(updateProfileSchema)
-
-const onFormSubmit = async ({
-  valid,
-  values,
-}: {
-  valid: boolean
-  values: typeof initialValues.value
-}) => {
-  if (!valid) return
-
+const onSubmit = form.handleSubmit(async (values) => {
   try {
-    await updateProfile(values as UpdateProfileInput)
+    // Update name via better-auth
+    if (values.name && values.name !== user.value?.name) {
+      const result = await updateProfile({ name: values.name })
+      if (!result.success) {
+        toast.error('Error', {
+          description: result.error || 'Failed to update name.',
+        })
+        return
+      }
+    }
+
+    // Update phone via custom API (better-auth doesn't handle phone)
+    if (values.phone !== user.value?.phone) {
+      isUpdatingPhone.value = true
+      try {
+        await userService.updateProfile({ phone: values.phone })
+      } finally {
+        isUpdatingPhone.value = false
+      }
+    }
+
+    toast.success('Profile updated', {
+      description: 'Your information has been saved.',
+    })
   } catch (error) {
     console.error('Error updating profile:', error)
+    toast.error('Error', {
+      description: 'Failed to update profile.',
+    })
   }
-}
+})
+
+const isLoading = ref(false)
+watch([isUpdatingProfile, isUpdatingPhone], ([profile, phone]) => {
+  isLoading.value = profile || phone
+})
 </script>
 
 <template>
   <section>
     <h2 class="mb-6 text-xl font-semibold">Account Details</h2>
 
-    <Form
-      v-slot="$form"
-      :key="JSON.stringify(initialValues)"
-      :initialValues="initialValues"
-      :resolver="resolver"
-      @submit="onFormSubmit"
+    <form
+      @submit="onSubmit"
       class="max-w-lg space-y-5"
     >
-      <!-- Full Name -->
-      <div class="flex flex-col gap-1">
-        <CustomInput
-          name="name"
-          label="Full Name *"
-          type="text"
-        />
-        <Message
-          v-if="$form.name?.invalid"
-          severity="error"
-          size="small"
-          variant="simple"
-        >
-          {{ $form.name.error?.message }}
-        </Message>
-      </div>
-
-      <!-- Email -->
-      <div class="flex flex-col gap-1">
-        <CustomInput
-          name="email"
-          label="Email *"
-          type="email"
-        />
-        <Message
-          v-if="$form.email?.invalid"
-          severity="error"
-          size="small"
-          variant="simple"
-        >
-          {{ $form.email.error?.message }}
-        </Message>
-      </div>
+      <!-- Name -->
+      <FormField
+        v-slot="{ componentField }"
+        name="name"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Full Name *"
+            type="text"
+          />
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
       <!-- Phone -->
-      <div class="flex flex-col gap-1">
-        <CustomPhoneInput
-          name="phone"
-          label="Phone *"
-        />
-        <Message
-          v-if="$form.phone?.invalid"
-          severity="error"
-          size="small"
-          variant="simple"
-        >
-          {{ $form.phone.error?.message }}
-        </Message>
-      </div>
+      <FormField
+        v-slot="{ componentField }"
+        name="phone"
+      >
+        <FormItem>
+          <CustomPhoneInput
+            v-bind="componentField"
+            label="Phone"
+          />
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
       <!-- Submit Button -->
       <div class="flex justify-end">
         <LoadingButton
           type="submit"
-          :loading="isUpdatingProfile"
-          :disabled="isUpdatingProfile"
-          class="h-12"
+          :loading="isLoading"
+          :disabled="isLoading"
         >
           Save changes
         </LoadingButton>
       </div>
-    </Form>
+    </form>
   </section>
 </template>
 

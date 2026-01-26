@@ -1,62 +1,72 @@
 <script setup lang="ts">
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useAuthModal } from '@/composables/useAuthModal'
-import { useReviewsMutation } from '@/composables/useReviews'
-import { useAuthStore } from '@/stores/auth'
+import { Button } from '@/components/ui/button'
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from '@/components/ui/form'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/composables/useAuth'
+import { useReviews } from '@/composables/useReviews'
 import type { ProductWithDetails, ReviewWithUser } from '@/types'
 import {
   addReviewSchema,
   updateReviewSchema,
+  type AddReviewInput,
+  type UpdateReviewInput,
 } from '@/validators/reviews.validator'
-import { Form, type FormSubmitEvent } from '@primevue/forms'
-import { zodResolver } from '@primevue/forms/resolvers/zod'
+import { toTypedSchema } from '@vee-validate/zod'
 import { Star, X } from 'lucide-vue-next'
-import Button from 'primevue/button'
-import Message from 'primevue/message'
-import Textarea from 'primevue/textarea'
-import { computed } from 'vue'
+import { useForm } from 'vee-validate'
+import { computed, ref } from 'vue'
+import { toast } from 'vue-sonner'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Props {
   product: ProductWithDetails
   review?: ReviewWithUser
 }
 
-interface Emits {
-  (e: 'cancel'): void
-  (e: 'success'): void
-}
-
 const props = defineProps<Props>()
-
-const emit = defineEmits<Emits>()
+const emit = defineEmits<{
+  (e: 'success'): void
+  (e: 'cancel'): void
+}>()
 
 const { addReview, updateReview, isAddingReview, isUpdatingReview } =
-  useReviewsMutation()
+  useReviews(props.product.id)
 
-const authStore = useAuthStore()
-const { openAuthModal } = useAuthModal()
+const { isAuthenticated, openAuthModal } = useAuth()
+const error = ref<string | null>(null)
 
-const resolver = computed(() => {
+const schema = computed(() => {
   if (props.review) {
-    return zodResolver(updateReviewSchema)
+    return toTypedSchema(updateReviewSchema)
   }
-  return zodResolver(addReviewSchema)
+  return toTypedSchema(addReviewSchema)
 })
 
-const initialValues = {
-  comment: props.review?.comment ?? '',
-  rating: props.review?.rating ?? 0,
-  ...(props.product.id && { productId: props.product.id }),
-}
+const { handleSubmit, resetForm } = useForm({
+  validationSchema: schema,
+  initialValues: {
+    comment: props.review?.comment ?? '',
+    rating: props.review?.rating ?? 0,
+    ...(props.product.id && { productId: props.product.id }),
+  },
+})
 
-const submitReview = async (values: any) => {
+const submitReview = async (formValues: AddReviewInput | UpdateReviewInput) => {
+  error.value = null
   try {
     if (!props.review) {
       // Create new review
       await addReview({
         productId: props.product.id,
-        comment: values.comment,
-        rating: values.rating,
+        comment: formValues.comment,
+        rating: formValues.rating,
         slug: props.product.slug,
       })
     } else {
@@ -64,29 +74,40 @@ const submitReview = async (values: any) => {
       await updateReview({
         id: props.review.id,
         data: {
-          comment: values.comment,
-          rating: values.rating,
+          comment: formValues.comment,
+          rating: formValues.rating,
         },
         slug: props.product.slug,
       })
     }
+    toast.success(props.review ? 'Avis modifié' : 'Avis publié', {
+      description: props.review
+        ? 'Votre avis a été mis à jour.'
+        : 'Merci pour votre avis !',
+    })
+    resetForm()
     emit('success')
-  } catch (error) {
-    console.error('Error submitting review:', error)
+  } catch (err: unknown) {
+    console.error('Error submitting review:', err)
+    error.value =
+      err instanceof Error
+        ? err.message
+        : 'Une erreur est survenue lors de la soumission.'
+    toast.error('Erreur', {
+      description: error.value ?? undefined,
+    })
   }
 }
 
-const onFormSubmit = async ({ valid, values }: FormSubmitEvent) => {
-  if (!valid) return
-
-  if (!authStore.isAuthenticated) {
+const onSubmit = handleSubmit(async (formValues) => {
+  if (!isAuthenticated.value) {
     openAuthModal('login', () => {
-      submitReview(values)
+      submitReview(formValues)
     })
     return
   }
-  await submitReview(values)
-}
+  await submitReview(formValues)
+})
 
 const handleCancel = () => {
   emit('cancel')
@@ -94,67 +115,70 @@ const handleCancel = () => {
 </script>
 
 <template>
-  <Form
-    v-slot="$form"
-    :initialValues="initialValues"
-    :resolver="resolver"
-    @submit="onFormSubmit"
+  <form
+    @submit="onSubmit"
     class="space-y-4"
   >
+    <Alert
+      v-if="error"
+      variant="destructive"
+    >
+      <AlertDescription>{{ error }}</AlertDescription>
+    </Alert>
+
     <div class="flex items-center justify-between">
-      <div class="flex flex-col gap-1">
-        <div class="flex gap-1">
-          <button
-            v-for="i in 5"
-            :key="i"
-            type="button"
-            @click="$form.rating = i"
-            class="size-6 cursor-pointer"
-          >
-            <Star
-              :class="[
-                'size-6 text-yellow-500',
-                i <= $form.rating && 'fill-yellow-500',
-              ]"
-            />
-          </button>
-        </div>
-        <Message
-          v-if="$form.rating?.invalid"
-          severity="error"
-          size="small"
-          variant="simple"
-        >
-          {{ $form.rating.error?.message }}
-        </Message>
-      </div>
+      <FormField
+        v-slot="{ componentField }"
+        name="rating"
+      >
+        <FormItem class="flex flex-col gap-1">
+          <div class="flex gap-1">
+            <button
+              v-for="i in 5"
+              :key="i"
+              type="button"
+              @click="componentField['onUpdate:modelValue']?.(i)"
+              class="size-6 cursor-pointer"
+            >
+              <Star
+                :class="[
+                  'size-6 text-yellow-500',
+                  i <= (componentField.modelValue || 0) && 'fill-yellow-500',
+                ]"
+              />
+            </button>
+          </div>
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
       <Button
         v-if="review"
-        text
+        variant="ghost"
+        size="icon"
         type="button"
         @click="handleCancel"
-        class="m-0 h-auto w-auto p-0"
+        class="h-6 w-6"
       >
         <X class="size-4" />
       </Button>
     </div>
 
-    <div class="flex flex-col gap-1">
-      <Textarea
-        name="comment"
-        :rows="4"
-        placeholder="Contenu de votre avis..."
-      />
-      <Message
-        v-if="$form.comment?.invalid"
-        severity="error"
-        size="small"
-        variant="simple"
-      >
-        {{ $form.comment.error?.message }}
-      </Message>
-    </div>
+    <FormField
+      v-slot="{ componentField }"
+      name="comment"
+    >
+      <FormItem class="flex flex-col gap-1">
+        <FormControl>
+          <Textarea
+            placeholder="Contenu de votre avis..."
+            class="min-h-[100px]"
+            v-bind="componentField"
+          />
+        </FormControl>
+        <FormMessage />
+      </FormItem>
+    </FormField>
 
     <LoadingButton
       :loading="isAddingReview || isUpdatingReview"
@@ -163,5 +187,5 @@ const handleCancel = () => {
     >
       Envoyer
     </LoadingButton>
-  </Form>
+  </form>
 </template>

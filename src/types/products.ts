@@ -45,11 +45,12 @@ export interface ReviewRating {
 /**
  * Produit avec détails pour les listes
  * Inclut category, variants avec options, et les métriques de review
+ * Note: reviews est optionnel car seule la page de détail inclut les reviews complètes
  */
 export interface ProductWithDetails extends Product {
   category: Category
-  variants: ProductVariantWithDetails[]
-  reviews: ReviewWithUser[]
+  productVariants: ProductVariantWithDetails[]
+  productReviews?: ReviewWithUser[]
   averageRating: number
   reviewCount: number
 }
@@ -62,6 +63,6 @@ export interface ProductWithDetails extends Product {
  * Réponse pour getAll et getByCategory
  */
 export interface ProductsResponse {
-  products: ProductWithDetails[]
-  pagination: PaginationMeta
+  data: ProductWithDetails[]
+  meta: PaginationMeta
 }

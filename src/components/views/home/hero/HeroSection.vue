@@ -1,60 +1,59 @@
 <script setup lang="ts">
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from '@/components/ui/carousel'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-vue-next'
-import Carousel from 'primevue/carousel'
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import HeroSection1 from './HeroSection1.vue'
 import HeroSection2 from './HeroSection2.vue'
 
+const heroSections = [{ component: HeroSection1 }, { component: HeroSection2 }]
+
+const emblaApi = ref<CarouselApi>()
 const currentIndex = ref(0)
-const heroSections = ref([
-  { component: HeroSection1 },
-  { component: HeroSection2 },
-])
 
-const responsiveOptions = ref([
-  {
-    breakpoint: '1024px',
-    numVisible: 1,
-    numScroll: 1,
-  },
-])
+watchEffect(() => {
+  if (!emblaApi.value) return
 
-const onPageChange = (event: { page: number }) => {
-  currentIndex.value = event.page
-}
+  emblaApi.value.on('select', () => {
+    currentIndex.value = emblaApi.value?.selectedScrollSnap() ?? 0
+  })
+})
 
 const goToPrevious = () => {
-  const newIndex = currentIndex.value === 0 ? 1 : currentIndex.value - 1
-  currentIndex.value = newIndex
+  emblaApi.value?.scrollPrev()
 }
 
 const goToNext = () => {
-  const newIndex = currentIndex.value === 1 ? 0 : currentIndex.value + 1
-  currentIndex.value = newIndex
+  emblaApi.value?.scrollNext()
 }
 
 const goToSlide = (index: number) => {
-  currentIndex.value = index
+  emblaApi.value?.scrollTo(index)
 }
 </script>
 
 <template>
   <section class="relative">
     <Carousel
-      :value="heroSections"
-      :numVisible="1"
-      :numScroll="1"
-      :circular="true"
-      :autoplayInterval="5000"
-      :page="currentIndex"
-      @update:page="onPageChange"
-      :showIndicators="false"
-      :showNavigators="false"
-      :responsiveOptions="responsiveOptions"
+      @init-api="(val) => (emblaApi = val)"
+      class="w-full"
+      :opts="{
+        loop: true,
+      }"
     >
-      <template #item="slotProps">
-        <component :is="slotProps.data.component" />
-      </template>
+      <CarouselContent>
+        <CarouselItem
+          v-for="(section, index) in heroSections"
+          :key="index"
+          :with-gap="false"
+        >
+          <component :is="section.component" />
+        </CarouselItem>
+      </CarouselContent>
     </Carousel>
 
     <div
@@ -77,7 +76,7 @@ const goToSlide = (index: number) => {
     <div class="absolute right-0 bottom-4 left-0 z-20">
       <div class="flex justify-center gap-2">
         <div
-          v-for="index in 2"
+          v-for="index in heroSections.length"
           :key="index"
           :class="[
             'h-3 cursor-pointer rounded-full bg-gray-200 transition-all duration-300 hover:scale-110',

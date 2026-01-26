@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import {
   ChevronDownIcon,
   HeartIcon,
@@ -6,11 +7,25 @@ import {
   SearchIcon,
   XIcon,
 } from 'lucide-vue-next'
-import Button from 'primevue/button'
 import { onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import FlyoutCart from '../views/cart/FlyoutCart.vue'
+import SearchModal from './SearchModal.vue'
 import UserProfileDropdown from './UserProfileDropdown.vue'
+
+const isSearchOpen = ref(false)
+
+const openSearch = () => {
+  isSearchOpen.value = true
+}
+
+// Handle Cmd+K / Ctrl+K keyboard shortcut
+const handleGlobalKeydown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    event.preventDefault()
+    isSearchOpen.value = true
+  }
+}
 
 type MenuType = 'shop' | 'search' | null
 
@@ -111,9 +126,17 @@ const closeMobileMenu = () => {
   isMobileMenuOpen.value = false
 }
 
+// Handle Escape key to close mobile menu
+const handleKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isMobileMenuOpen.value) {
+    closeMobileMenu()
+  }
+}
+
 // Clean up timer on unmount
 onUnmounted(() => {
   clearCloseTimer()
+  document.removeEventListener('keydown', handleKeydown)
 })
 
 // Close mobile menu on route change
@@ -135,9 +158,12 @@ const handleScroll = () => {
 onMounted(() => {
   handleScroll()
   window.addEventListener('scroll', handleScroll, { passive: true })
+  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('keydown', handleGlobalKeydown)
 })
 onBeforeUnmount(() => {
   window.removeEventListener('scroll', handleScroll)
+  document.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 const onEnter = (el: Element) => {
@@ -154,14 +180,14 @@ const onLeave = (el: Element) => {
   element.style.height = '0'
 }
 
-const onEnterMobile = (el: Element) => {
+const _onEnterMobile = (el: Element) => {
   const element = el as HTMLElement
   element.style.height = '0'
   element.style.transition = 'height 0.3s ease-in-out'
   element.style.height = element.scrollHeight + 'px'
 }
 
-const onLeaveMobile = (el: Element) => {
+const _onLeaveMobile = (el: Element) => {
   const element = el as HTMLElement
   element.style.height = element.scrollHeight + 'px'
   element.style.transition = 'height 0.3s ease-in-out'
@@ -171,7 +197,7 @@ const onLeaveMobile = (el: Element) => {
 
 <template>
   <header
-    class="fixed top-0 z-50 w-full bg-white text-gray-900 shadow-md transition-all duration-300"
+    class="fixed top-0 z-50 w-full bg-white text-gray-900 shadow-md transition-all duration-300 dark:bg-gray-900 dark:text-gray-100"
   >
     <nav
       aria-label="Main navigation"
@@ -186,8 +212,12 @@ const onLeaveMobile = (el: Element) => {
             <div class="flex items-center justify-end md:hidden">
               <button
                 @click="toggleMobileMenu"
-                class="text-black hover:cursor-pointer"
-                aria-label="Menu"
+                class="text-black hover:cursor-pointer dark:text-white"
+                :aria-label="
+                  isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'
+                "
+                :aria-expanded="isMobileMenuOpen"
+                aria-controls="mobile-menu"
               >
                 <XIcon
                   v-if="isMobileMenuOpen"
@@ -255,22 +285,23 @@ const onLeaveMobile = (el: Element) => {
 
         <div class="flex shrink-0 items-center gap-2">
           <Button
-            text
-            plain
+            variant="ghost"
+            size="icon"
             aria-label="Search"
-            class="!p-2"
+            class="p-2"
+            @click="openSearch"
           >
-            <SearchIcon class="size-5 cursor-pointer" />
+            <SearchIcon class="size-5" />
           </Button>
 
           <RouterLink to="/wishlist">
             <Button
-              text
-              plain
+              variant="ghost"
+              size="icon"
               aria-label="Wishlist"
-              class="!p-2"
+              class="p-2"
             >
-              <HeartIcon class="size-5 cursor-pointer" />
+              <HeartIcon class="size-5" />
             </Button>
           </RouterLink>
 
@@ -314,49 +345,85 @@ const onLeaveMobile = (el: Element) => {
         </div>
       </Transition>
 
-      <!-- Menu Mobile -->
-      <Transition
-        @enter="onEnterMobile"
-        @leave="onLeaveMobile"
-      >
+      <!-- Mobile Menu Overlay -->
+      <Transition name="fade">
         <div
           v-if="isMobileMenuOpen"
-          class="max-h-[calc(100vh-4.5rem)] overflow-y-auto bg-white md:hidden"
-          style="overflow: hidden"
-        >
-          <Transition name="mobile-content">
-            <div
-              v-if="activeMenu"
-              class="flex flex-col pb-4"
-            >
-              <!-- Liens simples -->
-              <RouterLink
-                v-for="item in navItems.filter((item) => item.type === 'link')"
-                :key="item.label"
-                :to="item.href!"
-                @click="closeMobileMenu"
-                class="block px-4 py-4 text-base font-medium text-gray-900 hover:bg-gray-50"
-                active-class="text-green-600"
-              >
-                {{ item.label }}
-              </RouterLink>
+          class="fixed inset-0 z-40 bg-black/50 md:hidden"
+          @click="closeMobileMenu"
+          aria-hidden="true"
+        />
+      </Transition>
 
-              <RouterLink
-                to="/contact"
-                @click="closeMobileMenu"
-                class="mx-4 mt-2 block rounded-full bg-green-600 px-4 py-3 text-center font-medium text-white duration-200 hover:bg-green-600/80"
-              >
-                Contact us
-              </RouterLink>
-            </div>
-          </Transition>
+      <!-- Menu Mobile (Slide-in Drawer) -->
+      <Transition name="slide-in">
+        <div
+          v-if="isMobileMenuOpen"
+          id="mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Menu de navigation"
+          class="fixed top-16 left-0 z-50 h-[calc(100vh-4rem)] w-72 overflow-y-auto bg-white shadow-xl md:hidden dark:bg-gray-900"
+        >
+          <nav
+            class="flex flex-col py-4"
+            role="navigation"
+            aria-label="Menu mobile"
+          >
+            <!-- Liens de navigation -->
+            <RouterLink
+              v-for="item in navItems.filter((i) => i.type === 'link')"
+              :key="item.label"
+              :to="item.href!"
+              @click="closeMobileMenu"
+              class="block px-6 py-4 text-base font-medium text-gray-900 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
+              active-class="text-green-600 bg-green-50 dark:bg-green-900/20"
+            >
+              {{ item.label }}
+            </RouterLink>
+
+            <hr class="my-4 border-gray-200 dark:border-gray-700" />
+
+            <RouterLink
+              to="/contact"
+              @click="closeMobileMenu"
+              class="mx-4 block rounded-full bg-green-600 px-4 py-3 text-center font-medium text-white transition-colors hover:bg-green-700"
+            >
+              Contact us
+            </RouterLink>
+          </nav>
         </div>
       </Transition>
     </nav>
+
+    <!-- Search Modal -->
+    <SearchModal v-model:open="isSearchOpen" />
   </header>
 </template>
 
 <style scoped>
+/* Fade transition for overlay */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Slide-in transition for mobile drawer */
+.slide-in-enter-active,
+.slide-in-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-in-enter-from,
+.slide-in-leave-to {
+  transform: translateX(-100%);
+}
+
 /* Transition for desktop menu content */
 .content-fade-enter-active {
   transition:

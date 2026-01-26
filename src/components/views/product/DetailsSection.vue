@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import CustomBreadcrumb from '@/components/custom/custom-breadcrumb.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { useCartsMutation } from '@/composables/useCarts'
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel'
+import { useCarts } from '@/composables/useCarts'
 import { useProduct } from '@/composables/useProducts'
-import { useProductReviews } from '@/composables/useReviews'
-import { useWishlists, useWishlistsMutation } from '@/composables/useWishlists'
+import { useBreadcrumbSchema, useProductSeo } from '@/composables/useSeo'
+import { useWishlists } from '@/composables/useWishlists'
 import type { ProductVariantWithDetails } from '@/types/products'
 import { formatPrice } from '@/utils/lib'
-import { Heart, Minus, Plus } from 'lucide-vue-next'
-import Carousel from 'primevue/carousel'
+import { HeartIcon, Minus, Plus } from 'lucide-vue-next'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -22,27 +28,51 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 
-const { slug, isModal = false } = props
-const { product, isLoadingProduct, isErrorProduct } = useProduct(slug)
-const { addToCart, isAddingCartItem } = useCartsMutation()
-
-// Paginated reviews
-const productId = computed(() => product.value?.id)
+const { isModal = false } = props
+const { product, isLoadingProduct, isErrorProduct } = useProduct(
+  () => props.slug,
+)
+const { addCartItem, isAddingCartItem } = useCarts()
 const {
-  reviews: paginatedReviews,
-  fetchReviews,
-  refresh: refreshReviews,
-} = useProductReviews(productId)
-const {
-  addToWishlist,
-  isAddingWishlistItem,
+  addWishlistItem,
+  isAddingToWishlist,
   removeWishlistItem,
   isRemovingWishlistItem,
-} = useWishlistsMutation()
-const { items } = useWishlists()
+  wishlistItems,
+} = useWishlists()
+
+// SEO - only for non-modal views
+if (!props.isModal) {
+  const siteUrl = import.meta.env.VITE_APP_URL || 'https://vexa.store'
+
+  useProductSeo({
+    name: () => product.value?.name || '',
+    description: () => product.value?.description || '',
+    image: () => product.value?.images?.[0] || '',
+    price: () => product.value?.price || product.value?.basePrice || 0,
+    currency: 'EUR',
+    availability: (product.value?.stock || 0) > 0 ? 'InStock' : 'OutOfStock',
+    url: () => `${siteUrl}/products/${props.slug}`,
+  })
+
+  useBreadcrumbSchema(
+    computed(() => [
+      { name: 'Accueil', url: siteUrl },
+      { name: 'Boutique', url: `${siteUrl}/shop` },
+      {
+        name: product.value?.name || 'Produit',
+        url: `${siteUrl}/products/${props.slug}`,
+      },
+    ]),
+  )
+}
 
 const isInWishlist = computed(() => {
-  return items.value.some((item) => item.product.id === product.value?.id)
+  return wishlistItems.value.some(
+    (item) =>
+      item.product.id === product.value?.id &&
+      item.productVariant?.id === currentVariant.value?.id,
+  )
 })
 
 const selectedImageIndex = ref(0)
@@ -53,7 +83,7 @@ const selectedOptions = ref<Record<string, string>>({})
 
 // Computed property to group available attributes and options from variants
 const availableAttributes = computed(() => {
-  if (!product.value?.variants) return []
+  if (!product.value?.productVariants) return []
 
   const attributesMap = new Map<
     string,
@@ -65,7 +95,7 @@ const availableAttributes = computed(() => {
     }
   >()
 
-  product.value.variants.forEach((variant) => {
+  product.value.productVariants.forEach((variant) => {
     variant.productVariantOptions.forEach((pvo) => {
       const attr = pvo.option.attribute
       const opt = pvo.option
@@ -103,7 +133,7 @@ const hasVariants = computed(() => {
 
 // Find the variant that matches the selected options
 const currentVariant = computed<ProductVariantWithDetails | undefined>(() => {
-  if (!product.value?.variants || !hasVariants.value) return undefined
+  if (!product.value?.productVariants || !hasVariants.value) return undefined
 
   // Must have all attributes selected
   if (
@@ -113,7 +143,7 @@ const currentVariant = computed<ProductVariantWithDetails | undefined>(() => {
     return undefined
   }
 
-  return product.value.variants.find((variant) => {
+  return product.value.productVariants.find((variant) => {
     if (
       variant.productVariantOptions.length !==
       Object.keys(selectedOptions.value).length
@@ -172,18 +202,24 @@ const maxQuantity = computed(() => {
 const hasDiscount = computed(() => {
   if (!canShowPriceAndStock.value) return false
 
-  const hasPrice = !!currentPrice.value
-  if (!hasPrice) return false
+  // Must have both prices to compare
+  if (!currentPrice.value || !currentBasePrice.value) return false
 
-  // Check if the offer has not expired
+  // Price must be lower than base price to be a discount
+  if (currentPrice.value >= currentBasePrice.value) return false
+
+  // Check if the offer has expired (if expiration date exists)
   const expirationDate =
     currentVariant.value?.expiresAt || product.value?.expiresAt
-  if (!expirationDate) return true // No expiration = always active
 
-  const expiresAt = new Date(expirationDate).getTime()
-  const now = new Date().getTime()
+  // If there's an expiration date, check if it's still valid
+  if (expirationDate) {
+    const expiresAt = new Date(expirationDate)
+    if (expiresAt <= new Date()) return false // Offer expired
+  }
 
-  return expiresAt > now
+  // Discount is valid: price < basePrice and (no expiration OR not expired)
+  return true
 })
 
 const currentImage = computed(() => {
@@ -198,7 +234,7 @@ const lastInitializedProductId = ref<string | null>(null)
 
 // Watch for slug changes to reset state
 watch(
-  () => slug,
+  () => props.slug,
   (newSlug, oldSlug) => {
     if (newSlug !== oldSlug) {
       // Reset state for new product
@@ -293,7 +329,7 @@ const selectOption = (attributeId: string, optionId: string) => {
 }
 
 watch(
-  () => product.value,
+  product,
   () => {
     initSelectedOptions()
   },
@@ -323,7 +359,7 @@ const decrementQuantity = () => {
   }
 }
 
-const handleAddToCart = async () => {
+const handleaddCartItem = async () => {
   // Check stock
   if (isOutOfStock.value) {
     toast.error('This product is out of stock')
@@ -341,12 +377,7 @@ const handleAddToCart = async () => {
     return
   }
 
-  await addToCart(
-    product.value.id,
-    quantity.value,
-    currentVariant.value?.id,
-    product.value.slug,
-  )
+  await addCartItem(product.value.id, quantity.value, currentVariant.value?.id)
   quantity.value = 1
 }
 
@@ -356,22 +387,14 @@ const handleToggleWishlist = async () => {
     return
   }
 
-  if (isAddingWishlistItem.value || isRemovingWishlistItem.value) {
+  if (isAddingToWishlist.value || isRemovingWishlistItem.value) {
     return
   }
 
   if (isInWishlist.value) {
-    await removeWishlistItem(
-      product.value.id,
-      currentVariant.value?.id,
-      product.value.slug,
-    )
+    await removeWishlistItem(product.value.id, currentVariant.value?.id)
   } else {
-    await addToWishlist(
-      product.value.id,
-      currentVariant.value?.id,
-      product.value.slug,
-    )
+    await addWishlistItem(product.value.id, currentVariant.value?.id)
   }
 }
 
@@ -382,17 +405,6 @@ const timeLeft = ref({
   minutes: 0,
   seconds: 0,
 })
-
-// Fetch reviews when product loads
-watch(
-  () => product.value?.id,
-  (newId) => {
-    if (newId) {
-      fetchReviews(1)
-    }
-  },
-  { immediate: true },
-)
 
 let intervalId: number | null = null
 
@@ -441,27 +453,6 @@ onUnmounted(() => {
     clearInterval(intervalId)
   }
 })
-
-const showReviewForm = ref(false)
-
-// Carousel responsiveOptions
-const responsiveOptions = ref([
-  {
-    breakpoint: '1024px',
-    numVisible: 3,
-    numScroll: 1,
-  },
-  {
-    breakpoint: '768px',
-    numVisible: 2,
-    numScroll: 1,
-  },
-  {
-    breakpoint: '560px',
-    numVisible: 1,
-    numScroll: 1,
-  },
-])
 </script>
 
 <template>
@@ -507,9 +498,7 @@ const responsiveOptions = ref([
     <div
       :class="[
         'flex flex-col gap-12',
-        isModal
-          ? 'items-stretch lg:flex-col'
-          : 'items-stretch lg:flex-row lg:items-start',
+        isModal ? 'items-stretch lg:flex-col' : 'items-stretch lg:flex-row',
       ]"
     >
       <!-- Left Column: Images -->
@@ -519,58 +508,65 @@ const responsiveOptions = ref([
           !isModal && 'lg:h-full lg:w-1/2',
         ]"
       >
-        <!-- Carousel for Modal and Mobile -->
         <div :class="[isModal ? 'block' : 'block lg:hidden']">
-          <Carousel
-            :value="product.images"
-            :numVisible="1"
-            :numScroll="1"
-            :responsiveOptions="responsiveOptions"
-          >
-            <template #item="slotProps">
-              <div
-                class="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
+          <Carousel>
+            <CarouselPrevious />
+            <CarouselContent>
+              <CarouselItem
+                v-for="(image, index) in product.images"
+                :key="index"
+                class="sm:basis-1/2 lg:basis-1/3"
               >
-                <!-- Badges -->
                 <div
-                  class="absolute top-3 left-3 z-10 flex flex-col items-stretch gap-2"
+                  class="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
                 >
-                  <span
-                    class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
+                  <!-- Badges -->
+                  <div
+                    class="absolute top-3 left-3 z-10 flex flex-col items-stretch gap-2"
                   >
-                    NEW
-                  </span>
-                  <span
-                    v-if="discount !== 0"
-                    class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
-                    :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
-                  >
-                    {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
-                  </span>
-                </div>
+                    <span
+                      class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
+                    >
+                      NEW
+                    </span>
+                    <span
+                      v-if="discount !== 0"
+                      class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
+                      :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
+                    >
+                      {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
+                    </span>
+                  </div>
 
-                <div
-                  v-if="slotProps.index === 0"
-                  class="absolute top-3 right-3 z-10"
-                >
-                  <LoadingButton
-                    :loading="isAddingWishlistItem || isRemovingWishlistItem"
-                    @click="handleToggleWishlist"
-                    class="h-11 w-11 rounded-md"
-                    :disabled="isAddingWishlistItem || isRemovingWishlistItem"
-                    variant="outline"
+                  <div
+                    v-if="index === 0"
+                    class="absolute top-3 right-3 z-10"
                   >
-                    <Heart :class="isInWishlist && 'fill-black'" />
-                  </LoadingButton>
-                </div>
+                    <LoadingButton
+                      :loading="isAddingToWishlist || isRemovingWishlistItem"
+                      @click="handleToggleWishlist"
+                      class="rounded-full bg-white p-1.5 hover:bg-white"
+                      :disabled="isAddingToWishlist || isRemovingWishlistItem"
+                      variant="secondary"
+                      size="sm"
+                      type="button"
+                    >
+                      <HeartIcon
+                        class="size-5 text-black"
+                        :class="isInWishlist && 'fill-black'"
+                      />
+                    </LoadingButton>
+                  </div>
 
-                <img
-                  :src="slotProps.data"
-                  :alt="`${product.name} view ${slotProps.index + 1}`"
-                  class="h-full w-full object-cover"
-                />
-              </div>
-            </template>
+                  <img
+                    :src="image"
+                    :alt="`${product.name} view ${index + 1}`"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselNext />
           </Carousel>
         </div>
 
@@ -600,13 +596,17 @@ const responsiveOptions = ref([
 
             <div class="absolute top-3 right-3 z-10">
               <LoadingButton
-                :loading="isAddingWishlistItem || isRemovingWishlistItem"
+                :loading="isAddingToWishlist || isRemovingWishlistItem"
                 @click="handleToggleWishlist"
-                class="h-11 w-11 rounded-md"
-                :disabled="isAddingWishlistItem || isRemovingWishlistItem"
-                variant="outline"
+                class="rounded-full bg-white p-2 shadow hover:bg-white"
+                :disabled="isAddingToWishlist || isRemovingWishlistItem"
+                variant="secondary"
+                type="button"
               >
-                <Heart :class="isInWishlist && 'fill-black'" />
+                <HeartIcon
+                  class="size-6 text-black"
+                  :class="isInWishlist && 'fill-black'"
+                />
               </LoadingButton>
             </div>
 
@@ -626,6 +626,7 @@ const responsiveOptions = ref([
               v-for="(img, index) in product.images"
               :key="index"
               @click="selectedImageIndex = index"
+              type="button"
               class="relative aspect-square w-full shrink-0 cursor-pointer overflow-hidden rounded-md"
               :class="
                 selectedImageIndex === index && 'border-2 border-black/80'
@@ -647,9 +648,9 @@ const responsiveOptions = ref([
       >
         <div class="flex flex-col space-y-4">
           <!-- Rating -->
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-4">
             <ProductRating :rating="product.averageRating || 0" />
-            <span class="text-xs text-gray-500">
+            <span class="text-sm text-gray-500">
               {{ product.reviewCount }} Reviews
             </span>
           </div>
@@ -766,7 +767,7 @@ const responsiveOptions = ref([
           :key="attribute.id"
           class="mb-4"
         >
-          <div class="mb-2 flex max-w-[200px] items-center justify-between">
+          <div class="mb-2 flex max-w-50 items-center justify-between">
             <h3 class="font-medium text-gray-900">
               {{ attribute.name }}
             </h3>
@@ -775,6 +776,7 @@ const responsiveOptions = ref([
             <button
               v-for="option in attribute.options"
               :key="option.id"
+              type="button"
               @click="selectOption(attribute.id, option.id)"
               class="flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm transition-all"
               :class="
@@ -791,20 +793,24 @@ const responsiveOptions = ref([
         <!-- Actions -->
         <div class="mb-8 flex gap-4">
           <!-- Quantity -->
-          <div class="flex items-center rounded-md bg-[#F3F5F7]">
+          <div class="flex w-36 items-center rounded-md bg-[#F3F5F7]">
             <button
+              type="button"
               @click="decrementQuantity"
-              class="cursor-pointer p-4 text-black disabled:cursor-not-allowed disabled:text-black/40"
+              class="w-12 cursor-pointer p-4 text-black disabled:cursor-not-allowed! disabled:text-black/40!"
               :disabled="
                 quantity <= 1 || isOutOfStock || hasIncompleteSelection
               "
             >
               <Minus class="h-4 w-4" />
             </button>
-            <span class="px-6 text-sm font-semibold">{{ quantity }}</span>
+            <span class="flex-1 px-2 text-center text-sm font-semibold">
+              {{ quantity }}
+            </span>
             <button
+              type="button"
               @click="incrementQuantity"
-              class="cursor-pointer p-4 text-black disabled:cursor-not-allowed disabled:text-black/40"
+              class="w-12 cursor-pointer p-4 text-black disabled:cursor-not-allowed! disabled:text-black/40!"
               :disabled="
                 quantity >= maxQuantity ||
                 isOutOfStock ||
@@ -817,12 +823,13 @@ const responsiveOptions = ref([
 
           <!-- Add to Cart Button -->
           <LoadingButton
-            @click="handleAddToCart"
+            @click="handleaddCartItem"
             :loading="isAddingCartItem"
             :disabled="
               isAddingCartItem || isOutOfStock || hasIncompleteSelection
             "
             class="flex-1"
+            size="lg"
           >
             {{
               isOutOfStock
@@ -836,12 +843,6 @@ const responsiveOptions = ref([
 
         <!-- Additional Details -->
         <div class="space-y-2 border-t pt-6 text-sm text-gray-600">
-          <div class="flex justify-between">
-            <span>SKU:</span>
-            <span class="font-medium">
-              {{ currentVariant?.sku || product.sku || 'N/A' }}
-            </span>
-          </div>
           <div class="flex justify-between">
             <span>Category:</span>
             <RouterLink
