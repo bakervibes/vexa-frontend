@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * CheckoutLayout
- * Layout for checkout flow pages (Cart, Checkout, Complete)
- * Includes a stepper header to show progress
- */
 import { cn } from '@/utils/lib'
 import { CheckIcon } from 'lucide-vue-next'
 import { computed } from 'vue'
@@ -13,10 +8,8 @@ import { Toaster } from 'vue-sonner'
 const route = useRoute()
 const router = useRouter()
 
-// On récupère toutes les query actuelles
 const currentQuery = route.query
 
-// Fonction utilitaire pour reconstruire les query string
 const buildQueryString = (query: Record<string, unknown>) => {
   const params = new URLSearchParams()
   Object.entries(query).forEach(([key, value]) => {
@@ -31,19 +24,19 @@ const buildQueryString = (query: Record<string, unknown>) => {
 const steps = computed(() => [
   {
     step: 1,
-    title: 'Cart',
+    title: 'Panier',
     route: `/cart${buildQueryString(currentQuery)}`,
     name: 'cart',
   },
   {
     step: 2,
-    title: 'Checkout',
+    title: 'Paiement',
     route: `/checkout${buildQueryString(currentQuery)}`,
     name: 'checkout',
   },
   {
     step: 3,
-    title: 'Completed',
+    title: 'Confirmation',
     route: `/complete${buildQueryString(currentQuery)}`,
     name: 'complete',
   },
@@ -58,18 +51,17 @@ const currentStep = computed(() => {
 const pageTitle = computed(() => {
   switch (route.name) {
     case 'cart':
-      return 'Cart'
+      return 'Panier'
     case 'checkout':
-      return 'Check Out'
+      return 'Paiement'
     case 'complete':
-      return 'Complete!'
+      return 'Confirmation'
     default:
-      return 'Cart'
+      return 'Panier'
   }
 })
 
 const handleStepClick = (step: number) => {
-  // Only allow going back to previous steps, not forward
   if (step < currentStep.value) {
     const targetStep = steps.value[step - 1]
     if (targetStep) {
@@ -80,38 +72,42 @@ const handleStepClick = (step: number) => {
 </script>
 
 <template>
-  <div
-    class="flex min-h-[calc(100vh-4rem)] flex-col sm:min-h-[calc(100vh-4.5rem)]"
-  >
+  <div class="bg-noir flex min-h-screen flex-col">
     <main class="flex-1">
-      <div class="container mx-auto px-4 py-8 md:py-12">
-        <!-- Page Title -->
+      <div class="mx-auto max-w-6xl px-6 py-16 md:py-24">
+        <div
+          class="text-gold mb-6 text-center text-xs tracking-[0.3em] uppercase"
+        >
+          Commande
+        </div>
+
         <h1
-          class="mb-8 text-center font-serif text-4xl font-medium md:text-5xl"
+          class="font-display text-text text-center text-5xl font-light md:text-6xl"
         >
           {{ pageTitle }}
         </h1>
 
-        <!-- Stepper Header -->
-        <div class="mx-auto mb-12 max-w-2xl">
+        <div class="bg-gold/40 mx-auto my-12 h-px w-24" />
+
+        <div class="mx-auto mb-16 max-w-2xl">
           <div class="flex w-full items-start justify-between gap-2">
             <div
               v-for="(stepItem, index) in steps"
               :key="stepItem.step"
-              class="group relative flex w-full flex-col items-center gap-2"
+              class="group relative flex w-full flex-col items-center gap-3"
               :class="{ 'cursor-pointer': stepItem.step < currentStep }"
               @click="handleStepClick(stepItem.step)"
             >
-              <div class="flex flex-col items-center gap-2">
+              <div class="flex flex-col items-center gap-3">
                 <div
                   :class="
                     cn(
-                      'flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium transition-colors',
+                      'flex h-12 w-12 items-center justify-center border text-sm font-light transition-all',
                       stepItem.step < currentStep
-                        ? 'bg-emerald-500 text-white'
+                        ? 'border-gold bg-gold text-noir'
                         : stepItem.step === currentStep
-                          ? 'bg-black text-white'
-                          : 'bg-gray-200 text-gray-500',
+                          ? 'border-gold/40 text-gold'
+                          : 'border-border-noir text-[#555]',
                     )
                   "
                 >
@@ -119,15 +115,17 @@ const handleStepClick = (step: number) => {
                     v-if="stepItem.step < currentStep"
                     class="h-5 w-5"
                   />
-                  <span v-else>{{ stepItem.step }}</span>
+                  <span v-else>
+                    {{ String(stepItem.step).padStart(2, '0') }}
+                  </span>
                 </div>
                 <div
                   :class="
                     cn(
-                      'text-sm font-medium',
-                      stepItem.step < currentStep
-                        ? 'text-emerald-600'
-                        : 'text-gray-600',
+                      'text-xs tracking-widest uppercase',
+                      stepItem.step <= currentStep
+                        ? 'text-gold'
+                        : 'text-[#555]',
                     )
                   "
                 >
@@ -135,15 +133,12 @@ const handleStepClick = (step: number) => {
                 </div>
               </div>
 
-              <!-- Separator line -->
               <div
                 v-if="index < steps.length - 1"
                 :class="
                   cn(
-                    'absolute top-5 left-[calc(50%+28px)] h-0.5 w-[calc(100%-56px)]',
-                    stepItem.step < currentStep
-                      ? 'bg-emerald-500'
-                      : 'bg-gray-200',
+                    'absolute top-6 left-[calc(50%+32px)] h-px w-[calc(100%-64px)]',
+                    stepItem.step < currentStep ? 'bg-gold' : 'bg-border-noir',
                   )
                 "
               />
@@ -151,7 +146,6 @@ const handleStepClick = (step: number) => {
           </div>
         </div>
 
-        <!-- Page Content -->
         <RouterView />
       </div>
     </main>
@@ -163,7 +157,3 @@ const handleStepClick = (step: number) => {
     />
   </div>
 </template>
-
-<style scoped>
-/* Checkout layout specific styles */
-</style>

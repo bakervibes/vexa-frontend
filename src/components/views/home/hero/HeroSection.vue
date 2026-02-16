@@ -37,7 +37,7 @@ const goToSlide = (index: number) => {
 </script>
 
 <template>
-  <section class="relative">
+  <section class="bg-noir relative">
     <Carousel
       @init-api="(val) => (emblaApi = val)"
       class="w-full"
@@ -57,30 +57,30 @@ const goToSlide = (index: number) => {
     </Carousel>
 
     <div
-      class="absolute top-1/2 right-0 left-0 z-20 flex -translate-y-1/2 justify-between px-4 text-white/40 hover:text-white/60"
+      class="hover:text-gold absolute top-1/2 right-0 left-0 z-20 flex -translate-y-1/2 justify-between px-4 text-[#555]"
     >
       <button
         @click="goToPrevious"
-        class="cursor-pointer rounded-full p-2"
+        class="cursor-pointer p-2"
       >
-        <ChevronLeftIcon />
+        <ChevronLeftIcon class="size-6" />
       </button>
       <button
         @click="goToNext"
-        class="cursor-pointer rounded-full p-2"
+        class="cursor-pointer p-2"
       >
-        <ChevronRightIcon />
+        <ChevronRightIcon class="size-6" />
       </button>
     </div>
 
-    <div class="absolute right-0 bottom-4 left-0 z-20">
-      <div class="flex justify-center gap-2">
+    <div class="absolute right-0 bottom-8 left-0 z-20">
+      <div class="flex justify-center gap-3">
         <div
           v-for="index in heroSections.length"
           :key="index"
           :class="[
-            'h-3 cursor-pointer rounded-full bg-gray-200 transition-all duration-300 hover:scale-110',
-            currentIndex === index - 1 ? 'w-10' : 'w-3',
+            'bg-gold/30 hover:bg-gold h-px cursor-pointer transition-all duration-300',
+            currentIndex === index - 1 ? 'bg-gold w-12' : 'w-6',
           ]"
           @click="goToSlide(index - 1)"
         />
@@ -88,5 +88,3 @@ const goToSlide = (index: number) => {
     </div>
   </section>
 </template>
-
-<style scoped></style>

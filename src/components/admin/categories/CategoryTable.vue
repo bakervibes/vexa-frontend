@@ -117,10 +117,8 @@ const emit = defineEmits<{
                   {{ category.name.slice(0, 2).toUpperCase() }}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <p class="font-medium">{{ category.name }}</p>
-                <p class="text-muted-foreground text-sm">{{ category.slug }}</p>
-              </div>
+
+              <p class="font-medium">{{ category.name }}</p>
             </div>
           </td>
           <td class="p-4 text-center">

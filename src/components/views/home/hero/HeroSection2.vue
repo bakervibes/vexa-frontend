@@ -4,51 +4,33 @@ import { RouterLink } from 'vue-router'
 
 <template>
   <section
-    class="relative flex h-[calc(100vh-3rem)] flex-col justify-start text-black md:h-[calc(100vh-4rem)] md:flex-row md:justify-end"
+    class="text-text relative flex h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 text-center"
   >
-    <!-- IMAGE EN BACKGROUND SUR DESKTOP, EN BLOC SUR MOBILE -->
-    <div class="absolute inset-0 h-full w-full overflow-hidden">
-      <img
-        src="/hero/hero-3.png"
-        alt="Hero Section 3"
-        class="hidden h-full w-full object-cover md:block"
-      />
-      <img
-        src="/hero/hero-3-mobile.png"
-        alt="Hero Section 3 Mobile"
-        class="block h-full w-full object-cover md:hidden"
-      />
+    <div class="text-gold mb-4 text-xs tracking-[0.3em] uppercase">
+      Nouvelle Collection
     </div>
 
-    <!-- CONTENU -->
-    <div
-      class="relative z-10 flex h-full w-full flex-col justify-start gap-8 px-12 pt-8 md:w-1/2 md:justify-center md:px-20 md:pt-0"
+    <h1
+      class="font-display mx-auto max-w-4xl text-5xl leading-[1.1] font-light md:text-7xl lg:text-8xl"
     >
-      <div
-        class="flex flex-col items-center justify-center gap-4 md:items-start"
-      >
-        <h1 class="text-center text-3xl font-black md:text-start md:text-6xl">
-          Listen to
-          <br />
-          the
-          <span class="font-medium text-blue-600">amazing</span>
-          <br />
-          music sound.
-        </h1>
+      Élégance
+      <br />
+      <span class="text-gold italic">intemporelle</span>
+    </h1>
 
-        <p class="text-center text-base md:text-start md:text-lg">
-          Experience music like never before
-        </p>
+    <div class="bg-gold/60 mx-auto my-6 h-px w-16" />
 
-        <RouterLink
-          to="/shop"
-          class="w-fit rounded-lg bg-black px-8 py-3 font-medium text-white transition-all hover:bg-black/80 hover:shadow-lg"
-        >
-          Shopping Now
-        </RouterLink>
-      </div>
-    </div>
+    <p
+      class="mx-auto max-w-lg text-sm leading-relaxed text-[#555] md:text-base"
+    >
+      Des créations uniques pour une clientèle exigeante.
+    </p>
+
+    <RouterLink
+      to="/new-arrivals"
+      class="border-gold/40 text-gold hover:bg-gold hover:text-noir mt-6 border px-8 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+    >
+      Découvrir
+    </RouterLink>
   </section>
 </template>
-
-<style scoped></style>

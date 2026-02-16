@@ -22,7 +22,6 @@ const form = useForm({
   },
 })
 
-// Mettre à jour les valeurs quand l'utilisateur est disponible
 watch(
   user,
   (currentUser) => {
@@ -38,7 +37,6 @@ watch(
 
 const onSubmit = form.handleSubmit(async (values) => {
   try {
-    // Update name via better-auth
     if (values.name && values.name !== user.value?.name) {
       const result = await updateProfile({ name: values.name })
       if (!result.success) {
@@ -49,7 +47,6 @@ const onSubmit = form.handleSubmit(async (values) => {
       }
     }
 
-    // Update phone via custom API (better-auth doesn't handle phone)
     if (values.phone !== user.value?.phone) {
       isUpdatingPhone.value = true
       try {
@@ -77,14 +74,15 @@ watch([isUpdatingProfile, isUpdatingPhone], ([profile, phone]) => {
 </script>
 
 <template>
-  <section>
-    <h2 class="mb-6 text-xl font-semibold">Account Details</h2>
+  <section class="border border-[#1E1E1E] bg-[#0A0A0A] p-6">
+    <h2 class="mb-6 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+      Account Details
+    </h2>
 
     <form
       @submit="onSubmit"
       class="max-w-lg space-y-5"
     >
-      <!-- Name -->
       <FormField
         v-slot="{ componentField }"
         name="name"
@@ -99,7 +97,6 @@ watch([isUpdatingProfile, isUpdatingPhone], ([profile, phone]) => {
         </FormItem>
       </FormField>
 
-      <!-- Phone -->
       <FormField
         v-slot="{ componentField }"
         name="phone"
@@ -113,12 +110,12 @@ watch([isUpdatingProfile, isUpdatingPhone], ([profile, phone]) => {
         </FormItem>
       </FormField>
 
-      <!-- Submit Button -->
       <div class="flex justify-end">
         <LoadingButton
           type="submit"
           :loading="isLoading"
           :disabled="isLoading"
+          class="border border-[#C8A97E]/40 px-6 py-2 text-xs tracking-widest text-[#C8A97E] uppercase transition-colors hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
         >
           Save changes
         </LoadingButton>

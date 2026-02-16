@@ -35,10 +35,9 @@ const discount = computed(() => {
   if (!props.product.price || !props.product.basePrice) return 0
   if (props.product.price >= props.product.basePrice) return 0
 
-  // Check if the discount has expired
   if (props.product.expiresAt) {
     const expiresAt = new Date(props.product.expiresAt)
-    if (expiresAt <= new Date()) return 0 // Expired
+    if (expiresAt <= new Date()) return 0
   }
 
   return Math.round(
@@ -81,7 +80,7 @@ const handleToggleWishlist = async (e: Event) => {
   e.stopPropagation()
 
   if (!props.product?.id) {
-    toast.error('Please select a product')
+    toast.error('Veuillez sélectionner un produit')
     return
   }
 
@@ -89,7 +88,6 @@ const handleToggleWishlist = async (e: Event) => {
     return
   }
 
-  // Ne jamais passer variantId pour les produits avec variantes
   const variantId = hasVariants.value ? undefined : undefined
 
   if (isInWishlist.value) {
@@ -101,110 +99,103 @@ const handleToggleWishlist = async (e: Event) => {
 </script>
 
 <template>
-  <!-- Actual Product Card -->
   <RouterLink
     :to="`/products/${product.slug}`"
     class="group h-full w-full shrink-0 sm:max-w-70"
   >
     <div
-      class="relative flex h-full flex-col gap-2 transition-transform duration-200"
+      class="relative flex h-full flex-col gap-3 transition-transform duration-200"
     >
-      <!-- Image Container -->
-      <div class="relative h-80 w-full shrink-0 overflow-hidden">
-        <!-- Image 2 (bottom layer - always visible) -->
+      <div
+        class="bg-surface relative h-80 w-full shrink-0 overflow-hidden border border-[#1E1E1E]"
+      >
         <img
           v-if="product.images[1]"
           :src="product.images[1]"
           :alt="product.name"
-          class="absolute inset-0 h-full w-full object-cover"
+          class="absolute inset-0 h-full w-full object-cover opacity-100"
         />
 
-        <!-- Image 1 (top layer - disappears on hover) -->
         <img
           :src="product.images[0]"
           :alt="product.name"
-          class="absolute inset-0 h-full w-full object-cover transition-opacity duration-300 group-hover:opacity-0"
+          class="absolute inset-0 h-full w-full object-cover opacity-100 transition-opacity duration-300 group-hover:opacity-0"
         />
 
-        <!-- "Add to cart" overlay -->
         <div
-          class="absolute inset-x-2 bottom-2 z-20 transition-all duration-200 group-hover:translate-y-0 sm:translate-y-2 sm:opacity-0 sm:group-hover:opacity-100"
+          class="absolute inset-x-3 bottom-3 z-20 translate-y-2 opacity-0 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100"
         >
           <button
             @click="handleaddCartItemClick"
-            class="w-full cursor-pointer rounded-md bg-black/95 px-4 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-black"
+            class="w-full border border-[#C8A97E]/40 bg-[#0A0A0A]/90 px-4 py-3 text-center text-xs tracking-widest text-[#C8A97E] uppercase backdrop-blur-sm transition-all hover:border-[#C8A97E] hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
           >
-            Add to cart
+            Ajouter au panier
           </button>
         </div>
 
-        <!-- Badges -->
         <div
-          class="absolute top-2 left-2 z-20 flex flex-col items-stretch gap-1.5"
+          class="absolute top-3 left-3 z-20 flex flex-col items-stretch gap-1.5"
         >
           <div
             v-if="isNew"
-            class="rounded bg-white/95 px-1.5 py-0.5 text-xs font-semibold text-black shadow-sm"
+            class="border border-[#C8A97E]/40 bg-[#0A0A0A]/90 px-2 py-1 text-[10px] tracking-widest text-[#C8A97E] uppercase backdrop-blur-sm"
           >
-            New
+            Nouveau
           </div>
           <div
             v-if="hasDiscount"
-            class="rounded bg-green-500 px-1.5 py-0.5 text-xs font-semibold text-white shadow-sm"
+            class="bg-[#C8A97E] px-2 py-1 text-[10px] tracking-widest text-[#0A0A0A] uppercase"
           >
             -{{ discount }}%
           </div>
         </div>
 
-        <!-- Actions -->
         <div
-          class="absolute top-2 right-2 z-20 flex flex-col gap-1.5 transition-all duration-200 sm:opacity-0 sm:group-hover:opacity-100"
+          class="absolute top-3 right-3 z-20 translate-x-2 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100"
         >
-          <LoadingButton
-            severity="secondary"
-            :loading="isAddingToWishlist || isRemovingWishlistItem"
+          <button
             @click="handleToggleWishlist"
             :disabled="isAddingToWishlist || isRemovingWishlistItem"
-            class="rounded-full bg-white p-1.5 text-black shadow hover:bg-white"
-            size="sm"
-            type="button"
+            class="border border-[#1E1E1E] bg-[#0A0A0A]/90 p-2 backdrop-blur-sm transition-all hover:border-[#C8A97E]/40 disabled:opacity-50"
           >
-            <HeartIcon
-              class="size-5"
-              :class="isInWishlist && 'fill-black'"
+            <LoadingButton
+              v-if="isAddingToWishlist || isRemovingWishlistItem"
+              :loading="true"
+              class="p-0"
             />
-          </LoadingButton>
+            <HeartIcon
+              v-else
+              class="size-5 text-[#555] transition-colors group-hover:text-[#C8A97E]"
+              :class="isInWishlist && 'fill-[#C8A97E] text-[#C8A97E]'"
+            />
+          </button>
         </div>
       </div>
 
-      <!-- Product Info -->
       <div class="flex flex-col gap-1.5 px-1">
         <ProductRating :rating="product.averageRating" />
 
-        <h3 class="line-clamp-2 text-base leading-snug font-medium sm:text-lg">
+        <h3 class="line-clamp-2 text-sm font-light text-[#E8E8E8] sm:text-base">
           {{ product.name }}
         </h3>
 
-        <!-- Price -->
         <div class="flex items-center gap-2">
           <template v-if="product.price || product.basePrice">
-            <!-- Current price (or basePrice if no discount price) -->
-            <p class="text-base font-semibold">
+            <p class="text-sm font-light text-[#C8A97E]">
               {{ formatPrice(product.price ?? product.basePrice ?? 0) }}
             </p>
-            <!-- Base price (crossed out) - only show if there's an active discount -->
             <p
               v-if="hasDiscount && product.basePrice"
-              class="text-muted-foreground text-sm line-through"
+              class="text-xs text-[#555] line-through"
             >
               {{ formatPrice(product.basePrice) }}
             </p>
           </template>
           <p
             v-else
-            class="text-base font-semibold"
+            class="text-sm text-[#C8A97E]"
           >
-            <span class="font-normal text-gray-500">From</span>
+            <span class="text-xs text-[#555]">À partir de</span>
             {{ formatPrice(lowestPrice) }}
           </p>
         </div>
@@ -212,11 +203,8 @@ const handleToggleWishlist = async (e: Event) => {
     </div>
   </RouterLink>
 
-  <!-- Quick View Modal -->
   <ProductModal
     :slug="product.slug"
     v-model:open="isModalOpen"
   />
 </template>
-
-<style scoped></style>

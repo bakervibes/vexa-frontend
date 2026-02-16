@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
@@ -212,35 +211,40 @@ const handleDownloadInvoice = async () => {
 </script>
 
 <template>
-  <div class="flex justify-center">
-    <Card class="w-full max-w-2xl">
-      <CardContent class="p-8 text-center">
+  <div class="flex min-h-screen justify-center bg-[#0A0A0A] px-4 py-16">
+    <Card
+      class="bg-surface w-full max-w-2xl border-0 border-[#1E1E1E] shadow-2xl"
+    >
+      <CardContent class="p-8 text-center md:p-12">
         <!-- MONEROO PAYMENT VERIFICATION IN PROGRESS -->
         <div
           v-if="isVerifyingPayment"
-          class="space-y-6 py-10"
+          class="space-y-8 py-10"
         >
           <div
-            class="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600"
+            class="mx-auto h-12 w-12 animate-spin border-4 border-[#1E1E1E] border-t-[#C8A97E]"
           />
-          <h2 class="text-xl font-semibold text-gray-700">
-            Verifying your payment...
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Verifying
+          </p>
+          <h2 class="font-display text-4xl font-light text-[#E8E8E8]">
+            Confirming your payment
           </h2>
-          <p class="text-gray-500">
-            Please wait while we confirm your payment.
+          <p class="text-text-muted">
+            Please wait while we verify your transaction.
           </p>
         </div>
 
         <!-- MONEROO PAYMENT VERIFICATION ERROR -->
         <div
           v-else-if="paymentVerificationError"
-          class="space-y-4 py-10"
+          class="space-y-6 py-10"
         >
           <svg
-            class="mx-auto h-12 w-12 text-red-500"
+            class="mx-auto h-12 w-12 text-[#C8A97E]"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.5"
             viewBox="0 0 24 24"
           >
             <circle
@@ -262,22 +266,29 @@ const handleDownloadInvoice = async () => {
             />
           </svg>
 
-          <h2 class="text-xl font-semibold text-red-600">
-            Payment Verification Failed
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">Error</p>
+          <h2 class="font-display text-4xl font-light text-[#E8E8E8]">
+            Verification Failed
           </h2>
-          <p class="text-gray-600">
+          <p class="text-text-muted">
             {{ paymentVerificationError }}
           </p>
 
-          <div class="flex justify-center gap-4">
-            <Button
-              variant="outline"
+          <div class="mx-auto mt-8 h-px w-24 bg-[#C8A97E]/40" />
+
+          <div class="flex flex-col justify-center gap-4 pt-4 sm:flex-row">
+            <button
+              class="border border-[#C8A97E]/40 px-5 py-3 text-xs tracking-[0.2em] text-[#C8A97E] uppercase transition-all hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
               @click="confirmPaymentFallback"
             >
               Try Again
-            </Button>
+            </button>
             <RouterLink to="/my-account/orders">
-              <Button>View My Orders</Button>
+              <button
+                class="bg-[#C8A97E] px-5 py-3 text-xs tracking-[0.2em] text-[#0A0A0A] uppercase transition-all hover:bg-[#B8995E]"
+              >
+                View My Orders
+              </button>
             </RouterLink>
           </div>
         </div>
@@ -285,29 +296,29 @@ const handleDownloadInvoice = async () => {
         <!-- LOADING -->
         <div
           v-else-if="isLoadingOrder"
-          class="space-y-6"
+          class="space-y-6 py-10"
         >
-          <Skeleton class="mx-auto h-8 w-48" />
-          <Skeleton class="mx-auto h-12 w-64" />
-          <Skeleton class="mx-auto h-10 w-40" />
+          <Skeleton class="mx-auto h-8 w-48 bg-[#1E1E1E]" />
+          <Skeleton class="mx-auto h-12 w-64 bg-[#1E1E1E]" />
+          <Skeleton class="mx-auto h-10 w-40 bg-[#1E1E1E]" />
           <div class="mx-auto max-w-sm space-y-4">
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-10 w-full bg-[#1E1E1E]" />
+            <Skeleton class="h-10 w-full bg-[#1E1E1E]" />
+            <Skeleton class="h-10 w-full bg-[#1E1E1E]" />
+            <Skeleton class="h-10 w-full bg-[#1E1E1E]" />
           </div>
         </div>
 
         <!-- ERROR: Missing order info -->
         <div
           v-else-if="!orderId && !orderNumber"
-          class="space-y-4 py-10"
+          class="space-y-6 py-10"
         >
           <svg
-            class="mx-auto h-12 w-12 text-red-500"
+            class="mx-auto h-12 w-12 text-[#C8A97E]"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.5"
             viewBox="0 0 24 24"
           >
             <circle
@@ -329,30 +340,37 @@ const handleDownloadInvoice = async () => {
             />
           </svg>
 
-          <h2 class="text-xl font-semibold text-red-600">
-            Missing order number
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">Error</p>
+          <h2 class="font-display text-4xl font-light text-[#E8E8E8]">
+            Missing Order Number
           </h2>
-          <p class="text-gray-600">
+          <p class="text-text-muted">
             The page requires an
-            <strong>order number</strong>
+            <span class="text-[#C8A97E]">order number</span>
             query parameter.
           </p>
 
+          <div class="mx-auto mt-8 h-px w-24 bg-[#C8A97E]/40" />
+
           <RouterLink to="/">
-            <Button class="mt-4">Return to Home</Button>
+            <button
+              class="mt-4 bg-[#C8A97E] px-5 py-3 text-xs tracking-[0.2em] text-[#0A0A0A] uppercase transition-all hover:bg-[#B8995E]"
+            >
+              Return to Home
+            </button>
           </RouterLink>
         </div>
 
         <!-- ERROR: Generic error -->
         <div
           v-else-if="isErrorOrder"
-          class="space-y-4 py-10"
+          class="space-y-6 py-10"
         >
           <svg
-            class="mx-auto h-12 w-12 text-red-500"
+            class="mx-auto h-12 w-12 text-[#C8A97E]"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.5"
             viewBox="0 0 24 24"
           >
             <circle
@@ -374,119 +392,153 @@ const handleDownloadInvoice = async () => {
             />
           </svg>
 
-          <h2 class="text-xl font-semibold text-red-600">
-            Unable to load order
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">Error</p>
+          <h2 class="font-display text-4xl font-light text-[#E8E8E8]">
+            Unable to Load Order
           </h2>
-          <p class="text-gray-500">
+          <p class="text-text-muted">
             Something went wrong while retrieving your order.
           </p>
 
+          <div class="mx-auto mt-8 h-px w-24 bg-[#C8A97E]/40" />
+
           <RouterLink to="/">
-            <Button class="mt-4">Return to Home</Button>
+            <button
+              class="mt-4 bg-[#C8A97E] px-5 py-3 text-xs tracking-[0.2em] text-[#0A0A0A] uppercase transition-all hover:bg-[#B8995E]"
+            >
+              Return to Home
+            </button>
           </RouterLink>
         </div>
 
         <!-- ERROR: Order not found -->
         <div
           v-else-if="!order"
-          class="space-y-4 py-10"
+          class="space-y-6 py-10"
         >
           <svg
-            class="mx-auto h-12 w-12 text-yellow-500"
+            class="mx-auto h-12 w-12 text-[#C8A97E]"
             fill="none"
             stroke="currentColor"
-            stroke-width="2"
+            stroke-width="1.5"
             viewBox="0 0 24 24"
           >
-            <path
-              d="M10.29 3.86L1.82 18a1 1 0 0 0 .85 1.5h18.66a1 1 0 0 0 .86-1.5L13.71 3.86a1 1 0 0 0-1.72 0z"
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
             />
             <line
               x1="12"
-              y1="9"
+              y1="8"
               x2="12"
-              y2="13"
+              y2="12"
             />
             <line
               x1="12"
-              y1="17"
+              y1="16"
               x2="12.01"
-              y2="17"
+              y2="16"
             />
           </svg>
 
-          <h2 class="text-xl font-semibold text-yellow-600">Order not found</h2>
-          <p class="text-gray-500">
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Not Found
+          </p>
+          <h2 class="font-display text-4xl font-light text-[#E8E8E8]">
+            Order Not Found
+          </h2>
+          <p class="text-text-muted">
             No order matches the number:
-            <strong>{{ orderNumber }}</strong>
-            .
+            <span class="text-[#C8A97E]">{{ orderNumber }}</span>
           </p>
 
+          <div class="mx-auto mt-8 h-px w-24 bg-[#C8A97E]/40" />
+
           <RouterLink to="/orders">
-            <Button class="mt-4">View my orders</Button>
+            <button
+              class="mt-4 bg-[#C8A97E] px-5 py-3 text-xs tracking-[0.2em] text-[#0A0A0A] uppercase transition-all hover:bg-[#B8995E]"
+            >
+              View My Orders
+            </button>
           </RouterLink>
         </div>
 
         <!-- SUCCESS -->
         <template v-else>
-          <div class="mb-8">
-            <p class="mb-2 text-lg text-gray-500">Thank you! 🎉</p>
-            <h2 class="text-3xl font-semibold">Your order has been received</h2>
+          <div class="mb-10">
+            <p class="mb-4 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+              Order Confirmed
+            </p>
+            <h2 class="font-display text-5xl font-light text-[#E8E8E8]">
+              Thank You
+            </h2>
+            <div class="mx-auto mt-6 h-px w-24 bg-[#C8A97E]/40" />
           </div>
 
           <!-- Shared Payment Banner -->
           <div
             v-if="isSharedPayment"
-            class="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left"
+            class="mb-8 border border-[#C8A97E]/30 bg-[#0A0A0A] p-6 text-left"
           >
-            <h3 class="font-semibold text-blue-900">
+            <p class="mb-2 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+              Shared Cart
+            </p>
+            <h3 class="font-display text-xl font-light text-[#E8E8E8]">
               Payment for {{ order?.user?.name }}'s Cart
             </h3>
-            <p class="text-sm text-blue-700">
+            <p class="text-text-muted mt-2 text-sm">
               You have successfully paid for this shared cart. The order
               confirmation has been sent to {{ order?.user?.email }}.
             </p>
           </div>
 
           <!-- Modal Trigger -->
-          <div class="mb-8">
-            <Button
-              variant="outline"
-              class="gap-2"
+          <div class="mb-10">
+            <button
+              class="border border-[#C8A97E]/40 px-5 py-3 text-xs tracking-[0.2em] text-[#C8A97E] uppercase transition-all hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
               @click="isModalOpen = true"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                <path d="M3 6h18" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              View order items ({{ items.length }})
-            </Button>
+              <span class="flex items-center justify-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"
+                  />
+                  <path d="M3 6h18" />
+                  <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                View Order Items ({{ items.length }})
+              </span>
+            </button>
 
             <Dialog v-model:open="isModalOpen">
-              <DialogContent class="max-h-[80vh] max-w-lg overflow-auto">
+              <DialogContent
+                class="bg-surface max-h-[80vh] max-w-lg border-[#1E1E1E] text-[#E8E8E8]"
+              >
                 <DialogHeader>
-                  <DialogTitle>Order Items</DialogTitle>
+                  <DialogTitle
+                    class="font-display text-2xl font-light text-[#E8E8E8]"
+                  >
+                    Order Items
+                  </DialogTitle>
                 </DialogHeader>
                 <div class="mt-4 space-y-4">
                   <div
                     v-for="item in items"
                     :key="item.id"
-                    class="flex gap-4 rounded-lg border p-4"
+                    class="flex gap-4 border border-[#1E1E1E] bg-[#0A0A0A] p-4"
                   >
-                    <div
-                      class="h-20 w-20 overflow-hidden rounded-md bg-gray-100"
-                    >
+                    <div class="h-20 w-20 overflow-hidden bg-[#1E1E1E]">
                       <img
                         class="h-full w-full object-cover"
                         :src="getItemImage(item)"
@@ -495,16 +547,18 @@ const handleDownloadInvoice = async () => {
                     </div>
 
                     <div class="flex flex-1 flex-col justify-between">
-                      <h4 class="font-medium text-gray-900">
+                      <h4
+                        class="font-display text-lg font-light text-[#E8E8E8]"
+                      >
                         {{ getItemName(item) }}
                       </h4>
 
                       <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">
+                        <span class="text-text-muted text-sm">
                           {{ getItemQuantity(item) }} ×
                           {{ formatPrice(getItemPrice(item)) }}
                         </span>
-                        <span class="font-medium">
+                        <span class="text-[#C8A97E]">
                           {{
                             formatPrice(
                               getItemPrice(item) * getItemQuantity(item),
@@ -517,7 +571,7 @@ const handleDownloadInvoice = async () => {
 
                   <div
                     v-if="items.length === 0"
-                    class="py-8 text-center text-gray-500"
+                    class="text-text-muted py-8 text-center"
                   >
                     No items in this order
                   </div>
@@ -527,75 +581,63 @@ const handleDownloadInvoice = async () => {
           </div>
 
           <!-- Order details -->
-          <div class="space-y-4 text-left">
-            <div class="border-b pb-4">
-              <h3 class="mb-2 font-medium">Delivery Address</h3>
+          <div class="space-y-0 text-left">
+            <div class="border-b border-[#1E1E1E] pb-6">
+              <p class="mb-4 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+                Delivery Address
+              </p>
               <div
                 v-if="order.address"
-                class="space-y-1 text-sm text-gray-600"
+                class="space-y-3"
               >
                 <div class="flex gap-4">
-                  <p
-                    class="w-1/3 shrink-0 text-sm whitespace-nowrap text-gray-500"
-                  >
-                    Recipient Name
+                  <p class="text-text-muted w-1/3 shrink-0 text-sm">
+                    Recipient
                   </p>
-                  <p class="font-medium text-gray-900">
+                  <p class="text-[#E8E8E8]">
                     {{ order.address.name }}
                   </p>
                 </div>
                 <div class="flex gap-4">
-                  <p
-                    class="w-1/3 shrink-0 text-sm whitespace-nowrap text-gray-500"
-                  >
-                    Street
-                  </p>
-                  <p class="font-medium">{{ order.address.street }}</p>
+                  <p class="text-text-muted w-1/3 shrink-0 text-sm">Street</p>
+                  <p class="text-[#E8E8E8]">{{ order.address.street }}</p>
                 </div>
                 <div class="flex gap-4">
-                  <p
-                    class="w-1/3 shrink-0 text-sm whitespace-nowrap text-gray-500"
-                  >
-                    City, Country
-                  </p>
-                  <p class="font-medium">
+                  <p class="text-text-muted w-1/3 shrink-0 text-sm">City</p>
+                  <p class="text-[#E8E8E8]">
                     {{ order.address.city }}, {{ order.address.country }}
                   </p>
                 </div>
                 <div class="flex gap-4">
-                  <p
-                    class="w-1/3 shrink-0 text-sm whitespace-nowrap text-gray-500"
-                  >
-                    Phone
-                  </p>
-                  <p class="font-medium">{{ order.address.phone }}</p>
+                  <p class="text-text-muted w-1/3 shrink-0 text-sm">Phone</p>
+                  <p class="text-[#E8E8E8]">{{ order.address.phone }}</p>
                 </div>
               </div>
             </div>
 
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Order number</span>
-              <span class="font-medium">{{ order?.orderNumber }}</span>
+            <div class="flex justify-between border-b border-[#1E1E1E] py-4">
+              <span class="text-text-muted">Order Number</span>
+              <span class="text-[#C8A97E]">{{ order?.orderNumber }}</span>
             </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Date</span>
-              <span class="font-medium">{{ orderDate }}</span>
+            <div class="flex justify-between border-b border-[#1E1E1E] py-4">
+              <span class="text-text-muted">Date</span>
+              <span class="text-[#E8E8E8]">{{ orderDate }}</span>
             </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Subtotal</span>
-              <span class="font-medium">
+            <div class="flex justify-between border-b border-[#1E1E1E] py-4">
+              <span class="text-text-muted">Subtotal</span>
+              <span class="text-[#E8E8E8]">
                 {{ formatPrice(order?.subtotalAmount) }}
               </span>
             </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Shipping cost</span>
-              <span class="font-medium">
+            <div class="flex justify-between border-b border-[#1E1E1E] py-4">
+              <span class="text-text-muted">Shipping</span>
+              <span class="text-[#E8E8E8]">
                 {{ formatPrice(order?.shippingCost) }}
               </span>
             </div>
             <div
-              class="flex justify-between border-b pb-3"
-              :class="{ 'text-emerald-600': order?.discountAmount > 0 }"
+              class="flex justify-between border-b border-[#1E1E1E] py-4"
+              :class="{ 'text-[#C8A97E]': order?.discountAmount > 0 }"
             >
               <span>
                 Discount
@@ -606,38 +648,43 @@ const handleDownloadInvoice = async () => {
                   <span v-else>(-{{ formatPrice(order?.coupon?.value) }})</span>
                 </span>
               </span>
-              <span class="font-medium">
+              <span class="text-[#E8E8E8]">
                 {{ formatPrice(order?.discountAmount) }}
               </span>
             </div>
-            <div class="flex justify-between border-b pb-3">
-              <span class="text-gray-500">Total</span>
-              <span class="font-medium">
+            <div class="flex justify-between border-b border-[#1E1E1E] py-4">
+              <span class="text-text-muted">Total</span>
+              <span class="font-display text-xl text-[#C8A97E]">
                 {{ formatPrice(order?.totalAmount) }}
               </span>
             </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">Payment method</span>
-              <span class="font-medium">{{ paymentMethod }}</span>
+            <div class="flex justify-between py-4">
+              <span class="text-text-muted">Payment Method</span>
+              <span class="text-[#E8E8E8]">{{ paymentMethod }}</span>
             </div>
           </div>
 
-          <div class="mt-8 flex justify-center gap-4">
+          <div class="mx-auto mt-8 h-px w-24 bg-[#C8A97E]/40" />
+
+          <div class="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
             <RouterLink to="/my-account/orders">
-              <Button class="h-12 px-8">Purchase history</Button>
+              <button
+                class="bg-[#C8A97E] px-5 py-3 text-xs tracking-[0.2em] text-[#0A0A0A] uppercase transition-all hover:bg-[#B8995E]"
+              >
+                Purchase History
+              </button>
             </RouterLink>
 
-            <Button
-              variant="outline"
-              class="h-12 gap-2 px-8"
+            <button
+              class="flex items-center justify-center gap-2 border border-[#C8A97E]/40 px-5 py-3 text-xs tracking-[0.2em] text-[#C8A97E] uppercase transition-all hover:bg-[#C8A97E] hover:text-[#0A0A0A] disabled:opacity-50"
               :disabled="isDownloadingInvoice"
               @click="handleDownloadInvoice"
             >
               <svg
                 v-if="!isDownloadingInvoice"
                 xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -656,10 +703,10 @@ const handleDownloadInvoice = async () => {
               </svg>
               <div
                 v-else
-                class="h-4 w-4 animate-spin rounded-full border-2 border-gray-500 border-t-transparent"
+                class="h-4 w-4 animate-spin border-2 border-[#C8A97E] border-t-transparent"
               />
               Download Invoice
-            </Button>
+            </button>
           </div>
         </template>
       </CardContent>

@@ -13,17 +13,24 @@ const { relatedProducts } = useRelatedProducts(() => props.slug)
 </script>
 
 <template>
-  <!-- Related Products Section -->
-  <section class="mx-auto w-full max-w-7xl space-y-4 px-4 py-6">
+  <section class="mx-auto w-full max-w-7xl space-y-6 bg-[#0A0A0A] px-4 py-12">
     <div class="flex items-center justify-between">
-      <h2 class="text-xl font-bold text-black sm:text-2xl">
-        You might also like
-      </h2>
+      <div>
+        <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+          Discover More
+        </p>
+        <h2 class="font-display text-5xl font-light text-[#E8E8E8]">
+          You might also like
+        </h2>
+      </div>
 
       <RouterLink to="/shop">
-        <Button variant="link">
+        <Button
+          variant="outline"
+          class="border border-[#C8A97E]/40 text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
+        >
           More products
-          <ArrowRightIcon />
+          <ArrowRightIcon class="ml-2 h-4 w-4" />
         </Button>
       </RouterLink>
     </div>

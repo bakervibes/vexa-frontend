@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * MyAccountLayout
- * Layout for account pages with shared sidebar
- * Includes sidebar navigation for Account, Address, Orders, Wishlist
- */
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/composables/useAuth'
 import { cn } from '@/utils/lib'
@@ -23,10 +18,10 @@ const router = useRouter()
 const { user, logout } = useAuth()
 
 const menuItems = [
-  { name: 'Account', path: '/my-account/profile', icon: UserIcon },
-  { name: 'Address', path: '/my-account/addresses', icon: MapPinIcon },
-  { name: 'Orders', path: '/my-account/orders', icon: PackageIcon },
-  { name: 'Wishlist', path: '/my-account/wishlist', icon: HeartIcon },
+  { name: 'Mon compte', path: '/my-account/profile', icon: UserIcon },
+  { name: 'Adresses', path: '/my-account/addresses', icon: MapPinIcon },
+  { name: 'Commandes', path: '/my-account/orders', icon: PackageIcon },
+  { name: 'Favoris', path: '/my-account/wishlist', icon: HeartIcon },
 ]
 
 const isActive = (path: string) => {
@@ -46,7 +41,7 @@ const userInitials = computed(() => {
 })
 
 const fullName = computed(() => {
-  return user.value?.name || 'Guest'
+  return user.value?.name || 'Invité'
 })
 
 const handleLogout = async () => {
@@ -57,70 +52,77 @@ const handleLogout = async () => {
 
 <template>
   <div
-    class="container mx-auto flex h-fit min-h-[calc(100vh-4rem)] flex-col gap-8 bg-white px-4 py-8 sm:min-h-[calc(100vh-4.5rem)] md:py-12 lg:flex-row lg:items-start lg:gap-12"
+    class="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-6 py-24 lg:flex-row lg:items-start lg:gap-12"
   >
-    <!-- Sidebar -->
-    <aside class="w-full shrink-0 lg:sticky lg:top-30 lg:w-64">
-      <div class="rounded-lg bg-gray-50 py-6">
-        <!-- User Avatar & Name -->
-        <div class="mb-6 flex flex-col items-center">
-          <Avatar class="h-20 w-20">
+    <aside class="w-full shrink-0 lg:sticky lg:top-24 lg:w-64">
+      <div class="bg-surface border border-[#1E1E1E] p-6">
+        <div class="mb-8 flex flex-col items-center">
+          <Avatar class="h-20 w-20 border border-[#C8A97E]/40">
             <AvatarImage
               v-if="user?.image"
               :src="user.image"
               :alt="fullName"
             />
             <AvatarFallback
-              class="bg-primary text-primary-foreground text-xl font-medium"
+              class="bg-[#C8A97E] text-xl font-light text-[#0A0A0A]"
             >
               {{ userInitials }}
             </AvatarFallback>
           </Avatar>
-          <h2 class="mt-4 text-lg font-semibold">
+          <h2 class="font-display mt-4 text-lg font-light text-[#E8E8E8]">
             {{ fullName }}
           </h2>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav class="flex flex-col gap-1 px-5 lg:pr-0">
+        <div class="mx-auto mb-6 h-px w-16 bg-[#C8A97E]/40" />
+
+        <nav class="flex flex-col gap-1">
           <RouterLink
             v-for="item in menuItems"
             :key="item.path"
             :to="item.path"
             :class="
               cn(
-                'flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors lg:rounded-r-none',
+                'flex items-center gap-3 border-l-2 px-4 py-3 text-xs tracking-widest uppercase transition-colors',
                 isActive(item.path)
-                  ? 'bg-white text-black'
-                  : 'text-gray-500 hover:text-gray-900',
+                  ? 'border-[#C8A97E] bg-[#0A0A0A] text-[#C8A97E]'
+                  : 'border-transparent text-[#555] hover:border-[#C8A97E]/40 hover:text-[#E8E8E8]',
               )
             "
           >
             <component
               :is="item.icon"
-              class="h-5 w-5"
+              class="h-4 w-4"
             />
             {{ item.name }}
           </RouterLink>
 
           <button
             @click="handleLogout"
-            class="mt-4 flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-gray-500 transition-colors hover:text-red-600"
+            class="mt-6 flex cursor-pointer items-center gap-3 border-l-2 border-transparent px-4 py-3 text-xs tracking-widest text-[#555] uppercase transition-colors hover:border-[#C8A97E]/40 hover:text-[#C8A97E]"
           >
-            <LogOutIcon class="h-5 w-5" />
-            Log Out
+            <LogOutIcon class="h-4 w-4" />
+            Déconnexion
           </button>
         </nav>
       </div>
     </aside>
 
-    <!-- Main Content -->
     <div class="flex flex-1 flex-col">
-      <h1
-        class="mb-8 text-center font-serif text-4xl font-medium md:mb-12 md:text-5xl"
+      <div
+        class="mb-6 text-center text-xs tracking-[0.3em] text-[#C8A97E] uppercase"
       >
-        My Account
+        Espace client
+      </div>
+
+      <h1
+        class="font-display mb-4 text-center text-4xl font-light text-[#E8E8E8] md:text-5xl"
+      >
+        Mon
+        <span class="italic">compte</span>
       </h1>
+
+      <div class="mx-auto my-8 h-px w-24 bg-[#C8A97E]/40" />
 
       <RouterView />
     </div>
@@ -132,7 +134,3 @@ const handleLogout = async () => {
     />
   </div>
 </template>
-
-<style scoped>
-/* MyAccount layout specific styles */
-</style>

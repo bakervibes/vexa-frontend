@@ -88,7 +88,7 @@ export const searchService = {
   /**
    * Suggestions de recherche (autocomplete)
    */
-  async getSuggestions(query: string, limit = 8): Promise<SearchSuggestion[]> {
+  async getSuggestions(query: string, limit = 10): Promise<SearchSuggestion[]> {
     const params = new URLSearchParams()
     params.set('q', query)
     params.set('limit', String(limit))
@@ -102,7 +102,7 @@ export const searchService = {
   /**
    * Recherches populaires
    */
-  async getPopularSearches(limit = 6): Promise<string[]> {
+  async getPopularSearches(limit = 10): Promise<string[]> {
     return api<string[]>(`/search/popular?limit=${limit}`, 'GET')
   },
 

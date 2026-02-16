@@ -2,8 +2,6 @@
 import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import CustomSelect from '@/components/custom/custom-select.vue'
-import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
 import { FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,7 +39,6 @@ import {
   PlusIcon,
   Share2Icon,
   ShoppingCartIcon,
-  SmartphoneIcon,
   TagIcon,
   TruckIcon,
   WalletIcon,
@@ -539,7 +536,7 @@ const handleShareCheckout = async () => {
       :key="i"
       class="flex items-center gap-4"
     >
-      <Skeleton class="h-24 w-24 rounded-md" />
+      <Skeleton class="h-24 w-24" />
       <div class="flex-1 space-y-2">
         <Skeleton class="h-4 w-3/4" />
         <Skeleton class="h-3 w-1/2" />
@@ -556,22 +553,21 @@ const handleShareCheckout = async () => {
     v-else-if="errorShared"
     class="flex flex-col items-center justify-center gap-4 py-16 text-center"
   >
-    <div class="rounded-full bg-red-100 p-6">
-      <AlertTriangleIcon class="h-10 w-10 text-red-500" />
+    <div class="border-gold/40 border p-6">
+      <AlertTriangleIcon class="text-gold h-10 w-10" />
     </div>
     <div class="space-y-1">
-      <h3 class="text-lg font-semibold text-red-900">
+      <h3 class="font-display text-text text-xl font-light">
         Unable to load shared cart
       </h3>
-      <p class="text-sm text-red-600">{{ errorShared }}</p>
+      <p class="text-text-muted text-sm">{{ errorShared.message }}</p>
     </div>
     <RouterLink to="/cart">
-      <Button
-        variant="outline"
-        class="mt-4"
+      <button
+        class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
       >
         Return to my cart
-      </Button>
+      </button>
     </RouterLink>
   </div>
 
@@ -580,37 +576,40 @@ const handleShareCheckout = async () => {
     v-else-if="isEmpty"
     class="flex flex-col items-center justify-center gap-4 py-16 text-center"
   >
-    <div class="rounded-full bg-gray-100 p-6">
-      <ShoppingCartIcon class="h-10 w-10 text-gray-400" />
+    <div class="border-border-noir border p-6">
+      <ShoppingCartIcon class="text-text-muted h-10 w-10" />
     </div>
     <div class="space-y-1">
-      <h3 class="text-lg font-semibold">Your cart is empty</h3>
-      <p class="text-sm text-gray-500">Add products to start shopping</p>
+      <h3 class="font-display text-text text-xl font-light">
+        Your cart is empty
+      </h3>
+      <p class="text-text-muted text-sm">Add products to start shopping</p>
     </div>
     <RouterLink to="/shop">
-      <Button
-        variant="outline"
-        class="mt-4"
+      <button
+        class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
       >
         Continue shopping
-      </Button>
+      </button>
     </RouterLink>
   </div>
 
   <div
     v-else
-    class="flex flex-col gap-8"
+    class="bg-noir flex flex-col gap-8"
   >
     <div
       v-if="!!shareToken"
-      class="flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4"
+      class="border-gold/40 bg-surface flex items-center gap-3 border p-4"
     >
-      <div class="rounded-full bg-blue-100 p-2">
-        <TruckIcon class="h-5 w-5 text-blue-600" />
+      <div class="border-gold/40 border p-2">
+        <TruckIcon class="text-gold h-5 w-5" />
       </div>
       <div>
-        <h3 class="font-semibold text-blue-900">Paying for a Shared Cart</h3>
-        <p class="text-sm text-blue-700">
+        <h3 class="text-gold text-xs tracking-[0.3em] uppercase">
+          Paying for a Shared Cart
+        </h3>
+        <p class="text-text-muted mt-1 text-sm">
           You are processing payment for a shared cart. The items and total
           amount are managed by the cart owner.
         </p>
@@ -624,45 +623,52 @@ const handleShareCheckout = async () => {
           v-if="!shareToken"
           class="flex justify-end"
         >
-          <LoadingButton
-            :loading="isSharingCheckout"
+          <button
             :disabled="isSharingCheckout"
-            variant="outline"
             @click="handleShareCheckout"
+            class="border-gold/40 text-gold hover:bg-gold hover:text-noir flex items-center gap-2 border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all disabled:opacity-50"
           >
             <Share2Icon class="h-4 w-4" />
-            <span class="hidden text-sm sm:block">Share</span>
-          </LoadingButton>
+            <span class="hidden sm:block">Share</span>
+          </button>
         </div>
 
         <form @submit="onSubmit">
           <!-- Address Selection Section -->
-          <div class="mb-6 rounded border p-6">
-            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold">
-              <MapPinIcon class="h-5 w-5" />
+          <div class="border-border-noir bg-surface mb-6 border p-6">
+            <div class="bg-gold/40 mx-auto mb-6 h-px w-24"></div>
+            <h2 class="font-display text-text mb-6 text-3xl font-light">
               Contact & Delivery Address
             </h2>
 
             <!-- Address Mode Selection -->
             <div class="mb-4 flex gap-4">
-              <Button
+              <button
                 type="button"
-                :variant="addressMode === 'existing' ? 'default' : 'outline'"
                 @click="addressMode = 'existing'"
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+                :class="
+                  addressMode === 'existing'
+                    ? 'bg-gold text-noir'
+                    : 'border-gold/40 text-gold hover:bg-gold hover:text-noir border'
+                "
               >
                 <MapPinIcon class="h-4 w-4" />
                 Use Saved Address
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                :variant="addressMode === 'new' ? 'default' : 'outline'"
                 @click="addressMode = 'new'"
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+                :class="
+                  addressMode === 'new'
+                    ? 'bg-gold text-noir'
+                    : 'border-gold/40 text-gold hover:bg-gold hover:text-noir border'
+                "
               >
                 <PlusIcon class="h-4 w-4" />
                 New Address
-              </Button>
+              </button>
             </div>
 
             <!-- Saved Addresses List -->
@@ -674,41 +680,43 @@ const handleShareCheckout = async () => {
                 v-for="address in addresses"
                 :key="address.id"
                 @click="selectAddress(address)"
-                class="flex cursor-pointer items-start gap-3 rounded border p-4 transition-colors"
+                class="flex cursor-pointer items-start gap-3 border p-4 transition-colors"
                 :class="{
-                  'border-black bg-gray-50': selectedAddressId === address.id,
-                  'hover:border-gray-400': selectedAddressId !== address.id,
+                  'border-gold bg-border-noir':
+                    selectedAddressId === address.id,
+                  'hover:border-gold/40 border-border-noir':
+                    selectedAddressId !== address.id,
                 }"
               >
                 <div
-                  class="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2"
+                  class="mt-0.5 flex h-5 w-5 items-center justify-center border-2"
                   :class="{
-                    'border-black': selectedAddressId === address.id,
-                    'border-gray-300': selectedAddressId !== address.id,
+                    'border-gold': selectedAddressId === address.id,
+                    'border-text-muted': selectedAddressId !== address.id,
                   }"
                 >
                   <div
                     v-if="selectedAddressId === address.id"
-                    class="h-2.5 w-2.5 rounded-full bg-black"
+                    class="bg-gold h-2.5 w-2.5"
                   />
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="font-medium">{{ address.name }}</span>
+                    <span class="text-text">{{ address.name }}</span>
                     <span
                       v-if="address.isDefault"
-                      class="rounded bg-gray-200 px-2 py-0.5 text-xs"
+                      class="border-gold/40 text-gold border px-2 py-0.5 text-xs tracking-[0.2em] uppercase"
                     >
                       Default
                     </span>
                   </div>
-                  <p class="text-sm text-gray-600">
+                  <p class="text-text-muted text-sm">
                     {{ address.street }}, {{ address.city }}
                   </p>
-                  <p class="text-sm text-gray-600">{{ address.country }}</p>
+                  <p class="text-text-muted text-sm">{{ address.country }}</p>
                   <p
                     v-if="address.phone"
-                    class="mt-1 text-sm text-gray-500"
+                    class="text-text-muted mt-1 text-sm"
                   >
                     {{ address.phone }}
                   </p>
@@ -718,7 +726,7 @@ const handleShareCheckout = async () => {
 
             <p
               v-if="addressMode === 'existing' && selectedAddressId"
-              class="mb-4 text-sm text-gray-500"
+              class="text-text-muted mb-4 text-sm"
             >
               You can modify the fields below. If you make changes, the address
               will be updated.
@@ -824,9 +832,9 @@ const handleShareCheckout = async () => {
           </div>
 
           <!-- Shipping Method -->
-          <div class="mb-6 rounded border p-6">
-            <h2 class="mb-6 flex items-center gap-2 text-xl font-semibold">
-              <TruckIcon class="h-5 w-5" />
+          <div class="border-border-noir bg-surface mb-6 border p-6">
+            <div class="bg-gold/40 mx-auto mb-6 h-px w-24"></div>
+            <h2 class="font-display text-text mb-6 text-3xl font-light">
               Shipping Method
             </h2>
 
@@ -838,10 +846,12 @@ const handleShareCheckout = async () => {
               <div
                 v-for="option in shippingOptions"
                 :key="option.id"
-                class="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors"
+                class="flex cursor-pointer items-center justify-between border p-4 transition-colors"
                 :class="{
-                  'border-black bg-gray-50': selectedShippingId === option.id,
-                  'hover:border-gray-300': selectedShippingId !== option.id,
+                  'border-gold bg-border-noir':
+                    selectedShippingId === option.id,
+                  'hover:border-gold/40 border-border-noir':
+                    selectedShippingId !== option.id,
                 }"
                 @click="changeShippingOption(option.id)"
               >
@@ -852,12 +862,12 @@ const handleShareCheckout = async () => {
                   />
                   <Label
                     :for="option.id"
-                    class="cursor-pointer font-normal"
+                    class="text-text cursor-pointer"
                   >
                     {{ option.label }}
                   </Label>
                 </div>
-                <span class="text-sm font-medium">
+                <span class="text-gold text-sm">
                   {{
                     option.price === 0
                       ? formatPrice(0)
@@ -869,26 +879,29 @@ const handleShareCheckout = async () => {
               </div>
             </RadioGroup>
 
-            <p class="mt-3 text-sm text-gray-500">
+            <p class="text-text-muted mt-3 text-xs tracking-[0.2em] uppercase">
               Note: Shipping cost is not affected by coupon discounts.
             </p>
           </div>
 
           <!-- Payment Method -->
-          <div class="mb-6 rounded border p-6">
-            <h2 class="mb-6 text-xl font-semibold">Payment method</h2>
+          <div class="border-border-noir bg-surface mb-6 border p-6">
+            <div class="bg-gold/40 mx-auto mb-6 h-px w-24"></div>
+            <h2 class="font-display text-text mb-6 text-3xl font-light">
+              Payment method
+            </h2>
 
             <RadioGroup
               v-model="paymentMethod"
-              class="grid gap-3 sm:grid-cols-2"
+              class="grid gap-3 sm:grid-cols-3"
             >
               <!-- Stripe -->
               <div
-                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                class="flex cursor-pointer items-center justify-between border p-4 transition-colors"
                 :class="{
-                  'border-black bg-gray-50':
+                  'border-gold bg-border-noir':
                     paymentMethod === PaymentProvider.STRIPE,
-                  'hover:border-gray-300':
+                  'hover:border-gold/40 border-border-noir':
                     paymentMethod !== PaymentProvider.STRIPE,
                 }"
                 @click="paymentMethod = PaymentProvider.STRIPE"
@@ -900,21 +913,21 @@ const handleShareCheckout = async () => {
                   />
                   <Label
                     for="stripe"
-                    class="cursor-pointer font-normal"
+                    class="text-text cursor-pointer"
                   >
                     Credit Card
                   </Label>
                 </div>
-                <CreditCardIcon class="h-5 w-5 text-gray-400" />
+                <CreditCardIcon class="text-gold h-5 w-5" />
               </div>
 
               <!-- PayPal -->
               <div
-                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                class="flex cursor-pointer items-center justify-between border p-4 transition-colors"
                 :class="{
-                  'border-black bg-gray-50':
+                  'border-gold bg-border-noir':
                     paymentMethod === PaymentProvider.PAYPAL,
-                  'hover:border-gray-300':
+                  'hover:border-gold/40 border-border-noir':
                     paymentMethod !== PaymentProvider.PAYPAL,
                 }"
                 @click="paymentMethod = PaymentProvider.PAYPAL"
@@ -926,47 +939,21 @@ const handleShareCheckout = async () => {
                   />
                   <Label
                     for="paypal"
-                    class="cursor-pointer font-normal"
+                    class="text-text cursor-pointer"
                   >
                     PayPal
                   </Label>
                 </div>
-                <WalletIcon class="h-5 w-5 text-blue-500" />
-              </div>
-
-              <!-- Kkiapay -->
-              <div
-                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
-                :class="{
-                  'border-black bg-gray-50':
-                    paymentMethod === PaymentProvider.KKIAPAY,
-                  'hover:border-gray-300':
-                    paymentMethod !== PaymentProvider.KKIAPAY,
-                }"
-                @click="paymentMethod = PaymentProvider.KKIAPAY"
-              >
-                <div class="flex items-center gap-3">
-                  <RadioGroupItem
-                    id="kkiapay"
-                    :value="PaymentProvider.KKIAPAY"
-                  />
-                  <Label
-                    for="kkiapay"
-                    class="cursor-pointer font-normal"
-                  >
-                    Kkiapay
-                  </Label>
-                </div>
-                <SmartphoneIcon class="h-5 w-5 text-orange-500" />
+                <WalletIcon class="text-gold h-5 w-5" />
               </div>
 
               <!-- Moneroo -->
               <div
-                class="flex cursor-pointer items-center justify-between rounded border p-4 transition-colors"
+                class="flex cursor-pointer items-center justify-between border p-4 transition-colors"
                 :class="{
-                  'border-black bg-gray-50':
+                  'border-gold bg-border-noir':
                     paymentMethod === PaymentProvider.MONEROO,
-                  'hover:border-gray-300':
+                  'hover:border-gold/40 border-border-noir':
                     paymentMethod !== PaymentProvider.MONEROO,
                 }"
                 @click="paymentMethod = PaymentProvider.MONEROO"
@@ -978,37 +965,38 @@ const handleShareCheckout = async () => {
                   />
                   <Label
                     for="moneroo"
-                    class="cursor-pointer font-normal"
+                    class="text-text cursor-pointer"
                   >
-                    Moneroo
+                    Mobile payment
                   </Label>
                 </div>
-                <GlobeIcon class="h-5 w-5 text-purple-500" />
+                <GlobeIcon class="text-gold h-5 w-5" />
               </div>
             </RadioGroup>
 
-            <p class="mt-4 text-sm text-gray-500">
+            <p class="text-text-muted mt-4 text-xs tracking-[0.2em] uppercase">
               You will complete payment after placing your order.
             </p>
           </div>
 
           <!-- Place Order Button -->
-          <LoadingButton
+          <button
             type="submit"
-            :loading="isCreatingOrder"
             :disabled="isCreatingOrder"
-            class="h-14 w-full text-base"
+            class="bg-gold text-noir h-14 w-full text-xs tracking-[0.2em] uppercase transition-all hover:bg-[#B8995E] disabled:opacity-50"
           >
-            Place Order
-          </LoadingButton>
+            {{ isCreatingOrder ? 'Processing...' : 'Place Order' }}
+          </button>
         </form>
       </div>
 
       <!-- Right Column - Order Summary -->
       <div class="lg:col-span-2">
-        <div class="sticky top-24 rounded border p-6">
+        <div class="border-border-noir bg-surface sticky top-24 border p-6">
           <div class="mb-6 flex items-center justify-between">
-            <h2 class="text-xl font-semibold">Order summary</h2>
+            <h2 class="font-display text-text text-3xl font-light">
+              Order summary
+            </h2>
           </div>
 
           <!-- Cart Items -->
@@ -1016,11 +1004,11 @@ const handleShareCheckout = async () => {
             <div
               v-for="item in items"
               :key="item.id"
-              class="flex gap-4 border-b pb-4"
+              class="border-border-noir flex gap-4 border-b pb-4"
             >
               <RouterLink
                 :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
-                class="relative aspect-square w-26 shrink-0 overflow-hidden rounded bg-gray-100"
+                class="border-border-noir bg-surface relative aspect-square w-26 shrink-0 overflow-hidden border"
               >
                 <img
                   :src="item.product.images[0]"
@@ -1032,13 +1020,13 @@ const handleShareCheckout = async () => {
                 <div>
                   <RouterLink
                     :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
-                    class="font-medium"
+                    class="text-text"
                   >
                     {{ item.product.name }}
                   </RouterLink>
                   <p
                     v-if="item.productVariant"
-                    class="flex flex-col text-sm text-gray-500"
+                    class="text-text-muted flex flex-col text-sm"
                   >
                     <span
                       v-for="option in item.productVariant
@@ -1051,14 +1039,14 @@ const handleShareCheckout = async () => {
                   </p>
                 </div>
                 <div class="flex items-center gap-1 text-sm">
-                  <span class="text-gray-700">{{ item.quantity }}</span>
-                  <span class="text-xs text-gray-500">x</span>
-                  <span class="text-gray-700">
+                  <span class="text-text-muted">{{ item.quantity }}</span>
+                  <span class="text-text-muted text-xs">x</span>
+                  <span class="text-gold">
                     {{ formatPrice(getItemPrice(item)) }}
                   </span>
                 </div>
               </div>
-              <div class="text-right font-medium">
+              <div class="text-gold text-right">
                 {{ formatPrice(getItemSubtotal(item)) }}
               </div>
             </div>
@@ -1066,22 +1054,24 @@ const handleShareCheckout = async () => {
 
           <!-- Coupon Section -->
           <div class="mt-4">
-            <h3 class="mb-2 text-lg font-semibold">Have a coupon?</h3>
-            <p class="mb-4 text-sm text-gray-500">
+            <h3 class="text-gold mb-2 text-xs tracking-[0.3em] uppercase">
+              Have a coupon?
+            </h3>
+            <p class="text-text-muted mb-4 text-sm">
               Add your code for an instant cart discount
             </p>
 
             <!-- Applied Coupon Display -->
             <div
               v-if="hasAppliedCoupon && appliedCoupon"
-              class="mb-4 flex h-10 items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3"
+              class="border-gold/40 bg-border-noir mb-4 flex h-10 items-center justify-between border px-3"
             >
               <div class="flex items-center gap-2">
-                <TagIcon class="h-4 w-4 text-emerald-600" />
-                <span class="font-medium text-emerald-700">
+                <TagIcon class="text-gold h-4 w-4" />
+                <span class="text-gold">
                   {{ appliedCoupon.code }}
                 </span>
-                <span class="text-sm text-emerald-600">
+                <span class="text-gold/70 text-sm">
                   (-{{
                     appliedCoupon.type === 'PERCENTAGE'
                       ? `${appliedCoupon.value}%`
@@ -1091,7 +1081,7 @@ const handleShareCheckout = async () => {
               </div>
               <button
                 @click="removeCoupon"
-                class="cursor-pointer text-sm text-red-500 hover:text-red-600"
+                class="text-gold hover:text-text cursor-pointer text-xs tracking-[0.2em] uppercase"
               >
                 Remove
               </button>
@@ -1106,45 +1096,51 @@ const handleShareCheckout = async () => {
                 <Input
                   v-model="couponCode"
                   placeholder="Coupon Code"
-                  class="h-10 w-full pl-10 uppercase"
+                  class="focus:border-gold text-text placeholder:text-text-muted border-border-noir bg-surface h-10 w-full border pl-10 uppercase"
                   :disabled="isApplyingCoupon"
                   @keyup.enter="handleApplyCoupon"
                 />
                 <TagIcon
-                  class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  class="text-text-muted absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
                 />
               </div>
-              <LoadingButton
-                class="h-10 px-6"
+              <button
+                class="border-gold/40 text-gold hover:bg-gold hover:text-noir h-10 border px-6 text-xs tracking-[0.2em] uppercase transition-all disabled:opacity-50"
                 @click="handleApplyCoupon"
                 :disabled="isApplyingCoupon || !couponCode"
-                :loading="isApplyingCoupon"
               >
-                Apply
-              </LoadingButton>
+                {{ isApplyingCoupon ? 'Applying...' : 'Apply' }}
+              </button>
             </div>
           </div>
 
           <!-- Summary Totals -->
-          <div class="mt-6 space-y-3 border-t pt-6">
+          <div class="border-border-noir mt-6 space-y-3 border-t pt-6">
             <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Subtotal</span>
-              <span>{{ formatPrice(subtotal) }}</span>
+              <span class="text-text-muted">Subtotal</span>
+              <span class="text-text">{{ formatPrice(subtotal) }}</span>
             </div>
             <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Shipping</span>
-              <span>{{ formatPrice(shippingCost) }}</span>
+              <span class="text-text-muted">Shipping</span>
+              <span class="text-text">
+                {{ formatPrice(shippingCost) }}
+              </span>
             </div>
             <div
               v-if="hasAppliedCoupon"
-              class="flex justify-between text-sm text-emerald-600"
+              class="text-gold flex justify-between text-sm"
             >
               <span>Discount</span>
               <span>-{{ formatPrice(discountAmount) }}</span>
             </div>
-            <div class="flex justify-between text-lg font-semibold">
-              <span>Total</span>
-              <span>{{ formatPrice(total) }}</span>
+            <div class="bg-gold/40 mx-auto mt-4 h-px w-24"></div>
+            <div class="flex justify-between pt-2">
+              <span class="text-gold text-xs tracking-[0.3em] uppercase">
+                Total
+              </span>
+              <span class="font-display text-gold text-2xl font-light">
+                {{ formatPrice(total) }}
+              </span>
             </div>
           </div>
         </div>

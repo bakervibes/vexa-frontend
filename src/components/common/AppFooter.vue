@@ -3,171 +3,120 @@ import { Facebook, Instagram, Youtube } from 'lucide-vue-next'
 </script>
 
 <template>
-  <footer class="bg-[#141718] px-8 py-12 font-['Poppins'] text-white">
-    <div class="mx-auto max-w-7xl">
-      <!-- Desktop Layout -->
-      <div class="mb-12 hidden items-center justify-between md:flex">
-        <div class="flex items-center gap-8">
-          <router-link
-            to="/"
-            class="text-2xl font-medium"
+  <footer class="bg-noir border-border-noir border-t px-6 py-16">
+    <div class="mx-auto max-w-6xl">
+      <div class="grid gap-10 md:grid-cols-4">
+        <div>
+          <span
+            class="font-display text-gold text-lg tracking-[0.2em] uppercase"
           >
-            3legant.
-          </router-link>
-          <div class="h-6 w-px bg-gray-600"></div>
-          <span class="text-sm font-normal text-gray-300">
-            Gift & Decoration Store
+            Vexa
           </span>
+          <p class="mt-3 text-xs leading-relaxed text-[#555]">
+            Commerce de luxe. Qualité exceptionnelle.
+          </p>
         </div>
 
-        <nav class="flex gap-10">
-          <router-link
-            to="/"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Home
-          </router-link>
-          <router-link
-            to="/shop"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Shop
-          </router-link>
-          <router-link
-            to="/about"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            About
-          </router-link>
-          <router-link
-            to="/contact"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Contact
-          </router-link>
-          <router-link
-            to="/faq"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            FAQ
-          </router-link>
-        </nav>
-      </div>
-
-      <!-- Mobile Layout -->
-      <div class="mb-10 flex flex-col items-center gap-8 md:hidden">
-        <div class="flex flex-col items-center gap-4">
-          <router-link
-            to="/"
-            class="text-2xl font-medium"
-          >
-            3legant.
-          </router-link>
-          <div class="h-px w-6 bg-gray-600"></div>
-          <span class="text-sm font-normal text-gray-300">
-            Gift & Decoration Store
-          </span>
+        <div>
+          <h4 class="mb-3 text-[10px] tracking-[0.2em] text-[#555] uppercase">
+            Navigation
+          </h4>
+          <ul class="space-y-2 text-xs text-[#444]">
+            <li>
+              <RouterLink
+                to="/shop"
+                class="hover:text-gold transition-colors"
+              >
+                Boutique
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink
+                to="/on-sale"
+                class="hover:text-gold transition-colors"
+              >
+                Promotions
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink
+                to="/new-arrivals"
+                class="hover:text-gold transition-colors"
+              >
+                Nouveautés
+              </RouterLink>
+            </li>
+          </ul>
         </div>
 
-        <nav class="flex flex-col items-center gap-4">
-          <router-link
-            to="/"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Home
-          </router-link>
-          <router-link
-            to="/shop"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            Shop
-          </router-link>
-          <router-link
-            to="/about"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            About
-          </router-link>
-          <router-link
-            to="/contact"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
+        <div>
+          <h4 class="mb-3 text-[10px] tracking-[0.2em] text-[#555] uppercase">
+            Légal
+          </h4>
+          <ul class="space-y-2 text-xs text-[#444]">
+            <li>
+              <RouterLink
+                to="/privacy-policy"
+                class="hover:text-gold transition-colors"
+              >
+                Confidentialité
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink
+                to="/terms-of-service"
+                class="hover:text-gold transition-colors"
+              >
+                CGU
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink
+                to="/legal"
+                class="hover:text-gold transition-colors"
+              >
+                Mentions légales
+              </RouterLink>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="mb-3 text-[10px] tracking-[0.2em] text-[#555] uppercase">
             Contact
-          </router-link>
-          <router-link
-            to="/faq"
-            class="text-sm transition-colors hover:text-gray-300"
-          >
-            FAQ
-          </router-link>
-        </nav>
-      </div>
-
-      <!-- Divider -->
-      <div class="mb-8 h-px w-full bg-gray-800"></div>
-
-      <!-- Bottom Section -->
-      <div
-        class="flex w-full flex-col items-center justify-between md:flex-row"
-      >
-        <!-- Desktop Left / Mobile Bottom -->
-        <div
-          class="order-3 flex flex-col items-center gap-4 md:order-1 md:flex-row md:gap-8"
-        >
-          <span class="order-2 text-xs text-gray-400 md:order-1">
-            Copyright © 2023 3legant. All rights reserved
-          </span>
-          <div class="order-1 flex gap-6 md:order-2">
-            <router-link
-              to="/privacy-policy"
-              class="text-xs font-semibold text-white"
+          </h4>
+          <ul class="space-y-2 text-xs text-[#444]">
+            <li>contact@vexa.com</li>
+            <li>Paris, France</li>
+          </ul>
+          <div class="mt-6 flex gap-4">
+            <a
+              href="#"
+              class="hover:text-gold text-[#555] transition-colors"
             >
-              Privacy Policy
-            </router-link>
-            <router-link
-              to="/terms-and-conditions"
-              class="text-xs font-semibold text-white"
+              <Instagram class="size-5" />
+            </a>
+            <a
+              href="#"
+              class="hover:text-gold text-[#555] transition-colors"
             >
-              Terms of Use
-            </router-link>
-            <router-link
-              to="/legal"
-              class="text-xs font-semibold text-white"
+              <Facebook class="size-5" />
+            </a>
+            <a
+              href="#"
+              class="hover:text-gold text-[#555] transition-colors"
             >
-              Legal
-            </router-link>
+              <Youtube class="size-5" />
+            </a>
           </div>
         </div>
+      </div>
 
-        <!-- Desktop Right / Mobile Top -->
-        <div class="order-1 mb-8 flex gap-6 md:order-2 md:mb-0">
-          <a
-            href="#"
-            class="transition-colors hover:text-gray-300"
-          >
-            <Instagram class="h-6 w-6" />
-          </a>
-          <a
-            href="#"
-            class="transition-colors hover:text-gray-300"
-          >
-            <Facebook class="h-6 w-6" />
-          </a>
-          <a
-            href="#"
-            class="transition-colors hover:text-gray-300"
-          >
-            <Youtube class="h-6 w-6" />
-          </a>
-        </div>
+      <div
+        class="border-border-noir mt-12 border-t pt-8 text-center text-[10px] tracking-widest text-[#333] uppercase"
+      >
+        © 2026 Vexa. Tous droits réservés.
       </div>
     </div>
   </footer>
 </template>
-
-<style scoped>
-/* Ensure font is applied if not inherited correctly, though main.css should handle it */
-footer {
-  font-family: 'Poppins', sans-serif;
-}
-</style>

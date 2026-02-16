@@ -19,16 +19,6 @@ const envSchema = z.object({
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive('Le timeout doit être positif')),
 
-  // Feature Flags
-  VITE_ENABLE_DEV_TOOLS: z
-    .string()
-    .transform((val) => val === 'true')
-    .pipe(z.boolean()),
-  VITE_ENABLE_ANALYTICS: z
-    .string()
-    .transform((val) => val === 'true')
-    .pipe(z.boolean()),
-
   // Environment
   VITE_ENV: z.enum(['development', 'staging', 'production'], {
     message: "L'environnement doit être development, staging ou production",

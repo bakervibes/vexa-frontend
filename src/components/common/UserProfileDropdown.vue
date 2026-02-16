@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +35,7 @@ const userInitials = computed(() => {
 })
 
 const fullName = computed(() => {
-  return user.value?.name || 'User'
+  return user.value?.name || 'Utilisateur'
 })
 
 const handleAvatarClick = () => {
@@ -56,82 +55,86 @@ const navigateTo = (path: string) => {
 </script>
 
 <template>
-  <!-- Not authenticated: show clickable avatar that opens auth modal -->
-  <Button
+  <button
     v-if="!isAuthenticated"
-    variant="ghost"
-    size="icon"
     @click="handleAvatarClick"
-    class="p-2"
-    aria-label="Sign in"
+    class="hover:text-gold p-2 text-[#555] transition-colors"
+    aria-label="Connexion"
   >
     <UserIcon class="size-5 cursor-pointer" />
-  </Button>
+  </button>
 
-  <!-- Authenticated: show dropdown with user info -->
   <div v-else>
     <DropdownMenu>
       <DropdownMenuTrigger as-child>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="rounded-full"
-          aria-label="User menu"
+        <button
+          class="flex items-center justify-center"
+          aria-label="Menu utilisateur"
         >
-          <Avatar class="h-8 w-8 cursor-pointer">
+          <Avatar class="border-gold/40 h-8 w-8 cursor-pointer border">
             <AvatarImage
               v-if="user?.image"
               :src="user.image"
               :alt="fullName"
             />
-            <AvatarFallback class="bg-green-600 text-white">
+            <AvatarFallback class="bg-gold text-noir text-xs">
               {{ userInitials }}
             </AvatarFallback>
           </Avatar>
-        </Button>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        class="w-56"
+        class="text-text bg-noir border-border-noir w-56"
         align="end"
       >
         <DropdownMenuLabel class="font-normal">
           <div class="flex flex-col space-y-1">
-            <p class="text-sm leading-none font-medium">
+            <p class="text-text text-sm leading-none font-medium">
               {{ fullName }}
             </p>
-            <p class="text-muted-foreground text-xs leading-none">
+            <p class="text-xs leading-none text-[#555]">
               {{ user?.email || '' }}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem @click="navigateTo('/my-account/profile')">
+        <DropdownMenuSeparator class="bg-border-noir" />
+        <DropdownMenuItem
+          @click="navigateTo('/my-account/profile')"
+          class="hover:text-gold focus:text-gold cursor-pointer text-[#555] transition-colors"
+        >
           <UserIcon class="mr-2 h-4 w-4" />
-          <span>My Account</span>
+          <span>Mon Compte</span>
         </DropdownMenuItem>
-        <DropdownMenuItem @click="navigateTo('/my-account/addresses')">
+        <DropdownMenuItem
+          @click="navigateTo('/my-account/addresses')"
+          class="hover:text-gold focus:text-gold cursor-pointer text-[#555] transition-colors"
+        >
           <MapPinIcon class="mr-2 h-4 w-4" />
-          <span>Addresses</span>
+          <span>Adresses</span>
         </DropdownMenuItem>
-        <DropdownMenuItem @click="navigateTo('/my-account/orders')">
+        <DropdownMenuItem
+          @click="navigateTo('/my-account/orders')"
+          class="hover:text-gold focus:text-gold cursor-pointer text-[#555] transition-colors"
+        >
           <BoxIcon class="mr-2 h-4 w-4" />
-          <span>Orders</span>
+          <span>Commandes</span>
         </DropdownMenuItem>
-        <DropdownMenuItem @click="navigateTo('/my-account/wishlist')">
+        <DropdownMenuItem
+          @click="navigateTo('/my-account/wishlist')"
+          class="hover:text-gold focus:text-gold cursor-pointer text-[#555] transition-colors"
+        >
           <HeartIcon class="mr-2 h-4 w-4" />
-          <span>Wishlist</span>
+          <span>Favoris</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
+        <DropdownMenuSeparator class="bg-border-noir" />
         <DropdownMenuItem
           @click="handleLogout"
-          class="text-red-600 focus:text-red-600"
+          class="text-gold hover:text-text focus:text-text cursor-pointer transition-colors"
         >
           <LogOutIcon class="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Déconnexion</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   </div>
 </template>
-
-<style scoped></style>

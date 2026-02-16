@@ -463,6 +463,14 @@ const routes: RouteRecordRaw[] = [
           title: 'Gestion des stocks',
         },
       },
+      {
+        path: 'stock/:id',
+        name: 'admin-stock-adjust',
+        component: () => import('@/views/admin/stock/StockAdjustPage.vue'),
+        meta: {
+          title: 'Ajuster le stock',
+        },
+      },
       // Shipping
       {
         path: 'shipping',

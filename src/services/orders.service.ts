@@ -10,7 +10,11 @@ export const orderService = {
   },
 
   async getUserOrders() {
-    return api<OrderDetails[]>('/orders/me', 'GET')
+    const response = await api<{ data: OrderDetails[]; meta: unknown }>(
+      '/orders/me',
+      'GET',
+    )
+    return response.data
   },
 
   async getOrderById(id: string) {

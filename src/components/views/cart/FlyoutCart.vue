@@ -183,7 +183,6 @@ const confirmRemoveItem = async () => {
 
   const { itemId } = itemToRemove.value
 
-  // Clear any pending quantity changes for all items (we don't have the key easily)
   pendingQuantities.value.forEach((pending, key) => {
     if (pending?.timer) {
       clearTimeout(pending.timer)
@@ -248,12 +247,12 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
         variant="ghost"
         size="icon"
         aria-label="Shopping Cart"
-        class="relative p-2"
+        class="hover:text-gold text-text relative p-2 hover:bg-transparent"
       >
         <ShoppingCartIcon class="size-5" />
         <span
           v-if="cartItemsCount > 0"
-          class="bg-primary absolute -top-1.5 -right-1.5 flex items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-bold text-white"
+          class="bg-gold text-noir absolute -top-1.5 -right-1.5 flex items-center justify-center px-1 py-0.5 text-[10px] font-bold"
         >
           {{ cartItemsCount }}
         </span>
@@ -261,11 +260,14 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
     </SheetTrigger>
     <SheetContent
       side="right"
-      class="flex h-full w-full flex-col sm:max-w-100"
+      class="text-text bg-noir border-border-noir flex h-full w-full flex-col border-l sm:max-w-100"
     >
-      <SheetHeader class="text-start">
-        <SheetTitle class="text-lg font-semibold">
-          My Cart ({{ cartItemsCount }})
+      <SheetHeader class="border-border-noir border-b pb-4 text-start">
+        <SheetTitle class="font-display text-text text-2xl tracking-wide">
+          My Cart
+          <span class="text-gold ml-2 text-xs tracking-[0.3em] uppercase">
+            ({{ cartItemsCount }})
+          </span>
         </SheetTitle>
       </SheetHeader>
 
@@ -279,13 +281,13 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
           :key="i"
           class="flex items-center gap-4"
         >
-          <Skeleton class="h-20 w-20 rounded-md" />
+          <Skeleton class="bg-surface h-20 w-20" />
           <div class="flex-1 space-y-2">
-            <Skeleton class="h-4 w-3/4" />
-            <Skeleton class="h-3 w-1/2" />
+            <Skeleton class="bg-surface h-4 w-3/4" />
+            <Skeleton class="bg-surface h-3 w-1/2" />
             <div class="flex items-center justify-between pt-2">
-              <Skeleton class="h-8 w-24" />
-              <Skeleton class="h-4 w-16" />
+              <Skeleton class="bg-surface h-8 w-24" />
+              <Skeleton class="bg-surface h-4 w-16" />
             </div>
           </div>
         </div>
@@ -294,18 +296,17 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
       <!-- Empty Cart State -->
       <div
         v-else-if="isCartEmpty"
-        class="flex flex-1 flex-col items-center justify-center gap-4 py-4 text-center"
+        class="flex flex-1 flex-col items-center justify-center gap-6 py-4 text-center"
       >
-        <div class="rounded-full bg-gray-100 p-6">
-          <ShoppingCartIcon class="size-10 text-gray-400" />
+        <div class="border-border-noir bg-surface border p-6">
+          <ShoppingCartIcon class="text-text-muted size-10" />
         </div>
-        <div class="space-y-1">
-          <h3 class="font-semibold">Your cart is empty</h3>
-          <p class="text-sm text-gray-500">Add products to start shopping</p>
+        <div class="space-y-2">
+          <h3 class="font-display text-text text-xl">Your cart is empty</h3>
+          <p class="text-text-muted text-sm">Add products to start shopping</p>
         </div>
         <Button
-          variant="outline"
-          class="mt-4"
+          class="border-gold/40 text-gold hover:bg-gold hover:text-noir border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           @click="isDrawerOpen = false"
         >
           Continue shopping
@@ -315,20 +316,20 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
       <!-- Cart Items -->
       <section
         v-else
-        class="no-scrollbar h-full flex-1 overflow-y-auto px-2"
+        class="no-scrollbar h-full flex-1 overflow-y-auto"
       >
         <div class="flex flex-col">
           <div
             v-for="(item, index) in cartItems"
             :key="item.id"
-            class="flex gap-3 px-1 py-5"
+            class="flex gap-3 py-5"
             :class="{
-              'border-b': index < cartItems.length - 1,
+              'border-border-noir border-b': index < cartItems.length - 1,
             }"
           >
             <RouterLink
               :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
-              class="relative h-30 w-26 shrink-0 overflow-hidden border bg-gray-100"
+              class="border-border-noir bg-surface relative h-30 w-26 shrink-0 overflow-hidden border"
               @click="isDrawerOpen = false"
             >
               <img
@@ -342,7 +343,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
               <div class="flex w-2/3 flex-col gap-1">
                 <RouterLink
                   :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
-                  class="line-clamp-2 font-medium"
+                  class="hover:text-gold text-text line-clamp-2 font-medium transition-colors"
                   @click="isDrawerOpen = false"
                 >
                   {{ item.product.name }}
@@ -350,7 +351,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
 
                 <p
                   v-if="item.productVariant"
-                  class="flex flex-col text-xs text-gray-500"
+                  class="text-text-muted flex flex-col text-xs"
                 >
                   <span
                     v-if="item.productVariant.productVariantOptions.length > 0"
@@ -365,18 +366,20 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
                   </span>
                   <span
                     v-if="item.productVariant.productVariantOptions.length > 1"
-                    class="w-fit text-gray-500"
+                    class="w-fit"
                   >
                     +{{ item.productVariant.productVariantOptions.length - 1 }}
                     more
                   </span>
                 </p>
 
-                <div class="flex w-fit items-center rounded border">
+                <div
+                  class="border-border-noir bg-surface flex w-fit items-center border"
+                >
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="size-6 rounded-none rounded-l p-0"
+                    class="hover:text-gold text-text-muted size-7 p-0 hover:bg-transparent"
                     @click="
                       handleQuantityChange(
                         item.productId,
@@ -400,7 +403,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
                     <Minus class="size-3" />
                   </Button>
                   <span
-                    class="relative flex w-8 items-center justify-center text-center text-sm"
+                    class="text-text relative flex w-8 items-center justify-center text-center text-sm"
                   >
                     {{
                       getDisplayQuantity(item.productId, item.productVariantId)
@@ -409,7 +412,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="size-6 rounded-none rounded-r p-0"
+                    class="hover:text-gold text-text-muted size-7 p-0 hover:bg-transparent"
                     @click="
                       handleQuantityChange(
                         item.productId,
@@ -437,7 +440,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
               </div>
 
               <div class="flex w-1/3 flex-col items-end gap-1">
-                <p class="text-sm font-medium">
+                <p class="text-gold text-sm font-medium">
                   {{ formatPrice(getItemPrice(item)) }}
                 </p>
 
@@ -456,7 +459,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
                     updatingItemId !== null ||
                     removingItemId !== null
                   "
-                  class="cursor-pointer p-1 text-red-500 hover:text-red-600"
+                  class="hover:text-gold text-text-muted cursor-pointer p-1 hover:bg-transparent"
                 >
                   <Trash2Icon class="size-4" />
                 </Button>
@@ -467,25 +470,28 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
       </section>
 
       <!-- Cart Footer -->
-      <SheetFooter
+      <div
         v-if="!isCartEmpty"
-        class="flex flex-col gap-2 border-t p-4"
+        class="border-border-noir flex flex-col gap-4 border-t p-4"
       >
-        <div class="flex justify-between text-base font-medium">
-          <span>Total</span>
-          <span>{{ formatPrice(cartSubtotal) }}</span>
+        <div class="flex justify-between text-base">
+          <span class="text-gold text-xs tracking-[0.3em] uppercase">
+            Total
+          </span>
+          <span class="font-display text-text text-xl">
+            {{ formatPrice(cartSubtotal) }}
+          </span>
         </div>
 
-        <div class="grid w-full grid-cols-2 gap-2">
+        <div class="grid w-full grid-cols-2 gap-3">
           <LoadingButton
             :loading="isClearingCart"
-            variant="outline"
-            class="w-full"
+            class="hover:text-text text-text-muted border-border-noir hover:bg-surface w-full border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
             @click="openClearCartDialog"
             :disabled="isGlobalActionDisabled"
           >
             <Trash2Icon class="mr-2 size-4" />
-            Clear cart
+            Clear
           </LoadingButton>
 
           <RouterLink
@@ -493,36 +499,44 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
             @click="isDrawerOpen = false"
             class="w-full"
           >
-            <Button class="w-full">Checkout</Button>
+            <Button
+              class="border-gold/40 text-gold hover:bg-gold hover:text-noir w-full border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+            >
+              Checkout
+            </Button>
           </RouterLink>
         </div>
 
         <div class="flex justify-center">
           <RouterLink
             to="/cart"
-            class="border-b border-black text-sm font-medium"
+            class="hover:text-gold text-text-muted text-xs tracking-[0.2em] uppercase transition-colors"
             @click="isDrawerOpen = false"
           >
             View cart
           </RouterLink>
         </div>
-      </SheetFooter>
+      </div>
     </SheetContent>
   </Sheet>
 
   <!-- Remove Item Dialog -->
   <Dialog v-model:open="showRemoveItemDialog">
-    <DialogContent class="sm:max-w-[425px]">
+    <DialogContent
+      class="text-text bg-noir border-border-noir border sm:max-w-[425px]"
+    >
       <DialogHeader>
-        <DialogTitle>Remove item from cart?</DialogTitle>
-        <DialogDescription>
+        <DialogTitle class="font-display text-text text-xl">
+          Remove item from cart?
+        </DialogTitle>
+        <DialogDescription class="text-text-muted">
           Are you sure you want to remove "{{ itemToRemove?.productName }}" from
           your cart? This action cannot be undone.
         </DialogDescription>
       </DialogHeader>
-      <DialogFooter>
+      <DialogFooter class="gap-2">
         <Button
-          variant="outline"
+          class="hover:text-text text-text-muted border-border-noir hover:bg-surface border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           @click="cancelRemoveItem"
           :disabled="isRemovingCartItem"
         >
@@ -531,7 +545,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
         <LoadingButton
           :loading="isRemovingCartItem"
           :disabled="isRemovingCartItem"
-          variant="destructive"
+          class="border-gold/40 text-gold hover:bg-gold hover:text-noir border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           @click="confirmRemoveItem"
         >
           Remove
@@ -542,17 +556,21 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
 
   <!-- Clear Cart Dialog -->
   <Dialog v-model:open="showClearCartDialog">
-    <DialogContent class="sm:max-w-[425px]">
+    <DialogContent
+      class="text-text bg-noir border-border-noir border sm:max-w-[425px]"
+    >
       <DialogHeader>
-        <DialogTitle>Clear your cart?</DialogTitle>
-        <DialogDescription>
+        <DialogTitle class="font-display text-text text-xl">
+          Clear your cart?
+        </DialogTitle>
+        <DialogDescription class="text-text-muted">
           Are you sure you want to remove all items from your cart? This action
           cannot be undone.
         </DialogDescription>
       </DialogHeader>
-      <DialogFooter>
+      <DialogFooter class="gap-2">
         <Button
-          variant="outline"
+          class="hover:text-text text-text-muted border-border-noir hover:bg-surface border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           @click="cancelClearCart"
           :disabled="isClearingCart"
         >
@@ -561,7 +579,7 @@ const getItemPrice = (item: (typeof cartItems.value)[0]) => {
         <LoadingButton
           :loading="isClearingCart"
           :disabled="isClearingCart"
-          variant="destructive"
+          class="border-gold/40 text-gold hover:bg-gold hover:text-noir border bg-transparent px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           @click="confirmClearCart"
         >
           Clear cart

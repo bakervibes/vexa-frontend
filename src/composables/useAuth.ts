@@ -17,7 +17,7 @@ import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 
 // ========================================
-// Shared state (singleton pattern for errors)
+// Shared state (singleton pattern for errors and loading states)
 // ========================================
 const loginError = ref<string | null>(null)
 const registerError = ref<string | null>(null)
@@ -26,6 +26,16 @@ const resetPasswordError = ref<string | null>(null)
 const changePasswordError = ref<string | null>(null)
 const changeEmailError = ref<string | null>(null)
 const updateProfileError = ref<string | null>(null)
+
+// Loading states
+const isLogingIn = ref(false)
+const isRegistering = ref(false)
+const isLoggingOut = ref(false)
+const isForgotingPassword = ref(false)
+const isResettingPassword = ref(false)
+const isChangingPassword = ref(false)
+const isChangingEmail = ref(false)
+const isUpdatingProfile = ref(false)
 
 /**
  * Hook for managing authentication with better-auth
@@ -106,6 +116,7 @@ export const useAuth = () => {
     callbackUrl?: string,
   ) {
     loginError.value = null
+    isLogingIn.value = true
     // Check if we have a custom callback in the store (e.g., redirect to checkout)
     const hasCustomCallback = !!uiStore.authSuccessCallback
     try {
@@ -137,6 +148,8 @@ export const useAuth = () => {
         error:
           err instanceof Error ? err.message : 'Erreur lors de la connexion',
       }
+    } finally {
+      isLogingIn.value = false
     }
   }
 
@@ -153,6 +166,7 @@ export const useAuth = () => {
     callbackUrl?: string,
   ) {
     registerError.value = null
+    isRegistering.value = true
     // Check if we have a custom callback in the store (e.g., redirect to checkout)
     const hasCustomCallback = !!uiStore.authSuccessCallback
     try {
@@ -186,6 +200,8 @@ export const useAuth = () => {
         error:
           err instanceof Error ? err.message : "Erreur lors de l'inscription",
       }
+    } finally {
+      isRegistering.value = false
     }
   }
 
@@ -195,6 +211,7 @@ export const useAuth = () => {
   async function logout() {
     loginError.value = null
     registerError.value = null
+    isLoggingOut.value = true
     try {
       await signOut()
       invalidateUserQueries()
@@ -205,6 +222,8 @@ export const useAuth = () => {
         error:
           err instanceof Error ? err.message : 'Erreur lors de la déconnexion',
       }
+    } finally {
+      isLoggingOut.value = false
     }
   }
 
@@ -213,6 +232,7 @@ export const useAuth = () => {
    */
   async function forgotPasswordAction(email: string) {
     forgotPasswordError.value = null
+    isForgotingPassword.value = true
     try {
       const result = await forgetPassword({
         email,
@@ -235,6 +255,8 @@ export const useAuth = () => {
             ? err.message
             : 'Erreur lors de la demande de réinitialisation',
       }
+    } finally {
+      isForgotingPassword.value = false
     }
   }
 
@@ -243,6 +265,7 @@ export const useAuth = () => {
    */
   async function resetPasswordAction(newPassword: string) {
     resetPasswordError.value = null
+    isResettingPassword.value = true
     try {
       await resetPassword(
         {
@@ -266,6 +289,8 @@ export const useAuth = () => {
             ? err.message
             : 'Erreur lors de la réinitialisation du mot de passe',
       }
+    } finally {
+      isResettingPassword.value = false
     }
   }
 
@@ -293,6 +318,7 @@ export const useAuth = () => {
     newPassword: string
   }) {
     changePasswordError.value = null
+    isChangingPassword.value = true
     try {
       const result = await changePassword({
         currentPassword: data.currentPassword,
@@ -314,6 +340,8 @@ export const useAuth = () => {
             ? err.message
             : 'Erreur lors du changement de mot de passe',
       }
+    } finally {
+      isChangingPassword.value = false
     }
   }
 
@@ -323,6 +351,7 @@ export const useAuth = () => {
    */
   async function changeEmailAction(newEmail: string) {
     changeEmailError.value = null
+    isChangingEmail.value = true
     try {
       const result = await changeEmail({
         newEmail,
@@ -342,6 +371,8 @@ export const useAuth = () => {
             ? err.message
             : "Erreur lors du changement d'email",
       }
+    } finally {
+      isChangingEmail.value = false
     }
   }
 
@@ -350,6 +381,7 @@ export const useAuth = () => {
    */
   async function updateProfileAction(data: { name?: string; image?: string }) {
     updateProfileError.value = null
+    isUpdatingProfile.value = true
     try {
       const result = await updateUser(data)
       if (result.error) {
@@ -368,6 +400,8 @@ export const useAuth = () => {
             ? err.message
             : 'Erreur lors de la mise à jour du profil',
       }
+    } finally {
+      isUpdatingProfile.value = false
     }
   }
 
@@ -463,13 +497,13 @@ export const useAuth = () => {
     switchModalMode,
 
     // Loading states
-    isLogingIn: computed(() => false), // TODO: Add loading state from signIn
-    isRegistering: computed(() => false), // TODO: Add loading state from signUp
-    isLoggingOut: computed(() => false),
-    isForgotingPassword: computed(() => false),
-    isResettingPassword: computed(() => false),
-    isChangingPassword: computed(() => false),
-    isChangingEmail: computed(() => false),
-    isUpdatingProfile: computed(() => false),
+    isLogingIn: computed(() => isLogingIn.value),
+    isRegistering: computed(() => isRegistering.value),
+    isLoggingOut: computed(() => isLoggingOut.value),
+    isForgotingPassword: computed(() => isForgotingPassword.value),
+    isResettingPassword: computed(() => isResettingPassword.value),
+    isChangingPassword: computed(() => isChangingPassword.value),
+    isChangingEmail: computed(() => isChangingEmail.value),
+    isUpdatingProfile: computed(() => isUpdatingProfile.value),
   }
 }

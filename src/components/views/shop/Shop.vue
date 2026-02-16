@@ -8,16 +8,16 @@ import ShopList from './ShopList.vue'
 <template>
   <ShopHero />
 
-  <div
-    class="container mx-auto flex w-full items-start gap-4 px-4 pt-6 pb-10 md:px-6"
-  >
+  <div class="mx-auto flex w-full max-w-6xl items-start gap-8 px-6 py-16">
     <div
-      class="sticky top-12 hidden h-fit max-h-[calc(100vh-120px)] w-full flex-col overflow-y-auto pr-10 md:top-24 lg:flex lg:w-3/10 xl:w-2/7"
+      class="sticky top-24 hidden h-fit max-h-[calc(100vh-120px)] w-full flex-col overflow-y-auto lg:flex lg:w-3/10 xl:w-2/7"
     >
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <h1 class="text-2xl font-bold">Filter</h1>
-        <SlidersHorizontalIcon class="size-6 text-black/40" />
+      <div class="mb-8 flex items-center justify-between gap-3">
+        <h1 class="font-display text-text text-2xl font-light">Filtres</h1>
+        <SlidersHorizontalIcon class="text-gold size-5" />
       </div>
+
+      <div class="bg-gold/40 h-px w-24" />
 
       <ShopFilter />
     </div>
@@ -25,5 +25,3 @@ import ShopList from './ShopList.vue'
     <ShopList />
   </div>
 </template>
-
-<style scoped></style>

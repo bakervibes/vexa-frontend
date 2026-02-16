@@ -55,7 +55,6 @@ const selectedCountry = ref<CountryCode>(props.defaultCountry)
 const internalValue = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 
-// Fonction pour obtenir les données du téléphone
 const getPhoneData = (phone: string) => {
   const asYouType = new AsYouType()
   asYouType.input(phone)
@@ -64,7 +63,6 @@ const getPhoneData = (phone: string) => {
   return { isValid: number?.isValid(), country: number?.country }
 }
 
-// Liste des pays
 const countries = computed(() => {
   return getCountries().map((countryCode) => ({
     value: countryCode,
@@ -73,22 +71,18 @@ const countries = computed(() => {
   }))
 })
 
-// Indicatif du pays sélectionné
 const countryCallingCode = computed(() =>
   getCountryCallingCode(selectedCountry.value),
 )
 
-// Données du pays sélectionné
 const selectedCountryData = computed(() =>
   countries.value.find((c) => c.value === selectedCountry.value),
 )
 
-// Utilise soit l'id fourni, soit le name de vee-validate
 const inputId = computed(
   () => props.id || props.name || `phone-input-${Math.random()}`,
 )
 
-// Initialisation de la valeur interne
 watch(
   () => props.modelValue,
   (newValue) => {
@@ -105,20 +99,17 @@ watch(
   { immediate: true },
 )
 
-// Mise à jour quand le pays change
 watch(selectedCountry, () => {
   if (!internalValue.value.startsWith(`+${countryCallingCode.value}`)) {
     const newValue = `+${countryCallingCode.value}`
     internalValue.value = newValue
-    emits('update:modelValue', newValue) // Émettre le code pays au lieu de ''
+    emits('update:modelValue', newValue)
   }
 })
 
-// Gestion de l'input avec le composant Input de shadcn
 const handleInputUpdate = (value: string | number) => {
   let inputValue = String(value)
 
-  // Si l'utilisateur efface tout, réinitialiser au code pays
   if (inputValue.length < `+${countryCallingCode.value}`.length) {
     const newValue = `+${countryCallingCode.value}`
     internalValue.value = newValue
@@ -126,17 +117,14 @@ const handleInputUpdate = (value: string | number) => {
     return
   }
 
-  // Si l'input ne commence pas par le bon code pays, le corriger
   if (!inputValue.startsWith(`+${countryCallingCode.value}`)) {
     inputValue = `+${countryCallingCode.value}${inputValue.replace(/^\+\d*/, '')}`
   }
 
-  // Formater avec AsYouType
   const asYouType = new AsYouType(selectedCountry.value)
   const formattedValue = asYouType.input(inputValue)
   internalValue.value = formattedValue
 
-  // Détecter automatiquement le changement de pays
   const phoneData = getPhoneData(formattedValue)
   if (phoneData.country && phoneData.country !== selectedCountry.value) {
     selectedCountry.value = phoneData.country
@@ -145,7 +133,6 @@ const handleInputUpdate = (value: string | number) => {
   emits('update:modelValue', formattedValue)
 }
 
-// Gestion du paste
 const handlePaste = (e: ClipboardEvent) => {
   e.preventDefault()
   const clipboardData = e.clipboardData
@@ -154,7 +141,6 @@ const handlePaste = (e: ClipboardEvent) => {
   const pastedData = clipboardData.getData('text/plain')
   const asYouType = new AsYouType(selectedCountry.value)
 
-  // Si le numéro collé contient déjà un indicatif, le détecter
   const testAsYouType = new AsYouType()
   testAsYouType.input(pastedData)
   const detectedCountry = testAsYouType.getNumber()?.country
@@ -173,7 +159,6 @@ const handlePaste = (e: ClipboardEvent) => {
   }
 }
 
-// Sélection d'un pays
 const handleCountrySelect = (countryCode: CountryCode) => {
   selectedCountry.value = countryCode
   const newValue = `+${getCountryCallingCode(countryCode)}`
@@ -184,10 +169,10 @@ const handleCountrySelect = (countryCode: CountryCode) => {
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-1 border-b border-gray-300">
+  <div class="flex w-full flex-col gap-2 border-b border-[#1E1E1E] pb-3">
     <Label
       :for="inputId"
-      class="font-normal text-gray-600"
+      class="text-xs tracking-widest text-[#555] uppercase"
     >
       {{ label }}
     </Label>
@@ -214,10 +199,15 @@ const handleCountrySelect = (countryCode: CountryCode) => {
             />
           </Button>
         </PopoverTrigger>
-        <PopoverContent class="w-full max-w-lg p-0">
-          <Command>
-            <CommandInput placeholder="Rechercher un pays..." />
-            <CommandEmpty>Aucun pays trouvé.</CommandEmpty>
+        <PopoverContent
+          class="w-full max-w-lg border-[#1E1E1E] bg-[#0A0A0A] p-0"
+        >
+          <Command class="bg-[#0A0A0A] text-[#E8E8E8]">
+            <CommandInput
+              placeholder="Rechercher un pays..."
+              class="border-[#1E1E1E] text-[#E8E8E8] placeholder:text-[#555]"
+            />
+            <CommandEmpty class="text-[#555]">Aucun pays trouvé.</CommandEmpty>
             <CommandList>
               <CommandGroup>
                 <CommandItem
@@ -225,12 +215,12 @@ const handleCountrySelect = (countryCode: CountryCode) => {
                   :key="country.value"
                   :value="country.label"
                   @select="handleCountrySelect(country.value)"
-                  class="hover:bg-muted cursor-pointer py-2"
+                  class="hover:bg-surface focus:bg-surface cursor-pointer py-2 text-[#E8E8E8]"
                 >
                   <Check
                     :class="
                       cn(
-                        'mr-1 h-4 w-4',
+                        'mr-1 h-4 w-4 text-[#C8A97E]',
                         selectedCountry === country.value
                           ? 'opacity-100'
                           : 'opacity-0',
@@ -238,7 +228,7 @@ const handleCountrySelect = (countryCode: CountryCode) => {
                     "
                   />
                   <div class="flex w-full items-center gap-2">
-                    <span class="flex h-4 w-6 overflow-hidden rounded">
+                    <span class="flex h-4 w-6 overflow-hidden">
                       <FlagComponent
                         :country="country.value"
                         :title="country.label"
@@ -247,7 +237,7 @@ const handleCountrySelect = (countryCode: CountryCode) => {
                     <div>
                       <span>
                         {{ country.label }}
-                        <span class="text-muted-foreground ml-auto">
+                        <span class="ml-auto text-[#555]">
                           {{ country.indicatif }}
                         </span>
                       </span>
@@ -270,7 +260,7 @@ const handleCountrySelect = (countryCode: CountryCode) => {
         @paste="handlePaste"
         :required="required"
         :disabled="disabled"
-        class="w-full rounded-none border-none bg-transparent px-0 pb-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        class="w-full rounded-none border-none bg-transparent px-0 pb-0 text-[#E8E8E8] shadow-none focus:border-[#C8A97E]/40 focus-visible:ring-0 focus-visible:ring-offset-0"
         placeholder=" "
       />
     </div>

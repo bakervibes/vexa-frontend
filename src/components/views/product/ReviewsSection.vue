@@ -22,7 +22,6 @@ const slug = computed(() => route.params.slug as string)
 
 const { product } = useProduct(slug)
 
-// Paginated reviews - pass a getter for reactivity (query runs when product.id becomes available)
 const {
   reviews,
   totalReviews,
@@ -54,10 +53,8 @@ const filteredReviews = computed(() => {
   })
 })
 
-// Track which review is being edited (null = none)
 const editingReviewId = ref<string | null>(null)
 
-// Computed to check if any review is being edited
 const isEditingAnyReview = computed(() => editingReviewId.value !== null)
 
 const setEditingReviewId = (reviewId: string | null) => {
@@ -66,102 +63,123 @@ const setEditingReviewId = (reviewId: string | null) => {
 </script>
 
 <template>
-  <!-- Reviews Section -->
   <section
     v-if="product"
-    class="container mx-auto mt-16 px-4"
+    class="mt-16 bg-[#0A0A0A]"
   >
-    <Tabs default-value="reviews">
-      <TabsList
-        class="flex w-full items-center justify-start gap-10 border-b bg-white"
-      >
-        <TabsTrigger value="additional">Additional Info</TabsTrigger>
-        <TabsTrigger value="questions">Questions</TabsTrigger>
-        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-      </TabsList>
-
-      <TabsContent
-        value="additional"
-        class="py-8"
-      >
-        <div class="text-gray-500">No additional information available.</div>
-      </TabsContent>
-
-      <TabsContent
-        value="questions"
-        class="py-8"
-      >
-        <div class="text-gray-500">No questions yet.</div>
-      </TabsContent>
-
-      <TabsContent
-        value="reviews"
-        class="py-8"
-      >
-        <div class="space-y-6">
-          <div class="flex items-center justify-between">
-            <h3 class="text-2xl font-medium text-black">Customer Reviews</h3>
-          </div>
-
-          <!-- Reviews Header -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <ProductRating :rating="product.averageRating ?? 0" />
-              <span class="text-sm text-black">{{ totalReviews }} Reviews</span>
-            </div>
-
-            <Select v-model="reviewsFilter">
-              <SelectTrigger class="w-32">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="option in filterOptions"
-                  :key="option.value"
-                  :value="option.value"
-                >
-                  {{ option.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <!-- Write Review Form (hidden when editing a review) -->
-          <div
-            v-if="product?.id && !isEditingAnyReview"
-            class="rounded-lg border p-6"
+    <div class="container mx-auto px-4">
+      <Tabs default-value="reviews">
+        <TabsList
+          class="flex w-full items-center justify-start gap-10 border-b border-[#1E1E1E] bg-transparent"
+        >
+          <TabsTrigger
+            value="additional"
+            class="text-text-muted text-xs tracking-[0.3em] uppercase data-[state=active]:border-b-2 data-[state=active]:border-[#C8A97E] data-[state=active]:text-[#C8A97E]"
           >
-            <ProductReviewForm
-              :product="product"
-              @success="refreshReviews"
-            />
+            Additional Info
+          </TabsTrigger>
+          <TabsTrigger
+            value="questions"
+            class="text-text-muted text-xs tracking-[0.3em] uppercase data-[state=active]:border-b-2 data-[state=active]:border-[#C8A97E] data-[state=active]:text-[#C8A97E]"
+          >
+            Questions
+          </TabsTrigger>
+          <TabsTrigger
+            value="reviews"
+            class="text-text-muted text-xs tracking-[0.3em] uppercase data-[state=active]:border-b-2 data-[state=active]:border-[#C8A97E] data-[state=active]:text-[#C8A97E]"
+          >
+            Reviews
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent
+          value="additional"
+          class="py-8"
+        >
+          <div class="text-text-muted">
+            No additional information available.
           </div>
+        </TabsContent>
 
-          <!-- Reviews List -->
-          <div class="space-y-8">
-            <div
-              v-if="isLoadingReviews && filteredReviews.length === 0"
-              class="py-8 text-center"
-            >
-              <Loader2 class="mx-auto h-8 w-8 animate-spin text-gray-400" />
-              <p class="mt-2 text-gray-500">Loading reviews...</p>
-            </div>
+        <TabsContent
+          value="questions"
+          class="py-8"
+        >
+          <div class="text-text-muted">No questions yet.</div>
+        </TabsContent>
 
-            <div
-              v-else-if="filteredReviews.length === 0"
-              class="py-8 text-center text-gray-500"
-            >
-              No reviews yet. Be the first to write one!
-            </div>
+        <TabsContent
+          value="reviews"
+          class="py-8"
+        >
+          <div class="space-y-6">
+            <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+              Customer Feedback
+            </p>
+            <h3 class="font-display text-5xl font-light text-[#E8E8E8]">
+              Reviews
+            </h3>
 
-            <template v-else>
-              <ul class="space-y-6">
-                <div
-                  v-for="review in filteredReviews"
-                  :key="review.id"
-                  class="border-b border-dashed border-black/40 pb-6"
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <ProductRating :rating="product.averageRating ?? 0" />
+                <span class="text-sm text-[#E8E8E8]">
+                  {{ totalReviews }} Reviews
+                </span>
+              </div>
+
+              <Select v-model="reviewsFilter">
+                <SelectTrigger
+                  class="bg-surface w-32 border-[#1E1E1E] text-[#E8E8E8]"
                 >
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent
+                  class="bg-surface border-[#1E1E1E] text-[#E8E8E8]"
+                >
+                  <SelectItem
+                    v-for="option in filterOptions"
+                    :key="option.value"
+                    :value="option.value"
+                    class="focus:bg-[#1E1E1E] focus:text-[#C8A97E]"
+                  >
+                    {{ option.label }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div
+              v-if="product?.id && !isEditingAnyReview"
+              class="bg-surface border border-[#1E1E1E] p-6"
+            >
+              <ProductReviewForm
+                :product="product"
+                @success="refreshReviews"
+              />
+            </div>
+
+            <div class="space-y-8">
+              <div
+                v-if="isLoadingReviews && filteredReviews.length === 0"
+                class="py-8 text-center"
+              >
+                <Loader2 class="mx-auto h-8 w-8 animate-spin text-[#C8A97E]" />
+                <p class="text-text-muted mt-2">Loading reviews...</p>
+              </div>
+
+              <div
+                v-else-if="filteredReviews.length === 0"
+                class="text-text-muted py-8 text-center"
+              >
+                No reviews yet. Be the first to write one!
+              </div>
+
+              <template v-else>
+                <ul class="space-y-6">
                   <ProductReviewCard
+                    v-for="review in filteredReviews"
+                    :key="review.id"
                     :review="review"
                     :product="product"
                     :is-editing="editingReviewId === review.id"
@@ -170,29 +188,28 @@ const setEditingReviewId = (reviewId: string | null) => {
                     @review-updated="refreshReviews"
                     @review-deleted="refreshReviews"
                   />
-                </div>
-              </ul>
+                </ul>
 
-              <!-- Load More Button -->
-              <div
-                v-if="hasMoreReviews"
-                class="flex justify-center pt-4"
-              >
-                <LoadingButton
-                  type="button"
-                  variant="outline"
-                  :disabled="isFetchingReviews"
-                  class="w-40"
-                  :loading="isFetchingReviews"
-                  @click="loadMoreReviews"
+                <div
+                  v-if="hasMoreReviews"
+                  class="flex justify-center pt-4"
                 >
-                  Load more
-                </LoadingButton>
-              </div>
-            </template>
+                  <LoadingButton
+                    type="button"
+                    variant="outline"
+                    :disabled="isFetchingReviews"
+                    class="w-40 border border-[#C8A97E]/40 text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
+                    :loading="isFetchingReviews"
+                    @click="loadMoreReviews"
+                  >
+                    Load more
+                  </LoadingButton>
+                </div>
+              </template>
+            </div>
           </div>
-        </div>
-      </TabsContent>
-    </Tabs>
+        </TabsContent>
+      </Tabs>
+    </div>
   </section>
 </template>

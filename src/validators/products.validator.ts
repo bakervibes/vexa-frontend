@@ -5,8 +5,6 @@ import {
   descriptionSchema,
   imagesSchema,
   limitSchema,
-  metaDescriptionSchema,
-  metaTitleSchema,
   nameLongSchema,
   optionsFilterSchema,
   pageSchema,
@@ -41,13 +39,15 @@ const variantOptionSchema = z.object({
 
 /**
  * Schéma pour les variantes de produit
+ * combinationKey: identifiant stable basé sur les option IDs triés
  * Note: price is optional (backend generates it if not provided)
  */
 const productVariantSchema = z.object({
+  combinationKey: z.string().min(1),
   basePrice: priceSchema,
   price: priceSchema.optional(),
   stock: stockSchema,
-  options: z.array(variantOptionSchema).optional(),
+  options: z.array(variantOptionSchema),
 })
 
 /**
@@ -62,11 +62,10 @@ export const createProductSchema = z.object({
   name: nameLongSchema,
   slug: slugSchema.optional(),
   description: descriptionSchema,
-  basePrice: priceSchema,
+  basePrice: priceSchema.optional(),
   price: priceSchema.optional(),
+  stock: stockSchema.optional(),
   images: imagesSchema.optional(),
-  metaTitle: metaTitleSchema,
-  metaDescription: metaDescriptionSchema,
   variants: z.array(productVariantSchema).optional(),
 })
 
@@ -80,9 +79,8 @@ export const updateProductSchema = z.object({
   description: descriptionSchema.optional(),
   basePrice: priceSchema.optional(),
   price: priceSchema.optional(),
+  stock: stockSchema.optional(),
   images: imagesSchema.optional(),
-  metaTitle: metaTitleSchema.optional(),
-  metaDescription: metaDescriptionSchema.optional(),
   variants: z.array(productVariantSchema).optional(),
 })
 

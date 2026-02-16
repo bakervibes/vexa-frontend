@@ -1,2 +1,6 @@
+export { default as AttributeSelector } from './AttributeSelector.vue'
+export { default as BulkStockAdjustmentDialog } from './BulkStockAdjustmentDialog.vue'
 export { default as ProductForm } from './ProductForm.vue'
 export { default as ProductTable } from './ProductTable.vue'
+export { default as ProductVariantsSection } from './ProductVariantsSection.vue'
+export { default as VariantCombinationsTable } from './VariantCombinationsTable.vue'

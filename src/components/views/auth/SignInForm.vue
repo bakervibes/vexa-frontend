@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { useAuth } from '@/composables/useAuth'
@@ -48,108 +47,95 @@ const onSubmit = handleSubmit(async (formValues: LoginInput) => {
 </script>
 
 <template>
-  <div class="grid h-screen w-full grid-cols-1 md:grid-cols-2">
-    <!-- SECTION IMAGE -->
-    <div class="hidden h-full w-full overflow-hidden md:block">
-      <img
-        src="/auth.png"
-        alt="Sign in"
-        class="h-full w-full object-cover"
-      />
-    </div>
-
-    <!-- SECTION FORMULAIRE -->
-    <div class="flex h-full w-full items-center justify-center p-4 md:p-6">
-      <div class="w-full max-w-md space-y-4">
-        <h2 class="text-3xl font-bold">Sign in</h2>
-
-        <!-- Error Message -->
-        <Alert
-          v-if="error"
-          variant="destructive"
-        >
-          <AlertDescription>
-            {{ error }}
-          </AlertDescription>
-        </Alert>
-
-        <p class="mt-2 text-gray-600">
-          Don't have an account?
-          <RouterLink
-            :to="
-              redirect ? `/auth/sign-up?redirect=${redirect}` : '/auth/sign-up'
-            "
-            class="text-blue-600 hover:underline"
-          >
-            Create an account
-          </RouterLink>
-        </p>
-
-        <form
-          @submit="onSubmit"
-          class="space-y-4"
-        >
-          <!-- Email Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="email"
-          >
-            <FormItem>
-              <CustomInput
-                v-bind="componentField"
-                label="Email address"
-                type="text"
-              />
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <!-- Password Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="password"
-          >
-            <FormItem>
-              <CustomInput
-                v-bind="componentField"
-                label="Password"
-                type="password"
-              />
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <!-- Options -->
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2">
-              <Checkbox
-                :checked="rememberMe"
-                @update:checked="rememberMe = $event"
-              />
-              <span class="text-gray-600">Remember me</span>
-            </label>
-
-            <RouterLink
-              :to="'/auth/forgot-password'"
-              class="text-blue-600 hover:underline"
-            >
-              Forgot password?
-            </RouterLink>
-          </div>
-
-          <!-- Submit Button -->
-          <LoadingButton
-            type="submit"
-            :disabled="isLogingIn"
-            :loading="isLogingIn"
-            class="h-12 w-full"
-          >
-            Sign in
-          </LoadingButton>
-        </form>
+  <div class="mx-auto w-full max-w-md space-y-8 px-6">
+    <div class="text-center">
+      <div class="text-gold mb-6 text-xs tracking-[0.3em] uppercase">
+        Connexion
       </div>
+
+      <h2 class="font-display text-text text-4xl font-light md:text-5xl">
+        Bon retour
+        <span class="italic">parmi nous</span>
+      </h2>
+
+      <div class="bg-gold/60 mx-auto my-8 h-px w-16" />
     </div>
+
+    <div
+      v-if="error"
+      class="border-gold/40 text-gold bg-surface border px-4 py-3 text-sm"
+    >
+      {{ error }}
+    </div>
+
+    <p class="text-center text-sm text-[#555]">
+      Pas encore de compte ?
+      <RouterLink
+        :to="redirect ? `/auth/sign-up?redirect=${redirect}` : '/auth/sign-up'"
+        class="text-gold hover:text-text transition-colors"
+      >
+        Créer un compte
+      </RouterLink>
+    </p>
+
+    <form
+      @submit="onSubmit"
+      class="space-y-6"
+    >
+      <FormField
+        v-slot="{ componentField }"
+        name="email"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Adresse email"
+            type="text"
+          />
+          <FormMessage class="text-gold" />
+        </FormItem>
+      </FormField>
+
+      <FormField
+        v-slot="{ componentField }"
+        name="password"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Mot de passe"
+            type="password"
+          />
+          <FormMessage class="text-gold" />
+        </FormItem>
+      </FormField>
+
+      <div class="flex items-center justify-between">
+        <label class="flex items-center gap-3">
+          <Checkbox
+            :checked="rememberMe"
+            @update:checked="rememberMe = $event"
+            class="data-[state=checked]:border-gold data-[state=checked]:bg-gold border-border-noir bg-transparent"
+          />
+          <span class="text-sm text-[#555]">Se souvenir de moi</span>
+        </label>
+
+        <RouterLink
+          :to="'/auth/forgot-password'"
+          class="text-gold hover:text-text text-xs tracking-widest uppercase transition-colors"
+        >
+          Mot de passe oublié ?
+        </RouterLink>
+      </div>
+
+      <LoadingButton
+        type="submit"
+        :disabled="isLogingIn"
+        :loading="isLogingIn"
+        class="border-gold/40 bg-gold text-noir w-full border py-4 text-xs tracking-[0.2em] uppercase transition-all hover:bg-[#B8995E]"
+      >
+        Se connecter
+      </LoadingButton>
+    </form>
   </div>
 </template>
-
-<style scoped></style>

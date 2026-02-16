@@ -19,26 +19,24 @@ interface SortOption {
 }
 
 const sortOptions: SortOption[] = [
-  { label: 'Newest', sortBy: SortBy.CREATED_AT, order: SortOrder.DESC },
-  { label: 'Oldest', sortBy: SortBy.CREATED_AT, order: SortOrder.ASC },
-  { label: 'Price: Low to High', sortBy: SortBy.PRICE, order: SortOrder.ASC },
-  { label: 'Price: High to Low', sortBy: SortBy.PRICE, order: SortOrder.DESC },
-  { label: 'Name: A to Z', sortBy: SortBy.NAME, order: SortOrder.ASC },
-  { label: 'Name: Z to A', sortBy: SortBy.NAME, order: SortOrder.DESC },
+  { label: 'Nouveautés', sortBy: SortBy.CREATED_AT, order: SortOrder.DESC },
+  { label: 'Anciens', sortBy: SortBy.CREATED_AT, order: SortOrder.ASC },
+  { label: 'Prix croissant', sortBy: SortBy.PRICE, order: SortOrder.ASC },
+  { label: 'Prix décroissant', sortBy: SortBy.PRICE, order: SortOrder.DESC },
+  { label: 'Nom A-Z', sortBy: SortBy.NAME, order: SortOrder.ASC },
+  { label: 'Nom Z-A', sortBy: SortBy.NAME, order: SortOrder.DESC },
 ]
 
-// Get the current selected option based on filters
 const currentSortOption = computed({
   get: () => {
     const currentSortBy = filters.value.sortBy
     const currentSortOrder = filters.value.sortOrder
 
-    // Find matching option
     const option = sortOptions.find(
       (opt) => opt.sortBy === currentSortBy && opt.order === currentSortOrder,
     )
 
-    return option?.label || 'Newest'
+    return option?.label || 'Nouveautés'
   },
   set: (label: string) => {
     const option = sortOptions.find((opt) => opt.label === label)
@@ -48,7 +46,6 @@ const currentSortOption = computed({
   },
 })
 
-// Handle sort selection
 function handleSortChange(option: SortOption) {
   if (option) {
     setFilters({
@@ -61,19 +58,20 @@ function handleSortChange(option: SortOption) {
 
 <template>
   <Select v-model="currentSortOption">
-    <SelectTrigger class="w-30 sm:w-45">
-      <SelectValue placeholder="Sort by" />
+    <SelectTrigger
+      class="hover:border-gold/40 text-text border-border-noir w-40 bg-transparent text-xs tracking-widest uppercase"
+    >
+      <SelectValue placeholder="Trier par" />
     </SelectTrigger>
-    <SelectContent class="w-50">
+    <SelectContent class="text-text bg-noir border-border-noir">
       <SelectItem
         v-for="option in sortOptions"
         :key="option.label"
         :value="option.label"
+        class="hover:text-gold focus:text-gold hover:bg-surface focus:bg-surface text-xs tracking-widest uppercase"
       >
         {{ option.label }}
       </SelectItem>
     </SelectContent>
   </Select>
 </template>
-
-<style scoped></style>

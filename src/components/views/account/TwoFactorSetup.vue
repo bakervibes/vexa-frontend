@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * Composant pour la configuration du 2FA (Two-Factor Authentication)
- * Affiche le QR code et permet d'activer/désactiver le 2FA
- */
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,20 +42,17 @@ const disablePassword = ref('')
 const backupCodes = ref<string[]>([])
 const showBackupCodes = ref(false)
 
-// Query pour le statut 2FA
 const { data: status, isLoading: isLoadingStatus } = useQuery({
   queryKey: ['2fa', 'status'],
   queryFn: () => api<TwoFactorStatus>('/auth/2fa/status', 'GET'),
 })
 
-// Query pour le setup 2FA
 const { data: setupData, refetch: fetchSetup } = useQuery({
   queryKey: ['2fa', 'setup'],
   queryFn: () => api<TwoFactorSetup>('/auth/2fa/setup', 'POST'),
   enabled: false,
 })
 
-// Mutation pour vérifier et activer le 2FA
 const verifyMutation = useMutation({
   mutationFn: (code: string) =>
     api<TwoFactorVerifyResponse>('/auth/2fa/verify', 'POST', { code }),
@@ -78,7 +71,6 @@ const verifyMutation = useMutation({
   },
 })
 
-// Mutation pour désactiver le 2FA
 const disableMutation = useMutation({
   mutationFn: (password: string) =>
     api('/auth/2fa/disable', 'POST', { password }),
@@ -96,7 +88,6 @@ const disableMutation = useMutation({
   },
 })
 
-// Mutation pour régénérer les codes de récupération
 const regenerateMutation = useMutation({
   mutationFn: (password: string) =>
     api<{ backupCodes: string[] }>('/auth/2fa/backup-codes', 'POST', {
@@ -160,39 +151,42 @@ const copyBackupCodes = () => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center gap-3">
-      <ShieldCheck class="h-6 w-6 text-green-600" />
+  <div class="space-y-6 bg-[#0A0A0A]">
+    <div class="flex items-center gap-3 border-b border-[#1E1E1E] pb-6">
+      <ShieldCheck class="h-6 w-6 text-[#C8A97E]" />
       <div>
-        <h3 class="text-lg font-semibold">Authentification à deux facteurs</h3>
-        <p class="text-muted-foreground text-sm">
+        <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+          Security
+        </p>
+        <h3 class="font-display text-xl text-[#E8E8E8]">
+          Authentification à deux facteurs
+        </h3>
+        <p class="text-text-muted text-sm">
           Ajoutez une couche de sécurité supplémentaire à votre compte
         </p>
       </div>
     </div>
 
-    <!-- Loading -->
     <div
       v-if="isLoadingStatus"
       class="flex items-center justify-center py-8"
     >
-      <Loader2 class="h-8 w-8 animate-spin text-gray-400" />
+      <Loader2 class="text-text-muted h-8 w-8 animate-spin" />
     </div>
 
-    <!-- 2FA est activé -->
     <div
       v-else-if="status?.enabled"
       class="space-y-4"
     >
-      <Alert>
-        <CheckCircle class="h-4 w-4 text-green-600" />
-        <AlertDescription>
+      <Alert class="bg-surface border-[#1E1E1E]">
+        <CheckCircle class="h-4 w-4 text-[#C8A97E]" />
+        <AlertDescription class="text-[#E8E8E8]">
           L'authentification à deux facteurs est
-          <strong>activée</strong>
+          <strong class="text-[#C8A97E]">activée</strong>
           .
           <span
             v-if="status.backupCodesRemaining <= 3"
-            class="text-orange-600"
+            class="text-[#C8A97E]"
           >
             Il vous reste {{ status.backupCodesRemaining }} code(s) de
             récupération.
@@ -200,20 +194,29 @@ const copyBackupCodes = () => {
         </AlertDescription>
       </Alert>
 
-      <div class="space-y-4 rounded-lg border p-4">
-        <h4 class="font-medium">Désactiver le 2FA</h4>
+      <div class="bg-surface space-y-4 border border-[#1E1E1E] p-6">
+        <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+          Settings
+        </p>
+        <h4 class="font-display text-lg text-[#E8E8E8]">Désactiver le 2FA</h4>
         <div class="space-y-2">
-          <Label for="disable-password">Mot de passe actuel</Label>
+          <Label
+            for="disable-password"
+            class="text-text-muted text-xs tracking-widest uppercase"
+          >
+            Mot de passe actuel
+          </Label>
           <Input
             id="disable-password"
             v-model="disablePassword"
             type="password"
             placeholder="Entrez votre mot de passe"
+            class="placeholder:text-text-muted border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
           />
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-3">
           <Button
-            variant="destructive"
+            class="border border-red-500/40 bg-transparent tracking-wider text-red-400 uppercase hover:bg-red-500 hover:text-[#0A0A0A]"
             :disabled="disableMutation.isPending.value"
             @click="disable2FA"
           >
@@ -228,7 +231,7 @@ const copyBackupCodes = () => {
             Désactiver le 2FA
           </Button>
           <Button
-            variant="outline"
+            class="border border-[#C8A97E]/40 bg-transparent tracking-wider text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
             :disabled="regenerateMutation.isPending.value"
             @click="regenerateMutation.mutate(disablePassword)"
           >
@@ -238,22 +241,20 @@ const copyBackupCodes = () => {
       </div>
     </div>
 
-    <!-- 2FA n'est pas activé -->
     <div
       v-else
       class="space-y-4"
     >
-      <!-- Étape 1: Démarrer le setup -->
       <div v-if="!setupData">
-        <Alert>
-          <AlertCircle class="h-4 w-4" />
-          <AlertDescription>
+        <Alert class="bg-surface border-[#1E1E1E]">
+          <AlertCircle class="h-4 w-4 text-[#C8A97E]" />
+          <AlertDescription class="text-[#E8E8E8]">
             L'authentification à deux facteurs n'est pas activée. Activez-la
             pour sécuriser votre compte.
           </AlertDescription>
         </Alert>
         <Button
-          class="mt-4"
+          class="mt-4 border border-[#C8A97E]/40 bg-transparent tracking-wider text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
           @click="startSetup"
         >
           <ShieldCheck class="mr-2 h-4 w-4" />
@@ -261,18 +262,22 @@ const copyBackupCodes = () => {
         </Button>
       </div>
 
-      <!-- Étape 2: Scanner le QR code -->
       <div
         v-else
         class="space-y-4"
       >
-        <div class="rounded-lg border p-4">
-          <h4 class="mb-4 font-medium">1. Scannez le QR code</h4>
-          <p class="text-muted-foreground mb-4 text-sm">
+        <div class="bg-surface border border-[#1E1E1E] p-6">
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Step 1
+          </p>
+          <h4 class="font-display mb-4 text-lg text-[#E8E8E8]">
+            Scannez le QR code
+          </h4>
+          <p class="text-text-muted mb-4 text-sm">
             Utilisez une application d'authentification (Google Authenticator,
             Authy, etc.) pour scanner ce QR code.
           </p>
-          <div class="flex justify-center">
+          <div class="flex justify-center bg-[#0A0A0A] p-4">
             <img
               :src="setupData.qrCode"
               alt="QR Code 2FA"
@@ -281,14 +286,21 @@ const copyBackupCodes = () => {
           </div>
         </div>
 
-        <div class="rounded-lg border p-4">
-          <h4 class="mb-2 font-medium">Ou entrez le code manuellement</h4>
+        <div class="bg-surface border border-[#1E1E1E] p-6">
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Alternative
+          </p>
+          <h4 class="font-display mb-2 text-lg text-[#E8E8E8]">
+            Ou entrez le code manuellement
+          </h4>
           <div class="flex items-center gap-2">
-            <code class="bg-muted flex-1 rounded px-2 py-1 text-sm">
+            <code
+              class="flex-1 border border-[#1E1E1E] bg-[#0A0A0A] px-3 py-2 font-mono text-sm text-[#E8E8E8]"
+            >
               {{ setupData.secret }}
             </code>
             <Button
-              variant="outline"
+              class="border border-[#C8A97E]/40 bg-transparent text-[#C8A97E] hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
               size="icon"
               @click="copySecret"
             >
@@ -297,10 +309,17 @@ const copyBackupCodes = () => {
           </div>
         </div>
 
-        <div class="rounded-lg border p-4">
-          <h4 class="mb-4 font-medium">2. Entrez le code de vérification</h4>
+        <div class="bg-surface border border-[#1E1E1E] p-6">
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Step 2
+          </p>
+          <h4 class="font-display mb-4 text-lg text-[#E8E8E8]">
+            Entrez le code de vérification
+          </h4>
           <div class="space-y-2">
-            <Label>Code à 6 chiffres</Label>
+            <Label class="text-text-muted text-xs tracking-widest uppercase">
+              Code à 6 chiffres
+            </Label>
             <InputOtp
               v-model="verificationCode"
               :maxlength="6"
@@ -308,19 +327,37 @@ const copyBackupCodes = () => {
               @complete="verifyCode"
             >
               <InputOtpGroup>
-                <InputOtpSlot :index="0" />
-                <InputOtpSlot :index="1" />
-                <InputOtpSlot :index="2" />
+                <InputOtpSlot
+                  :index="0"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
+                <InputOtpSlot
+                  :index="1"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
+                <InputOtpSlot
+                  :index="2"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
               </InputOtpGroup>
               <InputOtpGroup>
-                <InputOtpSlot :index="3" />
-                <InputOtpSlot :index="4" />
-                <InputOtpSlot :index="5" />
+                <InputOtpSlot
+                  :index="3"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
+                <InputOtpSlot
+                  :index="4"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
+                <InputOtpSlot
+                  :index="5"
+                  class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8] focus:border-[#C8A97E]"
+                />
               </InputOtpGroup>
             </InputOtp>
           </div>
           <Button
-            class="mt-4"
+            class="mt-4 border border-[#C8A97E]/40 bg-transparent tracking-wider text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
             :disabled="
               verifyMutation.isPending.value || verificationCode.length !== 6
             "
@@ -336,39 +373,48 @@ const copyBackupCodes = () => {
       </div>
     </div>
 
-    <!-- Modal des codes de récupération -->
     <div
       v-if="showBackupCodes && backupCodes.length > 0"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
     >
-      <div class="mx-4 max-w-md rounded-lg bg-white p-6 dark:bg-gray-900">
-        <h3 class="mb-4 text-lg font-semibold">Codes de récupération</h3>
-        <Alert class="mb-4">
-          <AlertCircle class="h-4 w-4" />
-          <AlertDescription>
-            <strong>Important :</strong>
+      <div class="bg-surface mx-4 max-w-md border border-[#1E1E1E] p-8">
+        <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+          Important
+        </p>
+        <h3 class="font-display mb-4 text-xl text-[#E8E8E8]">
+          Codes de récupération
+        </h3>
+        <Alert class="mb-4 border-[#1E1E1E] bg-[#0A0A0A]">
+          <AlertCircle class="h-4 w-4 text-[#C8A97E]" />
+          <AlertDescription class="text-[#E8E8E8]">
+            <strong class="text-[#C8A97E]">Important :</strong>
             Sauvegardez ces codes dans un endroit sûr. Vous en aurez besoin si
             vous perdez accès à votre application d'authentification.
           </AlertDescription>
         </Alert>
-        <div class="bg-muted mb-4 grid grid-cols-2 gap-2 rounded p-4">
+        <div
+          class="mb-4 grid grid-cols-2 gap-2 border border-[#1E1E1E] bg-[#0A0A0A] p-4"
+        >
           <code
             v-for="code in backupCodes"
             :key="code"
-            class="font-mono text-sm"
+            class="font-mono text-sm text-[#E8E8E8]"
           >
             {{ code }}
           </code>
         </div>
-        <div class="flex gap-2">
+        <div class="flex gap-3">
           <Button
-            variant="outline"
+            class="flex-1 border border-[#C8A97E]/40 bg-transparent tracking-wider text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
             @click="copyBackupCodes"
           >
             <Copy class="mr-2 h-4 w-4" />
             Copier
           </Button>
-          <Button @click="showBackupCodes = false">
+          <Button
+            class="flex-1 border border-[#C8A97E]/40 bg-[#C8A97E] tracking-wider text-[#0A0A0A] uppercase hover:bg-[#C8A97E]/80"
+            @click="showBackupCodes = false"
+          >
             J'ai sauvegardé mes codes
           </Button>
         </div>

@@ -2,7 +2,6 @@
 import CustomInput from '@/components/custom/custom-input.vue'
 import CustomPhoneInput from '@/components/custom/custom-phone-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Button } from '@/components/ui/button'
 import {
   FormControl,
   FormField,
@@ -30,17 +29,14 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import { z } from 'zod'
 
-// Mapbox configuration
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''
 
-// Location coordinates (you can change these)
 const LOCATION = {
-  lng: 2.3912, // Cotonou longitude
-  lat: 6.3703, // Cotonou latitude
+  lng: 2.3912,
+  lat: 6.3703,
   zoom: 14,
 }
 
-// Business info
 const BUSINESS_INFO = {
   name: 'Vexa Store',
   address: 'Cotonou, Bénin',
@@ -48,7 +44,6 @@ const BUSINESS_INFO = {
   email: 'contact@vexa.com',
 }
 
-// Form schema
 const contactFormSchema = z.object({
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
   phone: z.string().min(8, 'Le numéro de téléphone est invalide'),
@@ -77,12 +72,10 @@ const {
   },
 })
 
-// Handler: Open WhatsApp inbox without message
 const handleOpenWhatsApp = () => {
   openWhatsAppChat()
 }
 
-// Handler: Send message via WhatsApp Cloud API
 const onSubmit = handleSubmit(async (formValues) => {
   isSending.value = true
   try {
@@ -97,7 +90,6 @@ const onSubmit = handleSubmit(async (formValues) => {
   }
 })
 
-// Initialize Mapbox map
 const initMap = async () => {
   if (!mapContainer.value || !MAPBOX_ACCESS_TOKEN) {
     console.warn('Mapbox token is not configured')
@@ -105,34 +97,30 @@ const initMap = async () => {
   }
 
   try {
-    // Dynamically import mapbox-gl
     const mapboxgl = await import('mapbox-gl')
 
-    // Import CSS
     await import('mapbox-gl/dist/mapbox-gl.css')
 
     mapboxgl.default.accessToken = MAPBOX_ACCESS_TOKEN
 
     map = new mapboxgl.default.Map({
       container: mapContainer.value,
-      style: 'mapbox://styles/mapbox/standard',
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: [LOCATION.lng, LOCATION.lat],
       zoom: LOCATION.zoom,
       attributionControl: false,
       scrollZoom: true,
     })
 
-    // Add navigation controls
     map.addControl(new mapboxgl.default.NavigationControl(), 'top-right')
 
-    // Add marker
-    new mapboxgl.default.Marker({ color: '#8B5CF6' })
+    new mapboxgl.default.Marker({ color: '#C8A97E' })
       .setLngLat([LOCATION.lng, LOCATION.lat])
       .setPopup(
         new mapboxgl.default.Popup({ offset: 25 }).setHTML(
-          `<div style="color: black; padding: 8px;">
-            <strong>${BUSINESS_INFO.name}</strong><br/>
-            ${BUSINESS_INFO.address}
+          `<div style="color: #E8E8E8; padding: 12px; background: #141414;">
+            <strong style="color: #C8A97E;">${BUSINESS_INFO.name}</strong><br/>
+            <span style="color: #555;">${BUSINESS_INFO.address}</span>
           </div>`,
         ),
       )
@@ -154,59 +142,63 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <section class="flex min-h-screen flex-col gap-10 py-12">
-    <!-- Header -->
-    <div class="container mx-auto px-4 text-center">
-      <h1 class="mb-4 text-4xl font-bold text-black md:text-5xl">
-        Contactez-nous
+  <section class="flex min-h-screen flex-col gap-10 py-24">
+    <div class="mx-auto px-6 text-center">
+      <div class="text-gold mb-6 text-xs tracking-[0.3em] uppercase">
+        Contact
+      </div>
+
+      <h1 class="font-display text-text mb-4 text-5xl font-light md:text-6xl">
+        Contactez
+        <span class="italic">-nous</span>
       </h1>
-      <p class="mx-auto max-w-2xl text-lg text-black/80">
-        Nous sommes là pour vous aider. Envoyez-nous un message via WhatsApp et
-        nous vous répondrons rapidement.
+
+      <div class="bg-gold/60 mx-auto my-8 h-px w-16" />
+
+      <p
+        class="mx-auto max-w-lg text-sm leading-relaxed text-[#555] md:text-base"
+      >
+        Nous sommes là pour vous aider. Envoyez-nous un message via WhatsApp.
       </p>
     </div>
 
-    <!-- Main Content -->
-    <div class="container mx-auto px-4 py-12">
+    <div class="mx-auto w-full max-w-6xl px-6 py-12">
       <div class="grid items-stretch gap-8 lg:grid-cols-2">
-        <!-- Map Section -->
         <div class="order-2 lg:order-1">
-          <div class="relative h-full overflow-hidden rounded-2xl shadow-lg">
-            <!-- Map Container -->
+          <div
+            class="border-border-noir bg-surface relative h-full min-h-[400px] overflow-hidden border"
+          >
             <div
               ref="mapContainer"
               class="h-full w-full"
               :class="{
-                'flex items-center justify-center bg-gray-800':
+                'bg-surface flex items-center justify-center':
                   !MAPBOX_ACCESS_TOKEN,
               }"
             >
               <div
                 v-if="!MAPBOX_ACCESS_TOKEN"
-                class="p-8 text-center text-gray-400"
+                class="p-8 text-center text-[#555]"
               >
-                <MapPinIcon class="mx-auto mb-4 h-16 w-16 opacity-50" />
-                <p class="text-lg font-medium">Carte non configurée</p>
-                <p class="mt-2 text-sm">
-                  Ajoutez votre clé API Mapbox dans le fichier .env
+                <MapPinIcon class="mx-auto mb-4 h-16 w-16 opacity-30" />
+                <p class="text-sm">Carte non configurée</p>
+                <p class="mt-2 text-xs text-[#555]">
+                  Ajoutez votre clé API Mapbox
                 </p>
               </div>
             </div>
 
-            <!-- Location Info Overlay -->
-            <div class="absolute right-2 bottom-2 z-10">
+            <div class="absolute right-3 bottom-3 z-10">
               <div
-                class="w-fit rounded-xl border border-white/10 bg-gray-300 px-4 py-2 backdrop-blur-lg"
+                class="bg-noir/90 border-border-noir border px-4 py-3 backdrop-blur-sm"
               >
                 <div class="flex items-center gap-3">
-                  <div class="rounded-full bg-violet-800/20 p-2">
-                    <MapPinIcon class="h-5 w-5 text-violet-700" />
-                  </div>
+                  <MapPinIcon class="text-gold h-5 w-5" />
                   <div>
-                    <h3 class="font-semibold text-black">
+                    <h3 class="text-text text-sm font-light">
                       {{ BUSINESS_INFO.name }}
                     </h3>
-                    <p class="text-sm text-gray-700">
+                    <p class="text-xs text-[#555]">
                       {{ BUSINESS_INFO.address }}
                     </p>
                   </div>
@@ -216,41 +208,36 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Form Section -->
-        <div class="order-1 px-8 lg:order-2">
-          <!-- Contact Info Cards -->
+        <div class="order-1 lg:order-2">
           <div class="mb-8 grid gap-4 sm:grid-cols-2">
-            <div class="flex items-center gap-3 rounded-xl bg-gray-300/50 p-4">
-              <div class="rounded-full bg-green-500/20 p-2">
-                <PhoneIcon class="h-5 w-5 text-green-400" />
-              </div>
+            <div
+              class="border-border-noir bg-surface flex items-center gap-3 border p-4"
+            >
+              <PhoneIcon class="text-gold h-5 w-5" />
               <div>
-                <p class="text-xs text-gray-800">Téléphone</p>
-                <p class="font-medium text-black">
+                <p class="text-xs text-[#555]">Téléphone</p>
+                <p class="text-text text-sm">
                   {{ BUSINESS_INFO.phone }}
                 </p>
               </div>
             </div>
-            <div class="flex items-center gap-3 rounded-xl bg-gray-300/50 p-4">
-              <div class="rounded-full bg-blue-500/20 p-2">
-                <MailIcon class="h-5 w-5 text-blue-400" />
-              </div>
+            <div
+              class="border-border-noir bg-surface flex items-center gap-3 border p-4"
+            >
+              <MailIcon class="text-gold h-5 w-5" />
               <div>
-                <p class="text-xs text-gray-800">Email</p>
-                <p class="font-medium text-black">
+                <p class="text-xs text-[#555]">Email</p>
+                <p class="text-text text-sm">
                   {{ BUSINESS_INFO.email }}
                 </p>
               </div>
             </div>
           </div>
 
-          <!-- WhatsApp Form -->
           <div class="mb-6 flex items-center gap-3">
-            <div class="rounded-full bg-green-500/20 p-2">
-              <MessageCircleIcon class="h-6 w-6 text-green-400" />
-            </div>
-            <h2 class="text-xl font-semibold text-black">
-              Envoyez-nous un message WhatsApp
+            <MessageCircleIcon class="text-gold h-6 w-6" />
+            <h2 class="font-display text-text text-xl font-light">
+              Envoyez un message WhatsApp
             </h2>
           </div>
 
@@ -267,10 +254,10 @@ onUnmounted(() => {
                   <CustomInput
                     v-bind="componentField"
                     type="text"
-                    label="Full name"
+                    label="Nom complet"
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage class="text-gold" />
               </FormItem>
             </FormField>
 
@@ -283,10 +270,10 @@ onUnmounted(() => {
                   <CustomPhoneInput
                     v-bind="componentField"
                     type="text"
-                    label="Phone"
+                    label="Téléphone"
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage class="text-gold" />
               </FormItem>
             </FormField>
 
@@ -295,48 +282,46 @@ onUnmounted(() => {
               name="message"
             >
               <FormItem>
-                <Label class="font-normal text-gray-600">Message</Label>
+                <Label class="text-xs tracking-widest text-[#555] uppercase">
+                  Message
+                </Label>
                 <FormControl>
                   <Textarea
                     v-bind="componentField"
                     rows="4"
                     placeholder="Comment pouvons-nous vous aider ?"
-                    class="resize-none border-gray-600 text-black placeholder:text-gray-400 focus:border-violet-500 focus:ring-violet-500"
+                    class="focus:border-gold/40 text-text border-border-noir bg-surface resize-none border placeholder:text-[#555] focus:ring-0"
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage class="text-gold" />
               </FormItem>
             </FormField>
 
             <div class="flex flex-col gap-3 sm:flex-row">
-              <!-- Button 1: Open WhatsApp (no message) -->
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                class="flex-1 border-green-500 text-green-600 hover:bg-green-50"
+                class="border-gold/40 text-gold hover:bg-gold hover:text-noir flex flex-1 items-center justify-center gap-2 border px-5 py-3 text-xs tracking-widest uppercase transition-all"
                 @click="handleOpenWhatsApp"
               >
-                <ExternalLinkIcon class="mr-2 h-5 w-5" />
+                <ExternalLinkIcon class="h-4 w-4" />
                 <span>Ouvrir WhatsApp</span>
-              </Button>
+              </button>
 
-              <!-- Button 2: Send via Cloud API -->
               <LoadingButton
                 type="submit"
                 :loading="isSending"
-                class="flex-1 bg-green-600 text-white shadow hover:bg-green-700"
+                class="bg-gold text-noir flex flex-1 items-center justify-center gap-2 px-5 py-3 text-xs tracking-widest uppercase transition-all hover:bg-[#B8995E]"
                 :disabled="isSending"
               >
-                <SendIcon class="mr-2 h-5 w-5" />
-                <span>Envoyer le message</span>
+                <SendIcon class="h-4 w-4" />
+                <span>Envoyer</span>
               </LoadingButton>
             </div>
           </form>
 
-          <!-- Additional Info -->
-          <p class="mt-6 text-center text-sm text-gray-400">
-            "Ouvrir WhatsApp" redirige vers notre numéro. "Envoyer le message"
-            envoie votre message directement via notre système.
+          <p class="mt-6 text-center text-xs text-[#555]">
+            "Ouvrir WhatsApp" redirige vers notre numéro. "Envoyer" transmet
+            votre message via notre système.
           </p>
         </div>
       </div>
@@ -345,41 +330,36 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Mapbox GL CSS overrides for dark theme */
 :deep(.mapboxgl-popup-content) {
-  background: #1f2937;
-  color: white;
-  border-radius: 12px;
+  background: #141414;
+  color: #e8e8e8;
   padding: 0;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 :deep(.mapboxgl-popup-tip) {
-  border-top-color: #1f2937;
+  border-top-color: #141414;
 }
 
 :deep(.mapboxgl-ctrl-group) {
-  background: #374151;
-  border-radius: 8px;
+  background: #141414;
+  border: 1px solid #1e1e1e;
 }
 
 :deep(.mapboxgl-ctrl-group button) {
   background-color: transparent;
-}
-
-:deep(.mapboxgl-ctrl-group button + button) {
-  border-top-color: #4b5563;
+  border-top-color: #1e1e1e;
 }
 
 :deep(.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon) {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 24 24'%3E%3Cpath d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23C8A97E' viewBox='0 0 24 24'%3E%3Cpath d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
 }
 
 :deep(.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon) {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 24 24'%3E%3Cpath d='M19 13H5v-2h14v2z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23C8A97E' viewBox='0 0 24 24'%3E%3Cpath d='M19 13H5v-2h14v2z'/%3E%3C/svg%3E");
 }
 
 :deep(.mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon) {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23fff' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23C8A97E' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z'/%3E%3C/svg%3E");
 }
 </style>

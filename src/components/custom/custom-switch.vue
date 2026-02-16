@@ -21,12 +21,10 @@ const emits = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
-// Utilise soit l'id fourni, soit le name de vee-validate
 const inputId = computed(
   () => props.id || props.name || `switch-${Math.random()}`,
 )
 
-// Normalise la valeur en boolean (vee-validate peut envoyer "on" au lieu de true)
 const normalizedValue = computed((): boolean => {
   if (typeof props.modelValue === 'boolean') {
     return props.modelValue
@@ -42,22 +40,22 @@ function handleChange(value: boolean) {
 <template>
   <Label
     :for="inputId"
-    class="flex cursor-pointer items-center justify-between rounded-lg border p-4"
+    class="flex cursor-pointer items-center justify-between border border-[#1E1E1E] bg-[#0A0A0A] p-4"
     :class="{ 'cursor-not-allowed opacity-50': disabled }"
   >
     <div
       v-if="label || description"
-      class="space-y-0.5"
+      class="space-y-1"
     >
       <div
         v-if="label"
-        class="flex items-center gap-2 text-sm leading-none font-normal text-gray-800 select-none"
+        class="flex items-center gap-2 text-sm leading-none font-normal text-[#E8E8E8] select-none"
       >
         {{ label }}
       </div>
       <p
         v-if="description"
-        class="text-xs text-gray-500"
+        class="text-xs text-[#555]"
       >
         {{ description }}
       </p>
@@ -69,6 +67,7 @@ function handleChange(value: boolean) {
       :model-value="normalizedValue"
       :disabled="disabled"
       @update:model-value="handleChange"
+      class="data-[state=checked]:bg-[#C8A97E] data-[state=unchecked]:bg-[#1E1E1E]"
     />
   </Label>
 </template>

@@ -2,6 +2,7 @@
 import LoadingButton from '@/components/custom/loading-button.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -414,14 +415,14 @@ const handleCheckout = () => {
   <!-- Loading State -->
   <div
     v-if="isLoading"
-    class="flex flex-col gap-4 py-8"
+    class="bg-noir flex min-h-screen flex-col gap-4 p-6 py-8"
   >
     <div
       v-for="i in 3"
       :key="i"
       class="flex items-center gap-4"
     >
-      <Skeleton class="h-24 w-24 rounded-md" />
+      <Skeleton class="h-24 w-24" />
       <div class="flex-1 space-y-2">
         <Skeleton class="h-4 w-3/4" />
         <Skeleton class="h-3 w-1/2" />
@@ -436,23 +437,23 @@ const handleCheckout = () => {
   <!-- Shared Cart Error State -->
   <div
     v-if="isErrorShared || !!errorShared"
-    class="flex flex-col items-center justify-center gap-4 py-10 text-center"
+    class="bg-noir flex min-h-screen flex-col items-center justify-center gap-4 p-6 py-10 text-center"
   >
-    <div class="rounded-full bg-red-100 p-6">
-      <ShoppingCartIcon class="h-10 w-10 text-red-500" />
+    <div class="border-gold/40 border p-6">
+      <ShoppingCartIcon class="text-gold h-10 w-10" />
     </div>
     <div class="space-y-1">
-      <h3 class="text-lg font-semibold text-red-900">
+      <h3 class="font-display text-text text-2xl font-light">
         Unable to load shared cart
       </h3>
-      <p class="text-sm text-red-600">
+      <p class="text-text-muted text-sm">
         {{ (errorShared as ApiError)?.message }}
       </p>
     </div>
     <RouterLink to="/cart">
       <Button
         variant="outline"
-        class="mt-4"
+        class="border-gold/40 text-gold hover:bg-gold/10 mt-4 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
       >
         Return to my cart
       </Button>
@@ -462,19 +463,21 @@ const handleCheckout = () => {
   <!-- Empty Cart State -->
   <div
     v-else-if="isEmpty"
-    class="flex flex-col items-center justify-center gap-4 py-10 text-center"
+    class="bg-noir flex min-h-screen flex-col items-center justify-center gap-4 p-6 py-10 text-center"
   >
-    <div class="rounded-full bg-gray-100 p-6">
-      <ShoppingCartIcon class="h-10 w-10 text-gray-400" />
+    <div class="border-border-noir border p-6">
+      <ShoppingCartIcon class="text-text-muted h-10 w-10" />
     </div>
     <div class="space-y-1">
-      <h3 class="text-lg font-semibold">Your cart is empty</h3>
-      <p class="text-sm text-gray-500">Add products to start shopping</p>
+      <h3 class="font-display text-text text-5xl font-light">
+        Your cart is empty
+      </h3>
+      <p class="text-text-muted text-sm">Add products to start shopping</p>
     </div>
     <RouterLink to="/shop">
       <Button
         variant="outline"
-        class="mt-4"
+        class="border-gold/40 text-gold hover:bg-gold/10 mt-4 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
       >
         Continue shopping
       </Button>
@@ -484,20 +487,20 @@ const handleCheckout = () => {
   <!-- Cart Content -->
   <div
     v-else
-    class="grid gap-8 lg:grid-cols-3"
+    class="bg-noir grid min-h-screen gap-8 p-6 lg:grid-cols-3"
   >
     <!-- Shared Cart Banner -->
     <div
       v-if="!!shareToken"
-      class="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4 lg:col-span-3"
+      class="border-gold/40 bg-surface flex items-center justify-between border p-4 lg:col-span-3"
     >
       <div class="flex items-center gap-3">
-        <div class="rounded-full bg-blue-100 p-2">
-          <Share2Icon class="h-5 w-5 text-blue-600" />
+        <div class="border-gold/40 border p-2">
+          <Share2Icon class="text-gold h-5 w-5" />
         </div>
         <div>
-          <h3 class="font-semibold text-blue-900">Viewing a Shared Cart</h3>
-          <p class="text-sm text-blue-700">
+          <h3 class="text-text font-semibold">Viewing a Shared Cart</h3>
+          <p class="text-text-muted text-sm">
             Updates are synced in real-time. You cannot checkout this cart
             directly.
           </p>
@@ -509,6 +512,7 @@ const handleCheckout = () => {
           :disabled="isAnyItemActioning"
           variant="outline"
           size="sm"
+          class="border-gold/40 text-gold hover:bg-gold/10 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
           @click="importFromCart(shareToken)"
         >
           <ImportIcon class="mr-2 h-4 w-4" />
@@ -519,6 +523,7 @@ const handleCheckout = () => {
           :disabled="isAnyItemActioning"
           variant="outline"
           size="sm"
+          class="border-gold/40 text-gold hover:bg-gold/10 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
           @click="importSharedCart"
         >
           <ImportIcon class="mr-2 h-4 w-4" />
@@ -531,15 +536,17 @@ const handleCheckout = () => {
     <div class="flex flex-col gap-4 lg:col-span-2">
       <div class="flex items-start justify-between">
         <div class="flex flex-col gap-1">
-          <h1 class="flex items-center gap-1">
-            <span class="text-2xl font-bold">My Cart</span>
-            <span class="text-lg font-medium text-gray-500">
+          <h1 class="flex items-center gap-3">
+            <span class="font-display text-text text-5xl font-light">
+              My Cart
+            </span>
+            <span class="text-gold text-xs tracking-[0.3em] uppercase">
               ({{ items.length }} products)
             </span>
           </h1>
           <p
             v-if="lastModified"
-            class="text-sm text-gray-500"
+            class="text-text-muted text-sm"
           >
             Last modified {{ formatRelativeTime(lastModified) }}
           </p>
@@ -551,20 +558,22 @@ const handleCheckout = () => {
               :loading="isLoadingShareToken"
               :disabled="isLoadingShareToken"
               variant="outline"
+              class="border-gold/40 text-gold hover:bg-gold/10 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
               @click="shareCart"
             >
               <Share2Icon class="h-4 w-4" />
-              <span class="hidden text-sm sm:block">Share</span>
+              <span class="hidden text-xs sm:block">Share</span>
             </LoadingButton>
 
             <LoadingButton
               :loading="isClearingCart"
               :disabled="isClearingCart"
               variant="destructive"
+              class="border border-red-500/40 px-5 py-3 text-xs tracking-[0.2em] text-red-400 uppercase hover:bg-red-500/10"
               @click="clearCart()"
             >
               <Trash2Icon class="h-4 w-4" />
-              <span class="hidden text-sm sm:block md:hidden">Clear</span>
+              <span class="hidden text-xs sm:block md:hidden">Clear</span>
               <span class="hidden md:block">Clear cart</span>
             </LoadingButton>
           </template>
@@ -573,6 +582,7 @@ const handleCheckout = () => {
             <Button
               variant="outline"
               :disabled="isAnyItemActioning"
+              class="border-gold/40 text-gold hover:bg-gold/10 border px-5 py-3 text-xs tracking-[0.2em] uppercase"
             >
               <RouterLink to="/cart">Exit Shared View</RouterLink>
             </Button>
@@ -584,17 +594,34 @@ const handleCheckout = () => {
       <div class="hidden md:block">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead class="w-[45%]">Product</TableHead>
-              <TableHead class="text-center">Quantity</TableHead>
-              <TableHead class="text-center">Price</TableHead>
-              <TableHead class="text-right">Subtotal</TableHead>
+            <TableRow class="border-border-noir border-b hover:bg-transparent">
+              <TableHead
+                class="text-gold w-[45%] text-xs tracking-[0.3em] uppercase"
+              >
+                Product
+              </TableHead>
+              <TableHead
+                class="text-gold text-center text-xs tracking-[0.3em] uppercase"
+              >
+                Quantity
+              </TableHead>
+              <TableHead
+                class="text-gold text-center text-xs tracking-[0.3em] uppercase"
+              >
+                Price
+              </TableHead>
+              <TableHead
+                class="text-gold text-right text-xs tracking-[0.3em] uppercase"
+              >
+                Subtotal
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow
               v-for="item in items"
               :key="item.id"
+              class="border-border-noir hover:bg-surface/50 border-b"
             >
               <TableCell>
                 <div class="flex items-center gap-4 py-3">
@@ -611,7 +638,7 @@ const handleCheckout = () => {
                           )
                         "
                         :disabled="isAnyItemActioning"
-                        class="flex w-fit cursor-pointer items-center gap-1 text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="text-text-muted flex w-fit cursor-pointer items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
                         :title="
                           isInWishlist(item.productId, item.productVariantId)
                             ? 'Remove from wishlist'
@@ -629,9 +656,9 @@ const handleCheckout = () => {
                         />
                         <HeartIcon
                           v-else
-                          class="h-4 w-4 hover:text-pink-500"
+                          class="hover:text-gold h-4 w-4"
                           :class="{
-                            'text-pink-500': isInWishlist(
+                            'text-gold': isInWishlist(
                               item.productId,
                               item.productVariantId,
                             ),
@@ -649,7 +676,7 @@ const handleCheckout = () => {
                           !!shareToken &&
                           isInMyCart(item.productId, item.productVariantId)
                         "
-                        class="flex w-fit items-center gap-1 text-green-500"
+                        class="text-gold flex w-fit items-center gap-1"
                         title="Already in my cart"
                       >
                         <CheckIcon class="h-4 w-4" />
@@ -666,7 +693,7 @@ const handleCheckout = () => {
                           )
                         "
                         :disabled="isAnyItemActioning"
-                        class="flex w-fit cursor-pointer items-center gap-1 text-gray-500 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="hover:text-gold text-text-muted flex w-fit cursor-pointer items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Add to my cart"
                       >
                         <Spinner
@@ -697,14 +724,14 @@ const handleCheckout = () => {
                           updatingItemId !== null ||
                           removingItemId !== null
                         "
-                        class="flex w-fit cursor-pointer items-center gap-1 text-gray-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="text-text-muted flex w-fit cursor-pointer items-center gap-1 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Remove from cart"
                       >
                         <XIcon class="h-4 w-4" />
                       </button>
                     </div>
                     <div
-                      class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100"
+                      class="border-border-noir bg-surface h-20 w-20 shrink-0 overflow-hidden border"
                     >
                       <img
                         :src="item.product.images[0]"
@@ -713,12 +740,12 @@ const handleCheckout = () => {
                       />
                     </div>
                     <div>
-                      <div class="font-medium">
+                      <div class="text-text font-medium">
                         {{ item.product.name }}
                       </div>
                       <div
                         v-if="item.productVariant"
-                        class="flex flex-col text-sm text-gray-500"
+                        class="text-text-muted flex flex-col text-sm"
                       >
                         <span
                           v-for="option in item.productVariant
@@ -734,16 +761,23 @@ const handleCheckout = () => {
                 </div>
               </TableCell>
               <TableCell :class="{ 'text-center': !!shareToken }">
-                <div v-if="!!shareToken">{{ item.quantity }}</div>
+                <div
+                  v-if="!!shareToken"
+                  class="text-text"
+                >
+                  {{ item.quantity }}
+                </div>
                 <div
                   v-else
                   class="flex items-center justify-center"
                 >
-                  <div class="flex items-center rounded border">
+                  <div
+                    class="border-border-noir bg-surface flex items-center border"
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
-                      class="size-8 rounded-none rounded-l p-0"
+                      class="hover:text-gold text-text-muted size-8 p-0 hover:bg-transparent"
                       @click="
                         handleQuantityChange(
                           item.productId,
@@ -767,7 +801,7 @@ const handleCheckout = () => {
                     >
                       <MinusIcon class="h-4 w-4" />
                     </Button>
-                    <span class="w-10 text-center text-sm">
+                    <span class="text-text w-10 text-center text-sm">
                       {{
                         getDisplayQuantity(
                           item.productId,
@@ -778,7 +812,7 @@ const handleCheckout = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      class="size-8 rounded-none rounded-r p-0"
+                      class="hover:text-gold text-text-muted size-8 p-0 hover:bg-transparent"
                       @click="
                         handleQuantityChange(
                           item.productId,
@@ -809,11 +843,11 @@ const handleCheckout = () => {
                   </div>
                 </div>
               </TableCell>
-              <TableCell class="text-center">
+              <TableCell class="text-text-muted text-center">
                 {{ formatPrice(getItemPrice(item)) }}
               </TableCell>
               <TableCell class="text-right">
-                <span class="font-medium">
+                <span class="text-text font-medium">
                   {{ formatPrice(getItemSubtotal(item)) }}
                 </span>
               </TableCell>
@@ -827,7 +861,7 @@ const handleCheckout = () => {
         <div
           v-for="item in items"
           :key="item.id"
-          class="flex gap-4 border-b pb-6"
+          class="border-border-noir flex gap-4 border-b pb-6"
         >
           <div class="flex flex-col gap-4">
             <button
@@ -835,7 +869,7 @@ const handleCheckout = () => {
                 handleToggleWishlist(item.productId, item.productVariantId)
               "
               :disabled="isAnyItemActioning"
-              class="flex w-fit cursor-pointer items-center gap-1 text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+              class="text-text-muted flex w-fit cursor-pointer items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Spinner
                 v-if="
@@ -845,9 +879,9 @@ const handleCheckout = () => {
               />
               <HeartIcon
                 v-else
-                class="h-4 w-4 hover:text-pink-500"
+                class="hover:text-gold h-4 w-4"
                 :class="{
-                  'text-pink-500': isInWishlist(
+                  'text-gold': isInWishlist(
                     item.productId,
                     item.productVariantId,
                   ),
@@ -865,7 +899,7 @@ const handleCheckout = () => {
                 !!shareToken &&
                 isInMyCart(item.productId, item.productVariantId)
               "
-              class="flex w-fit items-center gap-1 text-green-500"
+              class="text-gold flex w-fit items-center gap-1"
               title="Already in my cart"
             >
               <CheckIcon class="h-4 w-4" />
@@ -878,7 +912,7 @@ const handleCheckout = () => {
                 handleImportItem(item.productId, 1, item.productVariantId)
               "
               :disabled="isAnyItemActioning"
-              class="flex w-fit cursor-pointer items-center gap-1 text-gray-500 hover:text-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              class="hover:text-gold text-text-muted flex w-fit cursor-pointer items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Spinner
                 v-if="
@@ -899,12 +933,14 @@ const handleCheckout = () => {
                 updatingItemId !== null ||
                 removingItemId !== null
               "
-              class="flex w-fit cursor-pointer items-center gap-1 text-sm text-gray-500 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+              class="text-text-muted flex w-fit cursor-pointer items-center gap-1 text-sm hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <XIcon class="h-4 w-4" />
             </button>
           </div>
-          <div class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100">
+          <div
+            class="border-border-noir bg-surface h-20 w-20 shrink-0 overflow-hidden border"
+          >
             <img
               :src="item.product.images[0]"
               :alt="item.product.name"
@@ -912,10 +948,12 @@ const handleCheckout = () => {
             />
           </div>
           <div class="flex flex-1 flex-col gap-2">
-            <div class="font-medium">{{ item.product.name }}</div>
+            <div class="text-text font-medium">
+              {{ item.product.name }}
+            </div>
             <div
               v-if="item.productVariant"
-              class="flex flex-col text-sm text-gray-500"
+              class="text-text-muted flex flex-col text-sm"
             >
               <span
                 v-for="option in item.productVariant.productVariantOptions"
@@ -926,11 +964,13 @@ const handleCheckout = () => {
               </span>
             </div>
             <div class="flex items-center justify-between">
-              <div class="flex items-center rounded border">
+              <div
+                class="border-border-noir bg-surface flex items-center border"
+              >
                 <Button
                   variant="ghost"
                   size="sm"
-                  class="size-8 rounded-none rounded-l p-0"
+                  class="hover:text-gold text-text-muted size-8 p-0 hover:bg-transparent"
                   @click="
                     handleQuantityChange(
                       item.productId,
@@ -950,7 +990,7 @@ const handleCheckout = () => {
                 >
                   <MinusIcon class="h-4 w-4" />
                 </Button>
-                <span class="w-10 text-center text-sm">
+                <span class="text-text w-10 text-center text-sm">
                   {{
                     getDisplayQuantity(item.productId, item.productVariantId)
                   }}
@@ -958,7 +998,7 @@ const handleCheckout = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  class="size-8 rounded-none rounded-r p-0"
+                  class="hover:text-gold text-text-muted size-8 p-0 hover:bg-transparent"
                   @click="
                     handleQuantityChange(
                       item.productId,
@@ -979,7 +1019,7 @@ const handleCheckout = () => {
                   <PlusIcon class="h-4 w-4" />
                 </Button>
               </div>
-              <div class="font-medium">
+              <div class="text-text font-medium">
                 {{ formatPrice(getItemSubtotal(item)) }}
               </div>
             </div>
@@ -990,17 +1030,21 @@ const handleCheckout = () => {
 
     <!-- Cart Summary -->
     <div class="lg:col-span-1">
-      <div class="sticky top-24 rounded border p-6">
-        <h3 class="mb-4 text-xl font-semibold">Cart summary</h3>
+      <div class="border-border-noir bg-surface sticky top-24 border p-6">
+        <h3 class="font-display text-text mb-6 text-3xl font-light">
+          Cart summary
+        </h3>
+        <div class="bg-gold/40 mx-auto mb-6 h-px w-24" />
 
         <RadioGroup v-model="selectedShippingId">
           <div class="space-y-3">
             <div
               v-for="option in shippingOptions"
               :key="option.id"
-              class="flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors"
+              class="flex cursor-pointer items-center justify-between border p-4 transition-colors"
               :class="{
-                'border-black': selectedShippingId === option.id,
+                'border-gold/40 bg-gold/5': selectedShippingId === option.id,
+                'border-border-noir': selectedShippingId !== option.id,
               }"
               @click="handleShippingChange(option.id)"
             >
@@ -1008,15 +1052,16 @@ const handleCheckout = () => {
                 <RadioGroupItem
                   :value="option.id"
                   :id="option.id"
+                  class="border-gold/40 text-gold"
                 />
                 <Label
                   :for="option.id"
-                  class="cursor-pointer font-normal"
+                  class="text-text cursor-pointer font-normal"
                 >
                   {{ option.label }}
                 </Label>
               </div>
-              <span class="text-sm font-medium">
+              <span class="text-gold text-sm font-medium">
                 {{
                   option.price === 0
                     ? formatPrice(0)
@@ -1030,23 +1075,25 @@ const handleCheckout = () => {
         </RadioGroup>
 
         <!-- Coupon Section -->
-        <div class="mt-6 border-t pt-4">
-          <h3 class="mb-2 text-lg font-semibold">Have a coupon?</h3>
-          <p class="mb-4 text-sm text-gray-500">
+        <div class="border-border-noir mt-6 border-t pt-4">
+          <h3 class="text-gold mb-2 text-xs tracking-[0.3em] uppercase">
+            Have a coupon?
+          </h3>
+          <p class="text-text-muted mb-4 text-sm">
             Add your code for an instant cart discount
           </p>
 
           <!-- Applied Coupon Display -->
           <div
             v-if="hasAppliedCoupon && appliedCoupon"
-            class="mb-4 flex h-10 items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3"
+            class="border-gold/40 bg-border-noir mb-4 flex h-10 items-center justify-between border px-3"
           >
             <div class="flex items-center gap-2">
-              <TagIcon class="h-4 w-4 text-emerald-600" />
-              <span class="font-medium text-emerald-700">
+              <TagIcon class="text-gold h-4 w-4" />
+              <span class="text-gold">
                 {{ appliedCoupon.code }}
               </span>
-              <span class="text-sm text-emerald-600">
+              <span class="text-gold/70 text-sm">
                 (-{{
                   appliedCoupon.type === 'PERCENTAGE'
                     ? `${appliedCoupon.value}%`
@@ -1056,7 +1103,7 @@ const handleCheckout = () => {
             </div>
             <button
               @click="removeCoupon"
-              class="cursor-pointer text-sm text-red-500 hover:text-red-600"
+              class="text-gold hover:text-text cursor-pointer text-xs tracking-[0.2em] uppercase"
             >
               Remove
             </button>
@@ -1065,65 +1112,65 @@ const handleCheckout = () => {
           <!-- Coupon Input -->
           <div
             v-else
-            class="flex w-full gap-2"
+            class="flex w-full items-end gap-2"
           >
             <div class="relative flex-1">
               <Input
                 v-model="couponCode"
                 placeholder="Coupon Code"
-                class="h-10 w-full pl-10 uppercase"
+                class="focus:border-gold text-text placeholder:text-text-muted border-border-noir bg-surface h-10 w-full border pl-10 uppercase"
                 :disabled="isApplyingCoupon"
                 @keyup.enter="handleApplyCoupon"
               />
               <TagIcon
-                class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400"
+                class="text-text-muted absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
               />
             </div>
-            <LoadingButton
-              class="h-10 px-6"
+            <button
+              class="border-gold/40 text-gold hover:bg-gold hover:text-noir h-10 border px-6 text-xs tracking-[0.2em] uppercase transition-all disabled:opacity-50"
               @click="handleApplyCoupon"
               :disabled="isApplyingCoupon || !couponCode"
-              :loading="isApplyingCoupon"
             >
-              Apply
-            </LoadingButton>
+              {{ isApplyingCoupon ? 'Applying...' : 'Apply' }}
+            </button>
           </div>
         </div>
 
         <!-- Totals -->
-        <div class="mt-6 space-y-3 border-t pt-6">
+        <div class="border-border-noir mt-6 space-y-3 border-t pt-6">
           <div class="flex justify-between text-sm">
-            <span class="text-gray-500">Subtotal</span>
-            <span>{{ formatPrice(subtotal) }}</span>
+            <span class="text-text-muted">Subtotal</span>
+            <span class="text-text">{{ formatPrice(subtotal) }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-gray-500">Shipping</span>
-            <span>{{ formatPrice(shippingCost) }}</span>
+            <span class="text-text-muted">Shipping</span>
+            <span class="text-text">{{ formatPrice(shippingCost) }}</span>
           </div>
           <div
             v-if="hasAppliedCoupon"
-            class="flex justify-between text-sm text-emerald-600"
+            class="text-gold flex justify-between text-sm"
           >
             <span>Discount</span>
             <span>-{{ formatPrice(discountAmount) }}</span>
           </div>
+          <div class="bg-border-noir mx-auto h-px w-12" />
           <div class="flex justify-between text-lg font-semibold">
-            <span>Total</span>
-            <span>{{ formatPrice(total) }}</span>
+            <span class="text-text">Total</span>
+            <span class="text-gold">{{ formatPrice(total) }}</span>
           </div>
         </div>
 
         <!-- Checkout Button -->
         <Button
           v-if="!shareToken"
-          class="mt-6 h-12 w-full text-base"
+          class="border-gold/40 bg-gold hover:bg-gold/90 text-noir mt-6 h-12 w-full border text-xs tracking-[0.2em] uppercase"
           @click="handleCheckout"
         >
           Checkout
         </Button>
         <Button
           v-else
-          class="mt-6 h-12 w-full text-base"
+          class="border-gold/40 bg-gold hover:bg-gold/90 text-noir mt-6 h-12 w-full border text-xs tracking-[0.2em] uppercase"
           @click="handleCheckout"
         >
           <CreditCardIcon class="mr-2 h-4 w-4" />

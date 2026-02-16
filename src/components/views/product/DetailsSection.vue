@@ -41,7 +41,6 @@ const {
   wishlistItems,
 } = useWishlists()
 
-// SEO - only for non-modal views
 if (!props.isModal) {
   const siteUrl = import.meta.env.VITE_APP_URL || 'https://vexa.store'
 
@@ -78,10 +77,8 @@ const isInWishlist = computed(() => {
 const selectedImageIndex = ref(0)
 const quantity = ref(1)
 
-// Map of Attribute ID -> Option ID (empty by default, no pre-selection)
 const selectedOptions = ref<Record<string, string>>({})
 
-// Computed property to group available attributes and options from variants
 const availableAttributes = computed(() => {
   if (!product.value?.productVariants) return []
 
@@ -126,16 +123,13 @@ const availableAttributes = computed(() => {
   }))
 })
 
-// Determine if product has variants
 const hasVariants = computed(() => {
   return availableAttributes.value.length > 0
 })
 
-// Find the variant that matches the selected options
 const currentVariant = computed<ProductVariantWithDetails | undefined>(() => {
   if (!product.value?.productVariants || !hasVariants.value) return undefined
 
-  // Must have all attributes selected
   if (
     Object.keys(selectedOptions.value).length !==
     availableAttributes.value.length
@@ -157,21 +151,19 @@ const currentVariant = computed<ProductVariantWithDetails | undefined>(() => {
   })
 })
 
-// Check if all options are selected but no matching variant
 const hasIncompleteSelection = computed(() => {
   return hasVariants.value && !currentVariant.value
 })
 
 const canShowPriceAndStock = computed(() => {
-  if (!hasVariants.value) return true // Simple product
-  return currentVariant.value !== undefined // Valid variant selected
+  if (!hasVariants.value) return true
+  return currentVariant.value !== undefined
 })
 
 const currentPrice = computed(() => {
   if (hasVariants.value && currentVariant.value) {
     return currentVariant.value.price ?? currentVariant.value.basePrice
   }
-  // Simple product
   return product.value?.price ?? product.value?.basePrice ?? 0
 })
 
@@ -179,7 +171,6 @@ const currentBasePrice = computed(() => {
   if (hasVariants.value && currentVariant.value) {
     return currentVariant.value.basePrice
   }
-  // Simple product
   return product.value?.basePrice ?? 0
 })
 
@@ -187,7 +178,6 @@ const currentStock = computed(() => {
   if (hasVariants.value && currentVariant.value) {
     return currentVariant.value.stock ?? 0
   }
-  // Simple product
   return product.value?.stock ?? 0
 })
 
@@ -202,23 +192,18 @@ const maxQuantity = computed(() => {
 const hasDiscount = computed(() => {
   if (!canShowPriceAndStock.value) return false
 
-  // Must have both prices to compare
   if (!currentPrice.value || !currentBasePrice.value) return false
 
-  // Price must be lower than base price to be a discount
   if (currentPrice.value >= currentBasePrice.value) return false
 
-  // Check if the offer has expired (if expiration date exists)
   const expirationDate =
     currentVariant.value?.expiresAt || product.value?.expiresAt
 
-  // If there's an expiration date, check if it's still valid
   if (expirationDate) {
     const expiresAt = new Date(expirationDate)
-    if (expiresAt <= new Date()) return false // Offer expired
+    if (expiresAt <= new Date()) return false
   }
 
-  // Discount is valid: price < basePrice and (no expiration OR not expired)
   return true
 })
 
@@ -228,16 +213,13 @@ const currentImage = computed(() => {
   return product.value.images[selectedImageIndex.value]
 })
 
-// Track if options have been initialized for current product
 const optionsInitialized = ref(false)
 const lastInitializedProductId = ref<string | null>(null)
 
-// Watch for slug changes to reset state
 watch(
   () => props.slug,
   (newSlug, oldSlug) => {
     if (newSlug !== oldSlug) {
-      // Reset state for new product
       selectedImageIndex.value = 0
       quantity.value = 1
       selectedOptions.value = {}
@@ -248,13 +230,9 @@ watch(
   { immediate: false },
 )
 
-// Initialize selected options from URL (no defaults, user must choose)
-// In modal mode, we don't read from URL
 const initSelectedOptions = () => {
   if (!product.value || !hasVariants.value) return
 
-  // Prevent re-initialization if options are already set for this product
-  // This prevents options from being reset on refetch (e.g., after adding to cart)
   if (
     optionsInitialized.value &&
     lastInitializedProductId.value === product.value.id
@@ -262,7 +240,6 @@ const initSelectedOptions = () => {
     return
   }
 
-  // In modal mode, start with empty selection
   if (isModal) {
     selectedOptions.value = {}
     optionsInitialized.value = true
@@ -287,9 +264,7 @@ const initSelectedOptions = () => {
   lastInitializedProductId.value = product.value.id
 }
 
-// Update URL when selection changes (only in non-modal mode)
 const updateUrl = () => {
-  // Skip URL updates in modal mode
   if (isModal) return
 
   const query: Record<string, string> = { ...route.query } as Record<
@@ -305,7 +280,6 @@ const updateUrl = () => {
         query[attr.name] = selectedOption.name
       }
     } else {
-      // Remove from query if not selected
       delete query[attr.name]
     }
   })
@@ -314,7 +288,6 @@ const updateUrl = () => {
 }
 
 const selectOption = (attributeId: string, optionId: string) => {
-  // Toggle: if already selected, deselect it
   if (selectedOptions.value[attributeId] === optionId) {
     const newSelection = { ...selectedOptions.value }
     delete newSelection[attributeId]
@@ -336,14 +309,11 @@ watch(
   { immediate: true },
 )
 
-// Reset quantity when variant changes or stock changes
 watch([currentVariant, currentStock], () => {
-  // Reset to 1 if new stock is insufficient
   if (quantity.value > maxQuantity.value) {
     quantity.value = 1
   }
 
-  // Also reset timer if variant changed (new expiration possible)
   calculateTimeLeft()
 })
 
@@ -360,20 +330,18 @@ const decrementQuantity = () => {
 }
 
 const handleaddCartItem = async () => {
-  // Check stock
   if (isOutOfStock.value) {
-    toast.error('This product is out of stock')
+    toast.error('Ce produit est en rupture de stock')
     return
   }
 
-  // For variant products, must have a valid variant selected
   if (hasVariants.value && !currentVariant.value) {
-    toast.error('Please select all options')
+    toast.error('Veuillez sélectionner toutes les options')
     return
   }
 
   if (!product.value?.id) {
-    toast.error('Error adding to cart')
+    toast.error("Erreur lors de l'ajout au panier")
     return
   }
 
@@ -383,7 +351,7 @@ const handleaddCartItem = async () => {
 
 const handleToggleWishlist = async () => {
   if (!product.value?.id) {
-    toast.error('Please select a product')
+    toast.error('Veuillez sélectionner un produit')
     return
   }
 
@@ -398,7 +366,6 @@ const handleToggleWishlist = async () => {
   }
 }
 
-// TimeLeft timer logic
 const timeLeft = ref({
   days: 0,
   hours: 0,
@@ -409,7 +376,6 @@ const timeLeft = ref({
 let intervalId: number | null = null
 
 const calculateTimeLeft = () => {
-  // Priority to variant expiration if it exists
   const expirationDate =
     currentVariant.value?.expiresAt || product.value?.expiresAt
 
@@ -443,6 +409,13 @@ const discount = computed(() => {
   )
 })
 
+const isNew = computed(() => {
+  if (!product.value?.createdAt) return false
+  const now = new Date()
+  const createdAt = new Date(product.value.createdAt)
+  return now.getTime() - createdAt.getTime() < 30 * 24 * 60 * 60 * 1000
+})
+
 onMounted(() => {
   calculateTimeLeft()
   intervalId = window.setInterval(calculateTimeLeft, 1000)
@@ -461,36 +434,37 @@ onUnmounted(() => {
     class="flex justify-center py-20"
   >
     <div
-      class="h-12 w-12 animate-spin rounded-full border-b-2 border-black"
-    ></div>
+      class="h-12 w-12 animate-spin border-2 border-[#1E1E1E] border-t-[#C8A97E]"
+    />
   </div>
 
   <div
     v-else-if="isErrorProduct"
-    class="py-20 text-center text-red-500"
+    class="py-20 text-center text-[#C8A97E]"
   >
-    Failed to load product. Please try again.
+    Erreur lors du chargement du produit.
   </div>
 
-  <!-- Details Section -->
   <div
     v-else-if="product"
-    :class="isModal ? 'px-2 py-4' : 'container mx-auto px-4 py-8'"
+    :class="isModal ? 'px-2 py-4' : 'mx-auto max-w-6xl px-6 py-16'"
   >
-    <!-- Breadcrumbs (hidden in modal mode) -->
     <nav
       v-if="!isModal"
-      class="mb-8 flex items-center text-sm text-gray-500"
+      class="mb-8 flex items-center gap-2 text-xs tracking-widest text-[#555] uppercase"
     >
       <CustomBreadcrumb
         :items="[
-          { label: 'Home', link: '/' },
-          { label: 'Shop', link: '/shop' },
+          { label: 'Accueil', link: '/' },
+          { label: 'Boutique', link: '/shop' },
           {
-            label: product?.category?.name ?? 'Category',
+            label: product?.category?.name ?? 'Catégorie',
             link: `/shop?categories=${product?.category?.slug}`,
           },
-          { label: product?.name ?? 'Product', link: `/shop/${product?.slug}` },
+          {
+            label: product?.name ?? 'Produit',
+            link: `/products/${product?.slug}`,
+          },
         ]"
       />
     </nav>
@@ -501,7 +475,6 @@ onUnmounted(() => {
         isModal ? 'items-stretch lg:flex-col' : 'items-stretch lg:flex-row',
       ]"
     >
-      <!-- Left Column: Images -->
       <div
         :class="[
           'flex w-full flex-col gap-2',
@@ -510,7 +483,9 @@ onUnmounted(() => {
       >
         <div :class="[isModal ? 'block' : 'block lg:hidden']">
           <Carousel>
-            <CarouselPrevious />
+            <CarouselPrevious
+              class="hover:bg-surface border-[#1E1E1E] bg-[#0A0A0A] text-[#C8A97E]"
+            />
             <CarouselContent>
               <CarouselItem
                 v-for="(image, index) in product.images"
@@ -518,23 +493,22 @@ onUnmounted(() => {
                 class="sm:basis-1/2 lg:basis-1/3"
               >
                 <div
-                  class="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
+                  class="bg-surface relative flex aspect-square w-full items-center justify-center overflow-hidden border border-[#1E1E1E]"
                 >
-                  <!-- Badges -->
                   <div
                     class="absolute top-3 left-3 z-10 flex flex-col items-stretch gap-2"
                   >
                     <span
-                      class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
+                      v-if="isNew"
+                      class="border border-[#C8A97E]/40 bg-[#0A0A0A]/90 px-2 py-1 text-[10px] tracking-widest text-[#C8A97E] uppercase backdrop-blur-sm"
                     >
-                      NEW
+                      Nouveau
                     </span>
                     <span
                       v-if="discount !== 0"
-                      class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
-                      :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
+                      class="bg-[#C8A97E] px-2 py-1 text-[10px] tracking-widest text-[#0A0A0A] uppercase"
                     >
-                      {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
+                      -{{ discount }}%
                     </span>
                   </div>
 
@@ -542,83 +516,74 @@ onUnmounted(() => {
                     v-if="index === 0"
                     class="absolute top-3 right-3 z-10"
                   >
-                    <LoadingButton
-                      :loading="isAddingToWishlist || isRemovingWishlistItem"
-                      @click="handleToggleWishlist"
-                      class="rounded-full bg-white p-1.5 hover:bg-white"
+                    <button
                       :disabled="isAddingToWishlist || isRemovingWishlistItem"
-                      variant="secondary"
-                      size="sm"
-                      type="button"
+                      @click="handleToggleWishlist"
+                      class="border border-[#1E1E1E] bg-[#0A0A0A]/90 p-2 backdrop-blur-sm transition-all hover:border-[#C8A97E]/40 disabled:opacity-50"
                     >
                       <HeartIcon
-                        class="size-5 text-black"
-                        :class="isInWishlist && 'fill-black'"
+                        class="size-5 text-[#555] transition-colors hover:text-[#C8A97E]"
+                        :class="isInWishlist && 'fill-[#C8A97E] text-[#C8A97E]'"
                       />
-                    </LoadingButton>
+                    </button>
                   </div>
 
                   <img
                     :src="image"
-                    :alt="`${product.name} view ${index + 1}`"
-                    class="h-full w-full object-cover"
+                    :alt="`${product.name} vue ${index + 1}`"
+                    class="h-full w-full object-cover opacity-90"
                   />
                 </div>
               </CarouselItem>
             </CarouselContent>
-            <CarouselNext />
+            <CarouselNext
+              class="hover:bg-surface border-[#1E1E1E] bg-[#0A0A0A] text-[#C8A97E]"
+            />
           </Carousel>
         </div>
 
-        <!-- Desktop Layout (non-modal) -->
         <div
           v-if="!isModal"
-          class="hidden lg:flex lg:h-full lg:flex-col lg:gap-2"
+          class="hidden lg:flex lg:h-full lg:flex-col lg:gap-4"
         >
           <div
-            class="relative flex aspect-square w-full flex-1 items-center justify-center overflow-hidden rounded-md bg-[#F3F5F7]"
+            class="bg-surface relative flex aspect-square w-full flex-1 items-center justify-center overflow-hidden border border-[#1E1E1E]"
           >
-            <!-- Badges -->
             <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
               <span
-                class="rounded bg-white px-1.5 py-0.5 text-xs font-bold tracking-wider uppercase shadow-sm"
+                v-if="isNew"
+                class="border border-[#C8A97E]/40 bg-[#0A0A0A]/90 px-2 py-1 text-[10px] tracking-widest text-[#C8A97E] uppercase backdrop-blur-sm"
               >
-                NEW
+                Nouveau
               </span>
               <span
                 v-if="discount !== 0"
-                class="rounded px-1.5 py-0.5 text-xs font-bold text-white shadow-sm"
-                :class="discount > 0 ? 'bg-green-500' : 'bg-red-500'"
+                class="bg-[#C8A97E] px-2 py-1 text-[10px] tracking-widest text-[#0A0A0A] uppercase"
               >
-                {{ discount > 0 ? `-${discount}%` : `+${-discount}%` }}
+                -{{ discount }}%
               </span>
             </div>
 
             <div class="absolute top-3 right-3 z-10">
-              <LoadingButton
-                :loading="isAddingToWishlist || isRemovingWishlistItem"
-                @click="handleToggleWishlist"
-                class="rounded-full bg-white p-2 shadow hover:bg-white"
+              <button
                 :disabled="isAddingToWishlist || isRemovingWishlistItem"
-                variant="secondary"
-                type="button"
+                @click="handleToggleWishlist"
+                class="border border-[#1E1E1E] bg-[#0A0A0A]/90 p-2 backdrop-blur-sm transition-all hover:border-[#C8A97E]/40 disabled:opacity-50"
               >
                 <HeartIcon
-                  class="size-6 text-black"
-                  :class="isInWishlist && 'fill-black'"
+                  class="size-6 text-[#555] transition-colors hover:text-[#C8A97E]"
+                  :class="isInWishlist && 'fill-[#C8A97E] text-[#C8A97E]'"
                 />
-              </LoadingButton>
+              </button>
             </div>
 
-            <!-- Main Image -->
             <img
               :src="currentImage"
               :alt="product.name"
-              class="h-full w-full object-cover"
+              class="h-full w-full object-cover opacity-90"
             />
           </div>
 
-          <!-- Thumbnails -->
           <div
             class="grid grid-cols-4 gap-3 p-1 sm:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5"
           >
@@ -627,148 +592,173 @@ onUnmounted(() => {
               :key="index"
               @click="selectedImageIndex = index"
               type="button"
-              class="relative aspect-square w-full shrink-0 cursor-pointer overflow-hidden rounded-md"
+              class="relative aspect-square w-full shrink-0 cursor-pointer overflow-hidden border transition-colors"
               :class="
-                selectedImageIndex === index && 'border-2 border-black/80'
+                selectedImageIndex === index
+                  ? 'border-[#C8A97E]'
+                  : 'border-[#1E1E1E] hover:border-[#C8A97E]/40'
               "
             >
               <img
                 :src="img"
-                :alt="`${product.name} view ${index + 1}`"
-                class="h-full w-full object-cover"
+                :alt="`${product.name} vue ${index + 1}`"
+                class="h-full w-full object-cover opacity-80"
               />
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Details -->
-      <div
-        :class="['flex w-full flex-col space-y-6 pb-2', !isModal && 'lg:w-1/2']"
-      >
-        <div class="flex flex-col space-y-4">
-          <!-- Rating -->
+      <div :class="['flex w-full flex-col pb-2', !isModal && 'lg:w-1/2']">
+        <div class="mb-6 flex flex-col space-y-4">
           <div class="flex items-center gap-4">
             <ProductRating :rating="product.averageRating || 0" />
-            <span class="text-sm text-gray-500">
-              {{ product.reviewCount }} Reviews
+            <span class="text-xs text-[#555]">
+              {{ product.reviewCount }} avis
             </span>
           </div>
 
-          <!-- Title -->
-          <h1 class="text-4xl text-black">{{ product.name }}</h1>
+          <h1
+            class="font-display text-4xl font-light text-[#E8E8E8] md:text-5xl"
+          >
+            {{ product.name }}
+          </h1>
 
           <div
             v-if="canShowPriceAndStock"
             class="flex flex-col gap-4"
           >
             <div class="flex items-center gap-4">
-              <span class="text-2xl font-medium text-black">
+              <span class="font-display text-4xl font-light text-[#C8A97E]">
                 {{ formatPrice(currentPrice) }}
               </span>
               <span
                 v-if="hasDiscount"
-                class="text-xl text-gray-500 line-through"
+                class="text-xl text-[#555] line-through"
               >
                 {{ formatPrice(currentBasePrice) }}
               </span>
             </div>
 
-            <!-- Stock Status -->
             <div
               v-if="isOutOfStock"
-              class="text-sm font-medium text-red-600"
+              class="text-xs tracking-widest text-[#C8A97E] uppercase"
             >
-              Out of stock
+              Rupture de stock
             </div>
             <div
               v-else-if="currentStock < 10"
-              class="text-sm font-medium text-orange-600"
+              class="text-xs tracking-widest text-[#C8A97E] uppercase"
             >
-              Only {{ currentStock }} left in stock
+              Plus que {{ currentStock }} en stock
             </div>
             <div
               v-else
-              class="text-sm font-medium text-green-600"
+              class="text-xs tracking-widest text-[#555] uppercase"
             >
-              In stock ({{ currentStock }} available)
+              En stock ({{ currentStock }} disponibles)
             </div>
           </div>
 
-          <!-- Message for incomplete selection -->
           <div
             v-if="hasIncompleteSelection"
-            class="rounded-lg bg-amber-50 p-3 text-sm text-amber-600"
+            class="bg-surface border border-[#C8A97E]/40 p-4 text-xs tracking-widest text-[#C8A97E] uppercase"
           >
-            Please select all options to continue.
+            Veuillez sélectionner toutes les options.
           </div>
 
-          <!-- Description -->
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold leading-6">Description</h3>
-            <p className="leading-relaxed text-gray-700">
+          <div class="space-y-2 pt-4">
+            <h3 class="text-sm tracking-[0.3em] text-[#C8A97E] uppercase">
+              Description
+            </h3>
+            <p class="leading-relaxed text-[#555]">
               {{ product.description }}
             </p>
           </div>
         </div>
 
+        <div class="mb-6 h-px w-full bg-[#1E1E1E]" />
+
         <div
           v-if="hasDiscount"
-          class="w-full border-b border-gray-200"
-        />
-
-        <!-- TimeLeft -->
-        <div v-if="hasDiscount">
-          <p class="mb-3 text-sm text-gray-500">Offer expires in:</p>
+          class="mb-6"
+        >
+          <p class="mb-4 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Offre expire dans :
+          </p>
           <div class="flex items-center gap-2">
             <div class="flex flex-col items-center">
               <span
-                class="flex h-12 min-w-16 items-center justify-center bg-[#F3F5F7] px-3 text-3xl font-medium"
+                class="flex h-14 w-14 items-center justify-center border border-[#1E1E1E] text-2xl font-light text-[#C8A97E] md:h-16 md:w-16 md:text-3xl"
               >
                 {{ timeLeft.days.toString().padStart(2, '0') }}
               </span>
-              <span class="mt-1 text-xs text-gray-500">Days</span>
+              <span
+                class="mt-2 text-[10px] tracking-widest text-[#555] uppercase"
+              >
+                Jours
+              </span>
             </div>
-            <span class="flex items-center text-3xl text-gray-500">:</span>
+
+            <span class="mb-7 text-xl text-[#555]">:</span>
+
             <div class="flex flex-col items-center">
               <span
-                class="flex h-12 min-w-16 items-center justify-center bg-[#F3F5F7] px-3 text-3xl font-medium"
+                class="flex h-14 w-14 items-center justify-center border border-[#1E1E1E] text-2xl font-light text-[#C8A97E] md:h-16 md:w-16 md:text-3xl"
               >
                 {{ timeLeft.hours.toString().padStart(2, '0') }}
               </span>
-              <span class="mt-1 text-xs text-gray-500">Hours</span>
+              <span
+                class="mt-2 text-[10px] tracking-widest text-[#555] uppercase"
+              >
+                Heures
+              </span>
             </div>
-            <span class="flex items-center text-3xl text-gray-500">:</span>
+
+            <span class="mb-7 text-xl text-[#555]">:</span>
+
             <div class="flex flex-col items-center">
               <span
-                class="flex h-12 min-w-16 items-center justify-center bg-[#F3F5F7] px-3 text-3xl font-medium"
+                class="flex h-14 w-14 items-center justify-center border border-[#1E1E1E] text-2xl font-light text-[#C8A97E] md:h-16 md:w-16 md:text-3xl"
               >
                 {{ timeLeft.minutes.toString().padStart(2, '0') }}
               </span>
-              <span class="mt-1 text-xs text-gray-500">Minutes</span>
+              <span
+                class="mt-2 text-[10px] tracking-widest text-[#555] uppercase"
+              >
+                Min
+              </span>
             </div>
-            <span class="flex items-center text-3xl text-gray-500">:</span>
+
+            <span class="mb-7 text-xl text-[#555]">:</span>
+
             <div class="flex flex-col items-center">
               <span
-                class="flex h-12 min-w-16 items-center justify-center bg-[#F3F5F7] px-3 text-3xl font-medium"
+                class="flex h-14 w-14 items-center justify-center border border-[#1E1E1E] text-2xl font-light text-[#C8A97E] md:h-16 md:w-16 md:text-3xl"
               >
                 {{ timeLeft.seconds.toString().padStart(2, '0') }}
               </span>
-              <span class="mt-1 text-xs text-gray-500">Seconds</span>
+              <span
+                class="mt-2 text-[10px] tracking-widest text-[#555] uppercase"
+              >
+                Sec
+              </span>
             </div>
           </div>
         </div>
 
-        <div class="w-full border-b border-gray-200" />
+        <div
+          v-if="hasDiscount"
+          class="mb-6 h-px w-full bg-[#1E1E1E]"
+        />
 
-        <!-- Attributes Selection -->
         <div
           v-for="attribute in availableAttributes"
           :key="attribute.id"
           class="mb-4"
         >
-          <div class="mb-2 flex max-w-50 items-center justify-between">
-            <h3 class="font-medium text-gray-900">
+          <div class="mb-3 flex items-center justify-between">
+            <h3 class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
               {{ attribute.name }}
             </h3>
           </div>
@@ -778,11 +768,11 @@ onUnmounted(() => {
               :key="option.id"
               type="button"
               @click="selectOption(attribute.id, option.id)"
-              class="flex cursor-pointer items-center justify-center rounded-md border px-4 py-2 text-sm transition-all"
+              class="border px-4 py-2 text-xs tracking-widest uppercase transition-all"
               :class="
                 selectedOptions[attribute.id] === option.id
-                  ? 'border-black/40 bg-blue-100'
-                  : 'hover:border-gray-200'
+                  ? 'bg-surface border-[#C8A97E] text-[#C8A97E]'
+                  : 'border-[#1E1E1E] text-[#555] hover:border-[#C8A97E]/40 hover:text-[#E8E8E8]'
               "
             >
               {{ option.name }}
@@ -790,27 +780,27 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- Actions -->
-        <div class="mb-8 flex gap-4">
-          <!-- Quantity -->
-          <div class="flex w-36 items-center rounded-md bg-[#F3F5F7]">
+        <div class="mb-6 flex gap-4 pt-4">
+          <div
+            class="bg-surface flex w-36 items-center border border-[#1E1E1E]"
+          >
             <button
               type="button"
               @click="decrementQuantity"
-              class="w-12 cursor-pointer p-4 text-black disabled:cursor-not-allowed! disabled:text-black/40!"
+              class="w-12 p-3 text-[#555] transition-colors hover:text-[#C8A97E] disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="
                 quantity <= 1 || isOutOfStock || hasIncompleteSelection
               "
             >
               <Minus class="h-4 w-4" />
             </button>
-            <span class="flex-1 px-2 text-center text-sm font-semibold">
+            <span class="flex-1 px-2 text-center text-sm text-[#E8E8E8]">
               {{ quantity }}
             </span>
             <button
               type="button"
               @click="incrementQuantity"
-              class="w-12 cursor-pointer p-4 text-black disabled:cursor-not-allowed! disabled:text-black/40!"
+              class="w-12 p-3 text-[#555] transition-colors hover:text-[#C8A97E] disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="
                 quantity >= maxQuantity ||
                 isOutOfStock ||
@@ -821,33 +811,40 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <!-- Add to Cart Button -->
           <LoadingButton
             @click="handleaddCartItem"
-            :loading="isAddingCartItem"
+            :loading="
+              isAddingCartItem || isOutOfStock || hasIncompleteSelection
+            "
             :disabled="
               isAddingCartItem || isOutOfStock || hasIncompleteSelection
             "
-            class="flex-1"
-            size="lg"
+            class="flex h-11 flex-1 items-center justify-center border text-xs tracking-[0.2em] uppercase transition-all disabled:opacity-50"
+            :class="
+              isOutOfStock || hasIncompleteSelection
+                ? 'border-[#1E1E1E] text-[#555]'
+                : 'border-[#C8A97E] bg-[#C8A97E] text-[#0A0A0A] hover:bg-[#B8995E]'
+            "
           >
             {{
               isOutOfStock
-                ? 'Out of Stock'
+                ? 'Rupture de stock'
                 : hasIncompleteSelection
-                  ? 'Select Options'
-                  : 'Add to Cart'
+                  ? 'Sélectionner options'
+                  : 'Ajouter au panier'
             }}
           </LoadingButton>
         </div>
 
-        <!-- Additional Details -->
-        <div class="space-y-2 border-t pt-6 text-sm text-gray-600">
+        <div class="mb-6 h-px w-full bg-[#1E1E1E]" />
+
+        <div class="space-y-2 text-sm text-[#555]">
           <div class="flex justify-between">
-            <span>Category:</span>
+            <span class="text-xs tracking-widest uppercase">Catégorie :</span>
+
             <RouterLink
               :to="`/shop?categories=${product.category?.slug}`"
-              class="font-medium hover:underline"
+              class="text-[#C8A97E] transition-colors hover:text-[#E8E8E8]"
             >
               {{ product.category?.name || 'N/A' }}
             </RouterLink>

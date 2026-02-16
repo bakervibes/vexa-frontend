@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * DefaultLayout
- * Main layout for public/user pages
- * Includes header and footer
- */
 import AppFooter from '@/components/common/AppFooter.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import NewsLetter from '@/components/views/home/newsletters/NewsLetters.vue'
@@ -11,18 +6,16 @@ import { Toaster } from 'vue-sonner'
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <div class="flex min-h-screen flex-col">
-      <AppHeader />
+  <div class="bg-noir flex min-h-screen flex-col">
+    <AppHeader />
 
-      <main
-        id="main-content"
-        class="mt-16 flex-1 sm:mt-18"
-        tabindex="-1"
-      >
-        <RouterView />
-      </main>
-    </div>
+    <main
+      id="main-content"
+      class="mt-16 flex-1 sm:mt-18"
+      tabindex="-1"
+    >
+      <RouterView />
+    </main>
 
     <NewsLetter />
 
@@ -35,7 +28,3 @@ import { Toaster } from 'vue-sonner'
     />
   </div>
 </template>
-
-<style scoped>
-/* Default layout specific styles */
-</style>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CustomInput from '@/components/custom/custom-input.vue'
 import LoadingButton from '@/components/custom/loading-button.vue'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Checkbox } from '@/components/ui/checkbox'
 import { FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { useAuth } from '@/composables/useAuth'
@@ -47,131 +46,117 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
 </script>
 
 <template>
-  <div class="grid h-screen w-full grid-cols-1 md:grid-cols-2">
-    <!-- SECTION IMAGE -->
-    <div class="hidden h-full w-full overflow-hidden md:block">
-      <img
-        src="/auth.png"
-        alt="Sign up"
-        class="h-full w-full object-cover"
-      />
-    </div>
-
-    <!-- SECTION FORMULAIRE -->
-    <div class="flex h-full w-full items-center justify-center p-4 md:p-6">
-      <div class="w-full max-w-md space-y-4">
-        <h2 class="text-3xl font-bold">Create an account</h2>
-
-        <!-- Error Message -->
-        <Alert
-          v-if="registerError"
-          variant="destructive"
-        >
-          <AlertDescription>
-            {{ registerError }}
-          </AlertDescription>
-        </Alert>
-
-        <p class="mt-2 text-gray-600">
-          Already have an account?
-          <RouterLink
-            :to="
-              redirect ? `/auth/sign-in?redirect=${redirect}` : '/auth/sign-in'
-            "
-            class="text-blue-600 hover:underline"
-          >
-            Sign in
-          </RouterLink>
-        </p>
-
-        <form
-          @submit="onSubmit"
-          class="space-y-4"
-        >
-          <!-- Name Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="name"
-          >
-            <FormItem>
-              <CustomInput
-                v-bind="componentField"
-                label="Full Name"
-                type="text"
-              />
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <!-- Email Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="email"
-          >
-            <FormItem>
-              <CustomInput
-                v-bind="componentField"
-                label="Email address"
-                type="email"
-              />
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <!-- Password Field -->
-          <FormField
-            v-slot="{ componentField }"
-            name="password"
-          >
-            <FormItem>
-              <CustomInput
-                v-bind="componentField"
-                label="Password"
-                type="password"
-              />
-              <FormMessage />
-            </FormItem>
-          </FormField>
-
-          <!-- Options -->
-          <div class="flex items-center">
-            <label class="flex items-center gap-2">
-              <Checkbox
-                :checked="acceptTerms"
-                @update:checked="acceptTerms = $event"
-              />
-              <span class="text-gray-600">
-                I agree to the
-                <RouterLink
-                  to="/terms-and-conditions"
-                  class="text-blue-600 hover:underline"
-                >
-                  terms
-                </RouterLink>
-                and
-                <RouterLink
-                  to="/privacy-policy"
-                  class="text-blue-600 hover:underline"
-                >
-                  privacy policy
-                </RouterLink>
-              </span>
-            </label>
-          </div>
-
-          <!-- Submit Button -->
-          <LoadingButton
-            type="submit"
-            :disabled="isRegistering"
-            :loading="isRegistering"
-            class="w-full"
-          >
-            Create an account
-          </LoadingButton>
-        </form>
+  <div class="mx-auto w-full max-w-md space-y-8 px-6">
+    <div class="text-center">
+      <div class="text-gold mb-6 text-xs tracking-[0.3em] uppercase">
+        Inscription
       </div>
+
+      <h2 class="font-display text-text text-4xl font-light md:text-5xl">
+        Créer votre
+        <span class="italic">compte</span>
+      </h2>
+
+      <div class="bg-gold/60 mx-auto my-8 h-px w-16" />
     </div>
+
+    <div
+      v-if="registerError"
+      class="border-gold/40 text-gold bg-surface border px-4 py-3 text-sm"
+    >
+      {{ registerError }}
+    </div>
+
+    <p class="text-center text-sm text-[#555]">
+      Déjà un compte ?
+      <RouterLink
+        :to="redirect ? `/auth/sign-in?redirect=${redirect}` : '/auth/sign-in'"
+        class="text-gold hover:text-text transition-colors"
+      >
+        Se connecter
+      </RouterLink>
+    </p>
+
+    <form
+      @submit="onSubmit"
+      class="space-y-6"
+    >
+      <FormField
+        v-slot="{ componentField }"
+        name="name"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Nom complet"
+            type="text"
+          />
+          <FormMessage class="text-gold" />
+        </FormItem>
+      </FormField>
+
+      <FormField
+        v-slot="{ componentField }"
+        name="email"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Adresse email"
+            type="email"
+          />
+          <FormMessage class="text-gold" />
+        </FormItem>
+      </FormField>
+
+      <FormField
+        v-slot="{ componentField }"
+        name="password"
+      >
+        <FormItem>
+          <CustomInput
+            v-bind="componentField"
+            label="Mot de passe"
+            type="password"
+          />
+          <FormMessage class="text-gold" />
+        </FormItem>
+      </FormField>
+
+      <div class="flex items-center">
+        <label class="flex items-center gap-3">
+          <Checkbox
+            :checked="acceptTerms"
+            @update:checked="acceptTerms = $event"
+            class="data-[state=checked]:border-gold data-[state=checked]:bg-gold border-border-noir bg-transparent"
+          />
+          <span class="text-sm text-[#555]">
+            J'accepte les
+            <RouterLink
+              to="/terms-of-service"
+              class="text-gold hover:text-text transition-colors"
+            >
+              conditions
+            </RouterLink>
+            et la
+            <RouterLink
+              to="/privacy-policy"
+              class="text-gold hover:text-text transition-colors"
+            >
+              politique de confidentialité
+            </RouterLink>
+          </span>
+        </label>
+      </div>
+
+      <LoadingButton
+        type="submit"
+        :disabled="isRegistering"
+        :loading="isRegistering"
+        class="border-gold/40 bg-gold text-noir w-full border py-4 text-xs tracking-[0.2em] uppercase transition-all hover:bg-[#B8995E]"
+      >
+        Créer un compte
+      </LoadingButton>
+    </form>
   </div>
 </template>
-
-<style scoped></style>

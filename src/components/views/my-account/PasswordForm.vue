@@ -39,14 +39,15 @@ const onSubmit = form.handleSubmit(async (values) => {
 </script>
 
 <template>
-  <section>
-    <h2 class="mb-6 text-xl font-semibold">Password</h2>
+  <section class="border border-[#1E1E1E] bg-[#0A0A0A] p-6">
+    <h2 class="mb-6 text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+      Password
+    </h2>
 
     <form
       @submit="onSubmit"
       class="max-w-lg space-y-5"
     >
-      <!-- Current Password -->
       <FormField
         v-slot="{ componentField }"
         name="currentPassword"
@@ -61,7 +62,6 @@ const onSubmit = form.handleSubmit(async (values) => {
         </FormItem>
       </FormField>
 
-      <!-- New Password -->
       <FormField
         v-slot="{ componentField }"
         name="newPassword"
@@ -76,7 +76,6 @@ const onSubmit = form.handleSubmit(async (values) => {
         </FormItem>
       </FormField>
 
-      <!-- Confirm Password -->
       <FormField
         v-slot="{ componentField }"
         name="confirmPassword"
@@ -91,12 +90,12 @@ const onSubmit = form.handleSubmit(async (values) => {
         </FormItem>
       </FormField>
 
-      <!-- Submit Button -->
       <div class="flex justify-end">
         <LoadingButton
           type="submit"
           :loading="isChangingPassword"
           :disabled="isChangingPassword"
+          class="border border-[#C8A97E]/40 px-6 py-2 text-xs tracking-widest text-[#C8A97E] uppercase transition-colors hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
         >
           Change password
         </LoadingButton>

@@ -14,7 +14,6 @@ import RangePicker from '../common/RangePicker.vue'
 const { categories, attributes, priceRange } = useFilters()
 const { filters, setFilters } = useProducts()
 
-// Convert between priceRange object { min, max } and array [min, max] for RangePicker
 const priceRangeModel = computed({
   get: () => {
     if (filters.value.priceRange) {
@@ -34,10 +33,8 @@ const priceRangeModel = computed({
   },
 })
 
-// Assure that we always have a categories array (even if undefined in filters)
 const selectedCategories = computed(() => filters.value.categories ?? [])
 
-// Assure that we always have an options array (even if undefined in filters)
 const selectedOptions = computed(() => filters.value.options ?? [])
 
 function handleCategoryCheckbox(selectedCategory: string, checked: boolean) {
@@ -63,7 +60,6 @@ function handleOptionCheckbox(
 ) {
   const curr = selectedOptions.value.slice()
 
-  // Check if this attribute-option pair already exists
   const existingIndex = curr.findIndex(
     (opt) =>
       Object.keys(opt)[0] === attributeName &&
@@ -73,10 +69,8 @@ function handleOptionCheckbox(
   let newOptions
 
   if (!checked && existingIndex !== -1) {
-    // Remove the option
     newOptions = curr.filter((_, index) => index !== existingIndex)
   } else if (checked && existingIndex === -1) {
-    // Add the option as {attributeName: optionName}
     newOptions = [...curr, { [attributeName]: optionName }]
   } else {
     newOptions = curr
@@ -95,9 +89,11 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
 </script>
 
 <template>
-  <section class="flex w-full flex-col gap-4">
+  <section class="mt-8 flex w-full flex-col gap-6">
     <div class="flex flex-col gap-4">
-      <h3 class="text-base font-semibold">Price range</h3>
+      <h3 class="text-xs tracking-widest text-[#555] uppercase">
+        Gamme de prix
+      </h3>
       <RangePicker
         v-model="priceRangeModel"
         :min="priceRange.min"
@@ -113,17 +109,22 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
       class="w-full"
       :default-value="['categories', ...attributes.map((a) => a.slug)]"
     >
-      <!-- Categories Filter -->
-      <AccordionItem value="categories">
-        <AccordionTrigger data-testid="accordion-trigger-category">
+      <AccordionItem
+        value="categories"
+        class="border-border-noir border-b"
+      >
+        <AccordionTrigger
+          data-testid="accordion-trigger-category"
+          class="hover:text-gold text-text py-4 text-xs tracking-widest uppercase"
+        >
           Catégorie
         </AccordionTrigger>
         <AccordionContent>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-3 pb-4">
             <div
               v-for="category in categories"
               :key="category.slug"
-              class="flex items-center gap-2"
+              class="flex items-center gap-3"
             >
               <input
                 type="checkbox"
@@ -136,10 +137,10 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
                       (event.target as HTMLInputElement).checked,
                     )
                 "
-                class="size-4 rounded-lg border-2 border-black accent-black"
+                class="checked:border-gold checked:bg-gold border-border-noir size-4 border bg-transparent"
               />
               <label
-                class="cursor-pointer text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                class="hover:text-text cursor-pointer text-sm text-[#555] transition-colors"
                 :for="category.slug"
               >
                 {{ category.name }}
@@ -149,21 +150,24 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
         </AccordionContent>
       </AccordionItem>
 
-      <!-- Attributes Filters (dynamic) -->
       <AccordionItem
         v-for="attribute in attributes"
         :key="attribute.slug"
         :value="attribute.slug"
+        class="border-border-noir border-b"
       >
-        <AccordionTrigger :data-testid="`accordion-trigger-${attribute.slug}`">
+        <AccordionTrigger
+          :data-testid="`accordion-trigger-${attribute.slug}`"
+          class="hover:text-gold text-text py-4 text-xs tracking-widest uppercase"
+        >
           {{ attribute.name }}
         </AccordionTrigger>
         <AccordionContent>
-          <div class="flex flex-col gap-2">
+          <div class="flex flex-col gap-3 pb-4">
             <div
               v-for="option in attribute.options"
               :key="option.slug"
-              class="flex items-center gap-2"
+              class="flex items-center gap-3"
             >
               <input
                 type="checkbox"
@@ -177,10 +181,10 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
                       (event.target as HTMLInputElement).checked,
                     )
                 "
-                class="size-4 rounded-lg border-2 border-black accent-black"
+                class="checked:border-gold checked:bg-gold border-border-noir size-4 border bg-transparent"
               />
               <label
-                class="cursor-pointer text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                class="hover:text-text cursor-pointer text-sm text-[#555] transition-colors"
                 :for="`${attribute.slug}-${option.slug}`"
               >
                 {{ option.name }}
@@ -192,5 +196,3 @@ function isOptionSelected(attributeName: string, optionName: string): boolean {
     </Accordion>
   </section>
 </template>
-
-<style scoped></style>

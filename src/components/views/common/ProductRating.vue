@@ -3,23 +3,29 @@ import { StarIcon } from 'lucide-vue-next'
 import { computed } from 'vue'
 
 interface Props {
-  rating: number
+  rating: number | null | undefined
+  showNumber?: boolean
+  size?: 'sm' | 'md'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showNumber: true,
+  size: 'md',
+})
 
-// Renvoie un tableau de 5 valeurs entre 0 et 100 (% de remplissage par étoile)
+const normalizedRating = computed(() => props.rating ?? 0)
+
 const stars = computed(() => {
   const values: number[] = []
-  let remaining = props.rating
+  let remaining = normalizedRating.value
 
   for (let i = 0; i < 5; i++) {
     if (remaining >= 1) {
-      values.push(100) // étoile pleine
+      values.push(100)
     } else if (remaining > 0) {
-      values.push(remaining * 100) // pourcentage de remplissage
+      values.push(remaining * 100)
     } else {
-      values.push(0) // vide
+      values.push(0)
     }
     remaining -= 1
   }
@@ -29,23 +35,27 @@ const stars = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center">
+  <div
+    v-if="normalizedRating > 0"
+    class="flex items-center"
+  >
     <template
       v-for="(fillPercent, index) in stars"
       :key="index"
     >
-      <div class="relative h-4 w-4">
-        <!-- Contour gris -->
+      <div
+        class="relative"
+        :class="size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'"
+      >
         <StarIcon
-          class="absolute top-0 left-0 h-full w-full text-gray-300"
+          class="text-gold/30 absolute top-0 left-0 h-full w-full"
           fill="none"
           stroke="currentColor"
           stroke-width="1.5"
         />
 
-        <!-- Remplissage dynamique -->
         <StarIcon
-          class="absolute top-0 left-0 h-full w-full text-yellow-400"
+          class="text-gold absolute top-0 left-0 h-full w-full"
           fill="currentColor"
           stroke="none"
           :style="{
@@ -56,12 +66,10 @@ const stars = computed(() => {
     </template>
 
     <span
-      v-if="props.rating > 0"
-      class="ml-1 text-sm text-gray-600"
+      v-if="showNumber"
+      :class="['ml-1.5 text-[#555]', size === 'sm' ? 'text-xs' : 'text-sm']"
     >
-      {{ props.rating.toFixed(1) }}
+      ({{ normalizedRating.toFixed(1) }})
     </span>
   </div>
 </template>
-
-<style scoped></style>

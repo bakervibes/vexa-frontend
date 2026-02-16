@@ -20,7 +20,13 @@ import { useAuth } from '@/composables/useAuth'
 import { useReviews } from '@/composables/useReviews'
 import type { ProductWithDetails, ReviewWithUser } from '@/types'
 import { formatDate } from '@/utils/lib'
-import { MoreVertical, Pencil, StarIcon, Trash2 } from 'lucide-vue-next'
+import {
+  DotIcon,
+  MoreVertical,
+  Pencil,
+  StarIcon,
+  Trash2,
+} from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import ProductReviewForm from './ProductReviewForm.vue'
 
@@ -47,18 +53,17 @@ const isOwnReview = computed(() => {
   return user.value?.id === props.review.user.id
 })
 
-// Renvoie un tableau de 5 valeurs entre 0 et 100 (% de remplissage par étoile)
 const stars = computed(() => {
   const values: number[] = []
   let remaining = Number(props.review.rating)
 
   for (let i = 0; i < 5; i++) {
     if (remaining >= 1) {
-      values.push(100) // étoile pleine
+      values.push(100)
     } else if (remaining > 0) {
-      values.push(remaining * 100) // pourcentage de remplissage
+      values.push(remaining * 100)
     } else {
-      values.push(0) // vide
+      values.push(0)
     }
     remaining -= 1
   }
@@ -131,34 +136,43 @@ const getFullName = () => {
 
   <li
     v-else
-    class="space-y-4"
+    class="bg-surface space-y-4 border border-[#1E1E1E] p-6"
   >
-    <div class="flex justify-between">
-      <div class="flex items-center">
-        <template
-          v-for="(fillPercent, index) in stars"
-          :key="index"
-        >
-          <div class="relative h-4 w-4">
-            <!-- Contour gris -->
-            <StarIcon
-              class="absolute top-0 left-0 h-full w-full text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
+          <Avatar class="h-9 w-9 border border-[#1E1E1E]">
+            <AvatarImage
+              v-if="review.user.image"
+              :src="review.user.image"
             />
+            <AvatarFallback
+              class="font-display bg-[#1E1E1E] text-sm text-[#C8A97E] uppercase"
+            >
+              {{ getUserInitials() }}
+            </AvatarFallback>
+          </Avatar>
 
-            <!-- Remplissage dynamique -->
-            <StarIcon
-              class="absolute top-0 left-0 h-full w-full text-yellow-400"
-              fill="currentColor"
-              stroke="none"
-              :style="{
-                clipPath: `inset(0 ${100 - fillPercent}% 0 0)`,
-              }"
-            />
-          </div>
-        </template>
+          <span class="font-display text-lg text-[#E8E8E8]">
+            {{ getFullName() }}
+          </span>
+        </div>
+
+        <DotIcon class="text-text-muted size-4" />
+
+        <span class="text-text-muted text-sm font-medium">
+          {{ formatDate(review.updatedAt, true) }}
+          <span
+            v-if="
+              review.updatedAt &&
+              review.createdAt &&
+              new Date(review.updatedAt).getTime() !==
+                new Date(review.createdAt).getTime()
+            "
+          >
+            (Edited)
+          </span>
+        </span>
       </div>
 
       <div v-if="isOwnReview">
@@ -167,19 +181,25 @@ const getFullName = () => {
             <Button
               variant="ghost"
               size="icon"
-              class="h-8 w-8 p-0"
+              class="text-text-muted h-8 w-8 p-0 hover:bg-[#1E1E1E] hover:text-[#E8E8E8]"
             >
               <MoreVertical class="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem @click="emit('startEditing')">
+          <DropdownMenuContent
+            align="end"
+            class="bg-surface border-[#1E1E1E]"
+          >
+            <DropdownMenuItem
+              @click="emit('startEditing')"
+              class="text-[#E8E8E8] focus:bg-[#1E1E1E] focus:text-[#C8A97E]"
+            >
               <Pencil class="mr-2 h-4 w-4" />
               <span>Modifier</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               @click="handleDeleteClick"
-              class="text-red-500 focus:text-red-500"
+              class="text-[#C8A97E] focus:bg-[#1E1E1E] focus:text-[#C8A97E]"
             >
               <Trash2 class="mr-2 h-4 w-4" />
               <span>Supprimer</span>
@@ -189,63 +209,60 @@ const getFullName = () => {
       </div>
     </div>
 
-    <div class="flex flex-col gap-2">
-      <p class="font-medium whitespace-pre-wrap text-black/80">
-        {{ review.comment }}
-      </p>
-      <span class="text-xs font-medium text-gray-500">
-        {{ formatDate(review.updatedAt, true) }}
-        <span
-          v-if="
-            review.updatedAt &&
-            review.createdAt &&
-            new Date(review.updatedAt).getTime() !==
-              new Date(review.createdAt).getTime()
-          "
-        >
-          (Edited)
-        </span>
-      </span>
-    </div>
+    <p
+      class="font-display text-lg leading-relaxed whitespace-pre-wrap text-[#E8E8E8]"
+    >
+      {{ review.comment }}
+    </p>
 
-    <div class="flex items-center justify-between">
-      <div class="text-primary flex items-center gap-4 font-semibold">
-        <Avatar class="h-10 w-10">
-          <AvatarImage
-            v-if="review.user.image"
-            :src="review.user.image"
+    <div class="flex items-center gap-0.5">
+      <template
+        v-for="(fillPercent, index) in stars"
+        :key="index"
+      >
+        <div class="relative h-5 w-5">
+          <StarIcon
+            class="text-text-muted absolute top-0 left-0 h-full w-full"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
           />
-          <AvatarFallback class="text-sm uppercase">
-            {{ getUserInitials() }}
-          </AvatarFallback>
-        </Avatar>
-        <span>{{ getFullName() }}</span>
-      </div>
+
+          <StarIcon
+            class="absolute top-0 left-0 h-full w-full text-[#C8A97E]"
+            fill="currentColor"
+            stroke="none"
+            :style="{
+              clipPath: `inset(0 ${100 - fillPercent}% 0 0)`,
+            }"
+          />
+        </div>
+      </template>
     </div>
 
-    <!-- Delete Dialog -->
     <Dialog v-model:open="dialogOpen">
-      <DialogContent class="sm:max-w-100">
+      <DialogContent class="bg-surface border-[#1E1E1E] sm:max-w-100">
         <DialogHeader>
-          <DialogTitle>Êtes-vous sûr ?</DialogTitle>
-          <DialogDescription>
+          <DialogTitle class="font-display text-[#E8E8E8]">
+            Êtes-vous sûr ?
+          </DialogTitle>
+          <DialogDescription class="text-text-muted">
             La suppression de cet avis est irréversible.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button
             variant="outline"
-            class="w-fit"
+            class="w-fit border-[#1E1E1E] text-[#E8E8E8] hover:bg-[#1E1E1E] hover:text-[#C8A97E]"
             @click="handleCancel"
           >
             Annuler
           </Button>
 
           <LoadingButton
-            class="w-fit"
+            class="w-fit bg-[#C8A97E] text-[#0A0A0A] hover:bg-[#C8A97E]/90"
             :loading="isDeletingReview"
             :disabled="isDeletingReview"
-            variant="destructive"
             @click="handleDelete"
           >
             Supprimer

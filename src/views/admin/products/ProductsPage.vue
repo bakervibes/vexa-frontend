@@ -52,6 +52,10 @@ async function confirmDelete() {
 function handleCreate() {
   router.push('/admin/products/create')
 }
+
+function handleAdjustStock(product: ProductWithDetails) {
+  router.push(`/admin/stock/${product.id}`)
+}
 </script>
 
 <template>
@@ -89,6 +93,7 @@ function handleCreate() {
       @view="handleView"
       @edit="handleEdit"
       @delete="handleDelete"
+      @adjust-stock="handleAdjustStock"
     />
 
     <!-- Pagination -->

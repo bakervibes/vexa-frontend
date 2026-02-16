@@ -14,7 +14,6 @@ interface Props {
   modelValue?: string | number
   disabled?: boolean
   showBorder?: boolean
-  // Props venant de vee-validate via v-bind="componentField"
   name?: string
   onChange?: (e: Event) => void
   onInput?: (e: Event) => void
@@ -42,12 +41,10 @@ const inputType = computed(() => {
   return props.type
 })
 
-// Utilise soit l'id fourni, soit le name de vee-validate
 const inputId = computed(
   () => props.id || props.name || `input-${Math.random()}`,
 )
 
-// Gestion des événements
 const handleInput = (value: string | number) => {
   emits('update:modelValue', value)
 }
@@ -55,13 +52,15 @@ const handleInput = (value: string | number) => {
 
 <template>
   <div
-    class="flex w-full flex-col gap-1"
-    :class="{ 'border-b border-gray-300': showBorder }"
+    class="flex w-full flex-col gap-2"
+    :class="{
+      'border-b border-[#1E1E1E] focus-within:border-[#C8A97E]/40': showBorder,
+    }"
   >
     <Label
       v-if="label"
       :for="inputId"
-      class="font-normal text-gray-600"
+      class="text-xs tracking-widest text-[#555] uppercase"
     >
       {{ label }}
     </Label>
@@ -76,7 +75,7 @@ const handleInput = (value: string | number) => {
         :placeholder="placeholder"
         :required="required"
         :disabled="disabled"
-        class="w-full rounded-none border-none bg-transparent px-0 pb-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        class="w-full border-none bg-transparent px-0 pb-1 text-[#E8E8E8] shadow-none placeholder:text-[#555] focus-visible:ring-0 focus-visible:ring-offset-0"
       />
 
       <Button
@@ -85,7 +84,7 @@ const handleInput = (value: string | number) => {
         size="icon"
         type="button"
         @click="displayPassword = !displayPassword"
-        class="h-6 w-10 hover:bg-transparent"
+        class="h-6 w-10 text-[#555] hover:bg-transparent hover:text-[#C8A97E]"
         aria-label="Toggle password visibility"
       >
         <EyeIcon

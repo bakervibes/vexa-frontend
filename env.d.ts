@@ -23,7 +23,6 @@ interface ImportMetaEnv {
   readonly VITE_API_TIMEOUT: string
 
   // Feature Flags
-  readonly VITE_ENABLE_DEV_TOOLS: string
   readonly VITE_ENABLE_ANALYTICS: string
 
   // Environment

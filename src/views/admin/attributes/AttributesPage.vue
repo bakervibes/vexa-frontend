@@ -33,7 +33,7 @@ import {
   Plus,
   Trash2,
 } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const {
   attributes,
@@ -66,15 +66,13 @@ const currentAttributeId = ref<string | null>(null)
 const attributeToDelete = ref<Attribute | null>(null)
 const optionToDelete = ref<AttributeOption | null>(null)
 
-const attributeForm = ref<CreateAttributeInput>({
+const attributeForm = ref<Omit<CreateAttributeInput, 'slug'>>({
   name: '',
-  slug: '',
   isActive: true,
 })
 
-const optionForm = ref<CreateOptionInput>({
+const optionForm = ref<Omit<CreateOptionInput, 'slug'>>({
   name: '',
-  slug: '',
   isActive: true,
 })
 
@@ -87,38 +85,10 @@ function toggleExpand(attributeId: string) {
   }
 }
 
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-// Watch for auto-slug
-watch(
-  () => attributeForm.value.name,
-  (name) => {
-    if (!attributeToEdit.value) {
-      attributeForm.value.slug = generateSlug(name)
-    }
-  },
-)
-
-watch(
-  () => optionForm.value.name,
-  (name) => {
-    if (!optionToEdit.value) {
-      optionForm.value.slug = generateSlug(name)
-    }
-  },
-)
-
 // Attribute handlers
 function handleCreateAttribute() {
   attributeToEdit.value = null
-  attributeForm.value = { name: '', slug: '', isActive: true }
+  attributeForm.value = { name: '', isActive: true }
   showAttributeDialog.value = true
 }
 
@@ -126,7 +96,6 @@ function handleEditAttribute(attribute: Attribute) {
   attributeToEdit.value = attribute
   attributeForm.value = {
     name: attribute.name,
-    slug: attribute.slug,
     isActive: attribute.isActive,
   }
   showAttributeDialog.value = true
@@ -169,7 +138,7 @@ async function confirmDeleteAttribute() {
 function handleCreateOption(attributeId: string) {
   currentAttributeId.value = attributeId
   optionToEdit.value = null
-  optionForm.value = { name: '', slug: '', isActive: true }
+  optionForm.value = { name: '', isActive: true }
   showOptionDialog.value = true
 }
 
@@ -178,7 +147,6 @@ function handleEditOption(option: AttributeOption, attributeId: string) {
   optionToEdit.value = option
   optionForm.value = {
     name: option.name,
-    slug: option.slug,
     isActive: option.isActive,
   }
   showOptionDialog.value = true
@@ -417,14 +385,6 @@ async function confirmDeleteOption() {
               required
             />
           </div>
-          <div class="space-y-2">
-            <Label for="attr-slug">Slug</Label>
-            <Input
-              id="attr-slug"
-              v-model="attributeForm.slug"
-              placeholder="taille"
-            />
-          </div>
           <div class="flex items-center gap-3">
             <Switch
               id="attr-active"
@@ -474,14 +434,6 @@ async function confirmDeleteOption() {
               v-model="optionForm.name"
               placeholder="Ex: S, M, L, XL"
               required
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="opt-slug">Slug</Label>
-            <Input
-              id="opt-slug"
-              v-model="optionForm.slug"
-              placeholder="s, m, l, xl"
             />
           </div>
           <div class="flex items-center gap-3">

@@ -4,51 +4,35 @@ import { RouterLink } from 'vue-router'
 
 <template>
   <section
-    class="relative flex h-[calc(100vh-3rem)] flex-col justify-start text-white md:h-[calc(100vh-4rem)] md:flex-row"
+    class="text-text relative flex h-[calc(100vh-4rem)] flex-col items-center justify-center px-6 text-center"
   >
-    <!-- IMAGE EN BACKGROUND SUR DESKTOP, EN BLOC SUR MOBILE -->
-    <div class="absolute inset-0 h-full w-full overflow-hidden">
-      <img
-        src="/hero/hero-2.png"
-        alt="Hero Section 2"
-        class="hidden h-full w-full object-cover md:block"
-      />
-      <img
-        src="/hero/hero-2-mobile.png"
-        alt="Hero Section 2 Mobile"
-        class="block h-full w-full object-cover md:hidden"
-      />
+    <div class="text-gold mb-4 text-xs tracking-[0.3em] uppercase">
+      Collection Exclusive
     </div>
 
-    <!-- CONTENU -->
-    <div
-      class="relative z-10 flex h-full w-full flex-col justify-end gap-8 px-6 pb-12 md:w-1/2 md:justify-center md:px-24 md:pb-0"
+    <h1
+      class="font-display mx-auto max-w-4xl text-5xl leading-[1.1] font-light md:text-7xl lg:text-8xl"
     >
-      <div
-        class="flex flex-col items-center justify-center gap-4 md:items-start"
-      >
-        <h1 class="text-center text-3xl font-black md:text-start md:text-6xl">
-          More than
-          <br />
-          just a game.
-          <br />
-          It's a lifestyle
-        </h1>
+      L'art du
+      <br />
+      <span class="text-gold italic">commerce</span>
+      <br />
+      premium
+    </h1>
 
-        <p class="text-center text-base md:text-start md:text-lg">
-          Whether you're just starting out, have played your whole life or
-          you're a Tour pro, your swing is like a fingerprint.
-        </p>
+    <div class="bg-gold/60 mx-auto my-6 h-px w-16" />
 
-        <RouterLink
-          to="/shop"
-          class="w-fit rounded-lg bg-[#38CB89] px-8 py-3 font-medium text-white transition-all hover:bg-[#38CB89]/80 hover:shadow-lg md:text-black"
-        >
-          Shopping Now
-        </RouterLink>
-      </div>
-    </div>
+    <p
+      class="mx-auto max-w-lg text-sm leading-relaxed text-[#555] md:text-base"
+    >
+      Découvrez notre sélection de produits d'exception.
+    </p>
+
+    <RouterLink
+      to="/shop"
+      class="border-gold/40 text-gold hover:bg-gold hover:text-noir mt-6 border px-8 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+    >
+      Explorer la boutique
+    </RouterLink>
   </section>
 </template>
-
-<style scoped></style>

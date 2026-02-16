@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -39,7 +38,6 @@ const isOpen = computed({
   set: (value) => emit('update:open', value),
 })
 
-// Focus input when modal opens
 watch(isOpen, (open) => {
   if (open) {
     nextTick(() => {
@@ -90,49 +88,47 @@ function handleKeydown(event: KeyboardEvent) {
 
 <template>
   <Dialog v-model:open="isOpen">
-    <DialogContent class="max-w-2xl gap-0 overflow-hidden p-0">
+    <DialogContent
+      class="text-text bg-noir border-border-noir max-w-2xl gap-0 overflow-hidden p-0"
+    >
       <DialogHeader class="sr-only p-4 pb-0">
         <DialogTitle>Rechercher</DialogTitle>
       </DialogHeader>
 
-      <!-- Search Input -->
-      <div class="relative border-b">
+      <div class="border-border-noir relative border-b">
         <Search
-          class="text-muted-foreground absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2"
+          class="absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-[#555]"
         />
         <Input
           ref="inputRef"
           v-model="query"
           type="search"
           placeholder="Rechercher des produits, catégories..."
-          class="h-14 rounded-none border-0 pr-12 pl-12 text-lg focus-visible:ring-0"
+          class="text-text h-14 rounded-none border-0 bg-transparent pr-12 pl-12 text-lg placeholder:text-[#555] focus-visible:ring-0"
           @keydown="handleKeydown"
         />
       </div>
 
-      <!-- Results Container -->
       <div class="max-h-[60vh] overflow-y-auto">
-        <!-- Loading State -->
         <div
           v-if="isLoading && query.length >= 2"
           class="flex items-center justify-center py-12"
         >
-          <Loader2 class="text-muted-foreground h-6 w-6 animate-spin" />
+          <Loader2 class="text-gold h-6 w-6 animate-spin" />
         </div>
 
-        <!-- No Results -->
         <div
           v-else-if="query.length >= 2 && !hasResults && !isLoading"
           class="py-12 text-center"
         >
-          <Search class="text-muted-foreground/50 mx-auto h-12 w-12" />
-          <p class="text-muted-foreground mt-4 text-sm">
+          <Search class="mx-auto h-12 w-12 text-[#555]/50" />
+          <p class="mt-4 text-sm text-[#555]">
             Aucun résultat pour "{{ query }}"
           </p>
           <Button
             variant="outline"
             size="sm"
-            class="mt-4"
+            class="border-gold/40 text-gold hover:bg-gold hover:text-noir mt-4"
             @click="handleSearch"
           >
             Voir tous les résultats
@@ -140,42 +136,38 @@ function handleKeydown(event: KeyboardEvent) {
           </Button>
         </div>
 
-        <!-- Search Results -->
         <div
           v-else-if="hasResults"
-          class="divide-y"
+          class="divide-border-noir divide-y"
         >
-          <!-- Categories -->
           <div
             v-if="results.categories.length > 0"
             class="p-4"
           >
             <h3
-              class="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold uppercase"
+              class="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-[#555] uppercase"
             >
               <Folder class="h-4 w-4" />
               Catégories
             </h3>
             <div class="flex flex-wrap gap-2">
-              <Badge
+              <button
                 v-for="category in results.categories"
                 :key="category.id"
-                variant="secondary"
-                class="hover:bg-secondary/80 cursor-pointer px-3 py-1.5"
+                class="hover:border-gold hover:text-gold border-border-noir border px-3 py-1.5 text-xs tracking-widest text-[#555] uppercase transition-colors"
                 @click="handleCategoryClick(category.slug)"
               >
                 {{ category.name }}
-              </Badge>
+              </button>
             </div>
           </div>
 
-          <!-- Products -->
           <div
             v-if="results.products.length > 0"
             class="p-4"
           >
             <h3
-              class="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold uppercase"
+              class="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-[#555] uppercase"
             >
               <ShoppingBag class="h-4 w-4" />
               Produits
@@ -184,12 +176,10 @@ function handleKeydown(event: KeyboardEvent) {
               <li
                 v-for="product in results.products"
                 :key="product.id"
-                class="hover:bg-muted flex cursor-pointer items-center gap-4 rounded-lg p-2 transition-colors"
+                class="hover:bg-surface flex cursor-pointer items-center gap-4 p-2 transition-colors"
                 @click="handleProductClick(product.slug)"
               >
-                <div
-                  class="bg-muted h-12 w-12 shrink-0 overflow-hidden rounded-md"
-                >
+                <div class="bg-surface h-12 w-12 shrink-0 overflow-hidden">
                   <img
                     v-if="product.images[0]"
                     :src="product.images[0]"
@@ -198,21 +188,22 @@ function handleKeydown(event: KeyboardEvent) {
                   />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate font-medium">{{ product.name }}</p>
-                  <p class="text-muted-foreground text-sm">
+                  <p class="text-text truncate font-medium">
+                    {{ product.name }}
+                  </p>
+                  <p class="text-sm text-[#555]">
                     {{ product.category?.name || 'Sans catégorie' }}
                   </p>
                 </div>
-                <p class="shrink-0 font-semibold">
+                <p class="text-gold shrink-0 font-semibold">
                   {{ formatPrice(product.price, product.basePrice) }}
                 </p>
               </li>
             </ul>
 
-            <!-- View All Button -->
             <Button
               variant="ghost"
-              class="mt-4 w-full"
+              class="border-gold/40 text-gold hover:bg-gold hover:text-noir mt-4 w-full border"
               @click="handleSearch"
             >
               Voir tous les résultats
@@ -221,43 +212,40 @@ function handleKeydown(event: KeyboardEvent) {
           </div>
         </div>
 
-        <!-- Popular Searches (when no query) -->
         <div
           v-else-if="query.length < 2"
           class="p-4"
         >
           <h3
-            class="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold uppercase"
+            class="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-[#555] uppercase"
           >
             <TrendingUp class="h-4 w-4" />
             Recherches populaires
           </h3>
           <div class="flex flex-wrap gap-2">
-            <Badge
+            <button
               v-for="search in popularSearches"
               :key="search"
-              variant="outline"
-              class="hover:bg-muted cursor-pointer px-3 py-1.5"
+              class="hover:border-gold hover:text-gold border-border-noir border px-3 py-1.5 text-xs tracking-widest text-[#555] uppercase transition-colors"
               @click="handlePopularSearch(search)"
             >
               {{ search }}
-            </Badge>
+            </button>
           </div>
 
-          <p class="text-muted-foreground mt-6 text-center text-sm">
+          <p class="mt-6 text-center text-sm text-[#555]">
             Tapez au moins 2 caractères pour rechercher
           </p>
         </div>
       </div>
 
-      <!-- Footer -->
       <div
-        class="bg-muted/50 text-muted-foreground flex items-center justify-between border-t px-4 py-3 text-xs"
+        class="border-border-noir bg-surface flex items-center justify-between border-t px-4 py-3 text-xs text-[#555]"
       >
         <div class="flex items-center gap-4">
           <span class="flex items-center gap-1">
             <kbd
-              class="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px]"
+              class="bg-noir border-border-noir border px-1.5 py-0.5 font-mono text-[10px]"
             >
               ↵
             </kbd>
@@ -265,7 +253,7 @@ function handleKeydown(event: KeyboardEvent) {
           </span>
           <span class="flex items-center gap-1">
             <kbd
-              class="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px]"
+              class="bg-noir border-border-noir border px-1.5 py-0.5 font-mono text-[10px]"
             >
               Esc
             </kbd>
@@ -274,12 +262,12 @@ function handleKeydown(event: KeyboardEvent) {
         </div>
         <span>
           <kbd
-            class="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px]"
+            class="bg-noir border-border-noir border px-1.5 py-0.5 font-mono text-[10px]"
           >
             ⌘
           </kbd>
           <kbd
-            class="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px]"
+            class="bg-noir border-border-noir border px-1.5 py-0.5 font-mono text-[10px]"
           >
             K
           </kbd>

@@ -111,6 +111,7 @@ const getStatusVariant = (status: OrderStatus) => {
 
 // Format status for display
 const formatStatus = (status: OrderStatus) => {
+  console.log({ status })
   if (status === OrderStatus.REFUND_REQUESTED) return 'Refund Requested'
   return status.charAt(0) + status.slice(1).toLowerCase()
 }

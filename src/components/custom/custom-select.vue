@@ -48,7 +48,6 @@ const internalValue = computed(() =>
 
 function handleChange(value: AcceptableValue) {
   if (value === null || value === undefined) return
-  // On retrouve le type d'origine (string/number)
   const stringValue = String(value)
   const original =
     props.options.find((o) => String(o.value) === stringValue)?.value ??
@@ -58,10 +57,10 @@ function handleChange(value: AcceptableValue) {
 </script>
 
 <template>
-  <div class="flex w-full flex-col gap-1 border-b border-gray-300">
+  <div class="flex w-full flex-col gap-2 border-b border-[#1E1E1E] pb-3">
     <Label
       :for="inputId"
-      class="font-normal text-gray-600"
+      class="text-xs tracking-widest text-[#555] uppercase"
     >
       {{ label }}
     </Label>
@@ -74,16 +73,20 @@ function handleChange(value: AcceptableValue) {
     >
       <SelectTrigger
         :id="inputId"
-        class="w-full rounded-none border-none bg-transparent px-0 pb-1 shadow-none focus:ring-0 focus:ring-offset-0"
+        class="w-full rounded-none border-none bg-transparent px-0 pb-0 text-[#E8E8E8] shadow-none focus:border-[#C8A97E]/40 focus:ring-0 focus:ring-offset-0"
       >
-        <SelectValue :placeholder="placeholder" />
+        <SelectValue
+          :placeholder="placeholder"
+          class="text-[#555]"
+        />
       </SelectTrigger>
 
-      <SelectContent>
+      <SelectContent class="border-[#1E1E1E] bg-[#0A0A0A] text-[#E8E8E8]">
         <SelectItem
           v-for="option in options"
           :key="option.value"
           :value="String(option.value)"
+          class="hover:bg-surface focus:bg-surface cursor-pointer focus:text-[#C8A97E]"
         >
           {{ option.label }}
         </SelectItem>

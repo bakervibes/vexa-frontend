@@ -16,7 +16,7 @@ export const useReviews = (
   productIdRef: MaybeRefOrGetter<string | undefined>,
 ) => {
   const queryClient = useQueryClient()
-  const limit = 5
+  const limit = 6
 
   // Computed productId for reactivity
   const productId = computed(() => toValue(productIdRef))

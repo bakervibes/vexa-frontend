@@ -42,7 +42,6 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
 
 <template>
   <div class="grid h-fit w-full grid-cols-1 md:h-[80vh] md:grid-cols-2">
-    <!-- SECTION IMAGE (à gauche sur desktop) -->
     <div class="hidden h-full w-full overflow-hidden md:block">
       <img
         src="/auth.png"
@@ -51,27 +50,34 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
       />
     </div>
 
-    <!-- SECTION FORMULAIRE (à droite sur desktop) -->
-    <div class="flex h-full w-full items-center justify-center p-6 md:p-8">
-      <div class="w-full max-w-md space-y-4">
-        <h2 class="text-3xl font-bold">Create an account</h2>
+    <div
+      class="flex h-full w-full items-center justify-center bg-[#0A0A0A] p-6 md:p-8"
+    >
+      <div class="w-full max-w-md space-y-6">
+        <div class="space-y-2">
+          <p class="text-xs tracking-[0.3em] text-[#C8A97E] uppercase">
+            Get started
+          </p>
+          <h2 class="font-display text-3xl text-[#E8E8E8]">
+            Create an account
+          </h2>
+        </div>
 
-        <!-- Error Message -->
         <Alert
           v-if="registerError"
-          variant="destructive"
+          class="bg-surface border-[#1E1E1E] text-[#E8E8E8]"
         >
-          <AlertDescription>
+          <AlertDescription class="text-[#E8E8E8]">
             {{ registerError }}
           </AlertDescription>
         </Alert>
 
-        <p class="mt-2 text-gray-600">
+        <p class="text-text-muted">
           Already have an account?
           <button
             type="button"
             @click="emit('switch-to-login')"
-            class="cursor-pointer text-blue-600 hover:underline"
+            class="cursor-pointer text-[#C8A97E] hover:underline"
           >
             Sign in
           </button>
@@ -79,9 +85,8 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
 
         <form
           @submit="onSubmit"
-          class="space-y-4"
+          class="space-y-5"
         >
-          <!-- Name Field -->
           <FormField
             v-slot="{ componentField }"
             name="name"
@@ -96,7 +101,6 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
             </FormItem>
           </FormField>
 
-          <!-- Email Field -->
           <FormField
             v-slot="{ componentField }"
             name="email"
@@ -111,7 +115,6 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
             </FormItem>
           </FormField>
 
-          <!-- Password Field -->
           <FormField
             v-slot="{ componentField }"
             name="password"
@@ -126,25 +129,25 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
             </FormItem>
           </FormField>
 
-          <!-- Options -->
           <div class="flex items-center">
             <label class="flex items-center gap-2">
               <Checkbox
                 :checked="acceptTerms"
                 @update:checked="acceptTerms = $event"
+                class="border-[#1E1E1E] data-[state=checked]:border-[#C8A97E] data-[state=checked]:bg-[#C8A97E]"
               />
-              <span class="text-sm text-gray-600">
+              <span class="text-text-muted text-sm">
                 I agree to the
                 <RouterLink
                   to="/terms"
-                  class="text-blue-600 hover:underline"
+                  class="text-[#C8A97E] hover:underline"
                 >
                   terms
                 </RouterLink>
                 and
                 <RouterLink
                   to="/privacy-policy"
-                  class="text-blue-600 hover:underline"
+                  class="text-[#C8A97E] hover:underline"
                 >
                   privacy policy
                 </RouterLink>
@@ -152,12 +155,11 @@ const onSubmit = handleSubmit(async (formValues: RegisterInput) => {
             </label>
           </div>
 
-          <!-- Submit Button -->
           <LoadingButton
             type="submit"
             :disabled="isRegistering"
             :loading="isRegistering"
-            class="h-12 w-full"
+            class="h-12 w-full border border-[#C8A97E]/40 bg-transparent tracking-wider text-[#C8A97E] uppercase hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
           >
             Create an account
           </LoadingButton>

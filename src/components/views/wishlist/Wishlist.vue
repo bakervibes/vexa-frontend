@@ -63,12 +63,10 @@ const lastModified = computed(() =>
   !!shareToken.value ? sharedWishlistUpdatedAt.value : wishlistUpdatedAt.value,
 )
 
-// Track individual item actions
 const cartActionItemId = ref<string | null>(null)
 const removeActionItemId = ref<string | null>(null)
 const wishlistActionItemId = ref<string | null>(null)
 
-// Check if any global action is in progress
 const isGlobalActionInProgress = computed(
   () =>
     isLoadingShareToken.value ||
@@ -76,7 +74,6 @@ const isGlobalActionInProgress = computed(
     isImportingSharedWishlist.value,
 )
 
-// Check if any item action is in progress
 const isItemActionInProgress = computed(
   () =>
     cartActionItemId.value !== null ||
@@ -84,7 +81,6 @@ const isItemActionInProgress = computed(
     wishlistActionItemId.value !== null,
 )
 
-// Check if any action at all is in progress
 const isAnyActionInProgress = computed(
   () => isGlobalActionInProgress.value || isItemActionInProgress.value,
 )
@@ -123,17 +119,14 @@ const isInMyWishlist = (productId: string, variantId?: string | null) => {
   )
 }
 
-// Check if specific item has cart action in progress
 const isCartActioning = (productId: string, variantId?: string | null) => {
   return cartActionItemId.value === getItemKey(productId, variantId)
 }
 
-// Check if specific item has remove action in progress
 const isRemoveActioning = (productId: string, variantId?: string | null) => {
   return removeActionItemId.value === getItemKey(productId, variantId)
 }
 
-// Check if specific item has wishlist toggle action in progress
 const isWishlistActioning = (productId: string, variantId?: string | null) => {
   return wishlistActionItemId.value === getItemKey(productId, variantId)
 }
@@ -146,7 +139,6 @@ const handleAddCartItem = async (item: WishlistItemWithDetails) => {
   try {
     await addCartItem(item.product.id, 1, item.productVariant?.id)
   } catch {
-    // Error already handled by useCarts toast
   } finally {
     cartActionItemId.value = null
   }
@@ -160,7 +152,6 @@ const handleRemoveItem = async (item: WishlistItemWithDetails) => {
   try {
     await removeWishlistItem(item.product.id, item.productVariant?.id)
   } catch {
-    // Error already handled by useWishlists toast
   } finally {
     removeActionItemId.value = null
   }
@@ -181,7 +172,6 @@ const handleToggleMyWishlist = async (
       await addWishlistItem(productId, variantId ?? undefined)
     }
   } catch {
-    // Error already handled by useWishlists toast
   } finally {
     wishlistActionItemId.value = null
   }
@@ -189,8 +179,7 @@ const handleToggleMyWishlist = async (
 </script>
 
 <template>
-  <div class="flex flex-col gap-8">
-    <!-- Loading State -->
+  <div class="bg-noir flex flex-col gap-8">
     <div
       v-if="isLoading"
       class="flex flex-col gap-4 py-8"
@@ -200,59 +189,58 @@ const handleToggleMyWishlist = async (
         :key="i"
         class="flex items-center gap-4"
       >
-        <Skeleton class="h-24 w-24 rounded-md" />
+        <Skeleton class="bg-surface h-24 w-24" />
         <div class="flex-1 space-y-2">
-          <Skeleton class="h-4 w-3/4" />
-          <Skeleton class="h-3 w-1/2" />
+          <Skeleton class="bg-surface h-4 w-3/4" />
+          <Skeleton class="bg-surface h-3 w-1/2" />
           <div class="flex items-center justify-between pt-2">
-            <Skeleton class="h-8 w-24" />
-            <Skeleton class="h-4 w-16" />
+            <Skeleton class="bg-surface h-8 w-24" />
+            <Skeleton class="bg-surface h-4 w-16" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Empty Wishlist State -->
     <div
       v-else-if="items.length === 0"
-      class="flex flex-col items-center justify-center gap-4 py-20 text-center"
+      class="flex flex-col items-center justify-center gap-6 py-20 text-center"
     >
-      <div class="rounded-full bg-gray-100 p-6">
-        <HeartIcon class="h-10 w-10 text-gray-400" />
+      <div class="border-border-noir bg-surface border p-6">
+        <HeartIcon class="text-gold/60 h-10 w-10" />
       </div>
-      <div class="space-y-1">
-        <h3 class="text-lg font-semibold">Your wishlist is empty</h3>
-        <p class="text-sm text-gray-500">Add products to your wishlist</p>
+      <div class="space-y-2">
+        <h3 class="font-display text-text text-2xl font-light">
+          Your wishlist is empty
+        </h3>
+        <p class="text-text-muted text-sm">Add products to your wishlist</p>
       </div>
+      <div class="bg-gold/40 mx-auto h-px w-24" />
       <RouterLink to="/shop">
         <Button
-          variant="outline"
-          class="mt-4"
+          class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
         >
           Continue browsing
         </Button>
       </RouterLink>
     </div>
 
-    <!-- Wishlist Content -->
     <div
       v-else
       class="flex flex-col gap-6"
     >
-      <!-- Shared Wishlist Banner -->
       <div
         v-if="!!shareToken"
-        class="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4"
+        class="border-gold/30 bg-surface flex flex-col gap-4 border p-6 sm:flex-row sm:items-center sm:justify-between"
       >
-        <div class="flex items-center gap-3">
-          <div class="rounded-full bg-blue-100 p-2">
-            <Share2Icon class="h-5 w-5 text-blue-600" />
+        <div class="flex items-center gap-4">
+          <div class="border-gold/30 bg-noir border p-2">
+            <Share2Icon class="text-gold h-5 w-5" />
           </div>
           <div>
-            <h3 class="font-semibold text-blue-900">
+            <h3 class="font-display text-text text-lg font-light">
               Viewing a Shared Wishlist
             </h3>
-            <p class="text-sm text-blue-700">
+            <p class="text-text-muted text-sm">
               Updates are synced in real-time. You cannot edit this wishlist
               directly.
             </p>
@@ -263,8 +251,7 @@ const handleToggleMyWishlist = async (
           <LoadingButton
             :loading="isImportingSharedWishlist"
             :disabled="isAnyActionInProgress"
-            variant="outline"
-            size="sm"
+            class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
             @click="importSharedWishlist"
           >
             <ImportIcon class="mr-2 h-4 w-4" />
@@ -273,76 +260,92 @@ const handleToggleMyWishlist = async (
         </div>
       </div>
 
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex flex-col gap-1">
-          <h1 class="flex items-center gap-1">
-            <span class="text-2xl font-bold">My wishlist</span>
-            <span class="text-xl font-medium text-gray-500">
-              ({{ items.length }})
-            </span>
+      <div
+        class="border-border-noir flex flex-col gap-6 border-b pb-8 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex flex-col gap-2">
+          <p class="text-gold text-xs tracking-[0.3em] uppercase">
+            {{ shareToken ? 'Shared' : 'Saved' }}
+          </p>
+          <h1 class="font-display text-text text-5xl font-light">
+            Wishlist
+            <span class="text-text-muted text-xl">({{ items.length }})</span>
           </h1>
           <p
             v-if="lastModified"
-            class="text-sm text-gray-500"
+            class="text-text-muted text-sm"
           >
             Last modified {{ formatRelativeTime(lastModified) }}
           </p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
           <template v-if="!shareToken">
             <LoadingButton
               :loading="isLoadingShareToken"
               :disabled="isAnyActionInProgress"
-              variant="outline"
+              class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
               @click="shareWishlist"
             >
               <Share2Icon class="h-4 w-4" />
-              <span class="hidden text-sm sm:block">Share</span>
+              <span class="hidden sm:block">Share</span>
             </LoadingButton>
 
             <LoadingButton
               :loading="isClearingWishlist"
               :disabled="isAnyActionInProgress"
-              variant="destructive"
+              class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
               @click="clearWishlist()"
             >
               <Trash2Icon class="h-4 w-4" />
-              <span class="hidden text-sm sm:block md:hidden">Clear</span>
               <span class="hidden md:block">Clear wishlist</span>
+              <span class="md:hidden">Clear</span>
             </LoadingButton>
           </template>
 
           <template v-else>
             <RouterLink to="/wishlist">
-              <Button variant="outline">Exit Shared View</Button>
+              <Button
+                class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
+              >
+                Exit Shared View
+              </Button>
             </RouterLink>
           </template>
         </div>
       </div>
 
-      <!-- Desktop View -->
       <div class="hidden md:block">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead class="w-[50%]">Product</TableHead>
-              <TableHead class="text-center">Price</TableHead>
-              <TableHead class="text-right"></TableHead>
+            <TableRow class="border-border-noir hover:bg-surface">
+              <TableHead
+                class="text-gold w-[50%] text-xs tracking-[0.3em] uppercase"
+              >
+                Product
+              </TableHead>
+              <TableHead
+                class="text-gold text-center text-xs tracking-[0.3em] uppercase"
+              >
+                Price
+              </TableHead>
+              <TableHead
+                class="text-gold text-right text-xs tracking-[0.3em] uppercase"
+              ></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow
               v-for="item in items"
               :key="item.id"
+              class="border-border-noir hover:bg-surface"
             >
               <TableCell>
                 <div class="flex items-center gap-6 py-3">
                   <button
                     v-if="!shareToken"
                     @click="handleRemoveItem(item)"
-                    class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
+                    class="hover:text-gold text-text-muted cursor-pointer transition-colors"
                     :disabled="isAnyActionInProgress"
                     :class="{
                       'animate-pulse': isRemoveActioning(
@@ -362,9 +365,9 @@ const handleToggleMyWishlist = async (
                         item.productVariant?.id,
                       )
                     "
-                    class="cursor-pointer text-gray-500 transition-colors hover:text-pink-500"
+                    class="hover:text-gold text-text-muted cursor-pointer transition-colors"
                     :class="{
-                      'text-pink-500': isInMyWishlist(
+                      'text-gold': isInMyWishlist(
                         item.product.id,
                         item.productVariant?.id,
                       ),
@@ -389,7 +392,9 @@ const handleToggleMyWishlist = async (
                     :to="`/products/${item.product.slug}${item.productVariant ? `?${item.productVariant.productVariantOptions.map((option: any) => `${option.option.attribute.name}=${option.option.name}`).join('&')}` : ''}`"
                     class="flex items-center gap-4"
                   >
-                    <div class="h-24 w-24 overflow-hidden rounded bg-gray-100">
+                    <div
+                      class="border-border-noir bg-surface h-24 w-24 overflow-hidden border"
+                    >
                       <img
                         :src="item.product.images[0]"
                         :alt="item.product.name"
@@ -397,7 +402,7 @@ const handleToggleMyWishlist = async (
                       />
                     </div>
                     <div>
-                      <div class="text-base font-medium">
+                      <div class="text-text text-base">
                         {{ item.product.name }}
                       </div>
                       <div v-if="!!item.productVariant">
@@ -405,9 +410,9 @@ const handleToggleMyWishlist = async (
                           v-for="option in item.productVariant
                             .productVariantOptions"
                           :key="option.id"
-                          class="text-sm text-gray-600"
+                          class="text-text-muted text-sm"
                         >
-                          <span class="font-medium">
+                          <span class="text-text">
                             {{ option.option.attribute.name }}:
                           </span>
                           <span>{{ option.option.name }}</span>
@@ -418,10 +423,10 @@ const handleToggleMyWishlist = async (
                 </div>
               </TableCell>
               <TableCell class="text-center">
-                <div class="text-base">
+                <div class="text-text text-base">
                   <span
                     v-if="needsVariantSelection(item)"
-                    class="text-gray-500"
+                    class="text-text-muted"
                   >
                     From
                   </span>
@@ -429,7 +434,6 @@ const handleToggleMyWishlist = async (
                 </div>
               </TableCell>
               <TableCell class="text-right">
-                <!-- Product needs variant selection -->
                 <div
                   v-if="needsVariantSelection(item)"
                   class="flex w-full justify-end"
@@ -438,17 +442,19 @@ const handleToggleMyWishlist = async (
                     :to="`/products/${item.product.slug}`"
                     class="flex w-fit items-center"
                   >
-                    <Button variant="link">
+                    <Button
+                      variant="link"
+                      class="text-gold"
+                    >
                       <ArrowLeftIcon class="h-4 w-4" />
                       Select options
                     </Button>
                   </RouterLink>
                 </div>
 
-                <!-- Product already in cart -->
                 <div
                   v-else-if="isInCart(item.product.id, item.productVariant?.id)"
-                  class="rounded-md text-green-500"
+                  class="text-gold"
                 >
                   <span class="flex items-center justify-end gap-2">
                     <CheckIcon class="h-4 w-4" />
@@ -456,7 +462,6 @@ const handleToggleMyWishlist = async (
                   </span>
                 </div>
 
-                <!-- Add to cart button -->
                 <LoadingButton
                   v-else
                   :loading="
@@ -464,7 +469,7 @@ const handleToggleMyWishlist = async (
                   "
                   @click="handleAddCartItem(item)"
                   :disabled="isAnyActionInProgress"
-                  class="h-10 w-26"
+                  class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
                 >
                   Add to cart
                 </LoadingButton>
@@ -474,20 +479,23 @@ const handleToggleMyWishlist = async (
         </Table>
       </div>
 
-      <!-- Mobile View -->
       <div class="space-y-8 md:hidden">
-        <div class="border-b pb-2 text-sm text-gray-500">Product</div>
+        <div
+          class="text-gold border-border-noir border-b pb-2 text-xs tracking-[0.3em] uppercase"
+        >
+          Product
+        </div>
 
         <div
           v-for="item in items"
           :key="item.id"
-          class="flex flex-col gap-4 border-b pb-8 last:border-0"
+          class="border-border-noir flex flex-col gap-4 border-b pb-8 last:border-0"
         >
           <div class="flex items-center gap-4">
             <button
               v-if="!shareToken"
               @click="handleRemoveItem(item)"
-              class="cursor-pointer text-gray-500 transition-colors hover:text-red-500"
+              class="hover:text-gold text-text-muted cursor-pointer transition-colors"
               :disabled="isAnyActionInProgress"
               :class="{
                 'animate-pulse': isRemoveActioning(
@@ -504,9 +512,9 @@ const handleToggleMyWishlist = async (
               @click="
                 handleToggleMyWishlist(item.product.id, item.productVariant?.id)
               "
-              class="cursor-pointer text-gray-500 transition-colors hover:text-pink-500"
+              class="hover:text-gold text-text-muted cursor-pointer transition-colors"
               :class="{
-                'text-pink-500': isInMyWishlist(
+                'text-gold': isInMyWishlist(
                   item.product.id,
                   item.productVariant?.id,
                 ),
@@ -528,7 +536,9 @@ const handleToggleMyWishlist = async (
               />
             </button>
 
-            <div class="h-20 w-20 shrink-0 overflow-hidden rounded bg-gray-100">
+            <div
+              class="border-border-noir bg-surface h-20 w-20 shrink-0 overflow-hidden border"
+            >
               <img
                 :src="item.product.images[0]"
                 :alt="item.product.name"
@@ -537,10 +547,12 @@ const handleToggleMyWishlist = async (
             </div>
 
             <div class="flex flex-col justify-center gap-1">
-              <div class="text-base font-medium">{{ item.product.name }}</div>
+              <div class="text-text text-base">
+                {{ item.product.name }}
+              </div>
               <div
                 v-if="item.productVariant"
-                class="text-sm text-gray-500"
+                class="text-text-muted text-sm"
               >
                 <span
                   v-for="(option, index) in item.productVariant
@@ -553,15 +565,13 @@ const handleToggleMyWishlist = async (
                       index <
                       item.productVariant.productVariantOptions.length - 1
                     "
-                  >
-                    ,
-                  </span>
+                  ></span>
                 </span>
               </div>
-              <div class="mt-1 font-medium">
+              <div class="text-text mt-1">
                 <span
                   v-if="needsVariantSelection(item)"
-                  class="text-gray-500"
+                  class="text-text-muted"
                 >
                   From
                 </span>
@@ -570,7 +580,6 @@ const handleToggleMyWishlist = async (
             </div>
           </div>
 
-          <!-- Product needs variant selection -->
           <div
             v-if="needsVariantSelection(item)"
             class="flex w-full justify-end"
@@ -579,28 +588,30 @@ const handleToggleMyWishlist = async (
               :to="`/products/${item.product.slug}`"
               class="flex w-fit items-center"
             >
-              <Button variant="link">
+              <Button
+                variant="link"
+                class="text-gold"
+              >
                 <ArrowLeftIcon class="h-4 w-4" />
                 Select options
               </Button>
             </RouterLink>
           </div>
 
-          <!-- Product already in cart (mobile) -->
           <div
             v-else-if="isInCart(item.product.id, item.productVariant?.id)"
-            class="flex h-10 w-full items-center justify-center gap-2 rounded-md border border-green-500 text-green-500"
+            class="border-gold/40 text-gold flex h-10 w-full items-center justify-center gap-2 border"
           >
             <CheckIcon class="h-4 w-4" />
             Already in cart
           </div>
 
-          <!-- Add to cart button (mobile) -->
           <LoadingButton
             v-else
             :loading="isCartActioning(item.product.id, item.productVariant?.id)"
             @click="handleAddCartItem(item)"
             :disabled="isAnyActionInProgress"
+            class="border-gold/40 text-gold hover:bg-gold hover:text-noir border px-5 py-3 text-xs tracking-[0.2em] uppercase transition-all"
           >
             Add to cart
           </LoadingButton>

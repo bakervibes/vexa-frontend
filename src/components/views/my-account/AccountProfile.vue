@@ -6,21 +6,21 @@ import ProfileImageUpload from './ProfileImageUpload.vue'
 </script>
 
 <template>
-  <div class="flex flex-col gap-10">
-    <!-- Profile Image Section -->
-    <section class="flex justify-center border-b pb-8 md:justify-start">
+  <div class="flex flex-col gap-16">
+    <section
+      class="flex justify-center border-b border-[#1E1E1E] pb-12 md:justify-start"
+    >
       <ProfileImageUpload />
     </section>
 
-    <!-- Account Details Form -->
     <ProfileForm />
 
-    <!-- Email Change Form -->
+    <div class="h-px w-full bg-[#1E1E1E]" />
+
     <EmailForm />
 
-    <!-- Password Change Form -->
+    <div class="h-px w-full bg-[#1E1E1E]" />
+
     <PasswordForm />
   </div>
 </template>
-
-<style scoped></style>

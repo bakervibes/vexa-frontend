@@ -27,67 +27,58 @@ const onSubmit = handleSubmit(async (formValues: SubscribeNewsletterInput) => {
 </script>
 
 <template>
-  <section class="relative w-full overflow-hidden bg-[#f5f5f5] py-16">
-    <div class="absolute top-0 bottom-0 left-0 hidden lg:block">
-      <img
-        src="/newsletters/left.png"
-        alt=""
-        class="h-full w-auto object-cover object-right"
-      />
-    </div>
+  <section class="bg-noir border-border-noir border-t px-6 py-24">
+    <div class="mx-auto max-w-xl text-center">
+      <div class="text-gold mb-6 text-xs tracking-[0.3em] uppercase">
+        Newsletter
+      </div>
 
-    <div class="absolute top-0 right-0 bottom-0 hidden lg:block">
-      <img
-        src="/newsletters/right.png"
-        alt=""
-        class="h-full w-auto object-cover object-left"
-      />
-    </div>
-
-    <div
-      class="relative z-10 mx-auto max-w-xl px-6 text-center lg:max-w-lg xl:max-w-xl"
-    >
-      <h2 class="text-2xl font-bold text-black sm:text-3xl lg:text-4xl">
-        Join Our Newsletter
+      <h2 class="font-display text-text mb-4 text-4xl font-light md:text-5xl">
+        Restez
+        <span class="italic">informé</span>
       </h2>
-      <p class="mt-3 text-sm text-gray-600 sm:text-base">
-        Sign up for deals, new products and promotions
+
+      <div class="bg-gold/40 mx-auto my-8 h-px w-24" />
+
+      <p class="mb-8 text-sm text-[#555] md:text-base">
+        Inscrivez-vous pour recevoir nos offres exclusives et nouveautés en
+        avant-première.
       </p>
 
-      <!-- Email form -->
       <form
         @submit="onSubmit"
-        class="mt-8"
+        class="mx-auto max-w-md"
       >
         <FormField
           v-slot="{ componentField }"
           name="email"
         >
           <FormItem>
-            <div class="relative flex items-center border-b border-gray-400">
-              <MailIcon class="mr-2 h-5 w-5 text-gray-600" />
+            <div
+              class="focus-within:border-gold/40 border-border-noir relative flex items-center border-b"
+            >
+              <MailIcon class="mr-3 h-5 w-5 text-[#555]" />
               <CustomInput
                 v-bind="componentField"
                 type="email"
-                placeholder="Email address"
+                placeholder="Votre adresse email"
                 :show-border="false"
+                class="text-text bg-transparent placeholder:text-[#555]"
               />
               <LoadingButton
                 type="submit"
                 variant="ghost"
                 :loading="isSubscribing"
                 :disabled="isSubscribing"
-                class="ml-2 px-0 text-sm font-medium text-gray-700 hover:text-black"
+                class="text-gold hover:text-text ml-2 px-0 text-xs tracking-widest uppercase"
               >
-                Signup
+                S'inscrire
               </LoadingButton>
             </div>
-            <FormMessage class="mt-1 text-left" />
+            <FormMessage class="text-gold mt-2 text-left" />
           </FormItem>
         </FormField>
       </form>
     </div>
   </section>
 </template>
-
-<style scoped></style>

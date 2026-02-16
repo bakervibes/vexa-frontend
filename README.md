@@ -279,15 +279,13 @@ cp .env.example .env
 
 All environment variables must be prefixed with `VITE_` to be exposed to the client:
 
-| Variable                | Type      | Description              | Example                                   |
-| ----------------------- | --------- | ------------------------ | ----------------------------------------- |
-| `VITE_APP_NAME`         | `string`  | Application name         | `Vexa`                                    |
-| `VITE_APP_VERSION`      | `string`  | Application version      | `0.0.0`                                   |
-| `VITE_API_URL`          | `string`  | API base URL             | `http://localhost:3000/api`               |
-| `VITE_API_TIMEOUT`      | `number`  | API request timeout (ms) | `30000`                                   |
-| `VITE_ENABLE_DEV_TOOLS` | `boolean` | Enable Vue DevTools      | `true`                                    |
-| `VITE_ENABLE_ANALYTICS` | `boolean` | Enable analytics         | `false`                                   |
-| `VITE_ENV`              | `enum`    | Environment              | `development`, `staging`, or `production` |
+| Variable           | Type     | Description              | Example                                   |
+| ------------------ | -------- | ------------------------ | ----------------------------------------- |
+| `VITE_APP_NAME`    | `string` | Application name         | `Vexa`                                    |
+| `VITE_APP_VERSION` | `string` | Application version      | `0.0.0`                                   |
+| `VITE_API_URL`     | `string` | API base URL             | `http://localhost:3000/api`               |
+| `VITE_API_TIMEOUT` | `number` | API request timeout (ms) | `30000`                                   |
+| `VITE_ENV`         | `enum`   | Environment              | `development`, `staging`, or `production` |
 
 ### Type-Safe Usage
 
@@ -299,7 +297,6 @@ import { env, isDevelopment, isProduction } from '@/env'
 // All variables are typed and validated
 const apiUrl = env.VITE_API_URL // string (URL validated)
 const timeout = env.VITE_API_TIMEOUT // number (converted from string)
-const devTools = env.VITE_ENABLE_DEV_TOOLS // boolean
 
 // Helper functions
 if (isDevelopment) {

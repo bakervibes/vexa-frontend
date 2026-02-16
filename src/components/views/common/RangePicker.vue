@@ -17,7 +17,6 @@ const emits = defineEmits<SliderRootEmits>()
 
 const delegatedProps = reactiveOmit(props, 'class', 'formatValue', 'modelValue')
 
-// Valeurs temporaires pendant le drag
 const tempValue = ref<number[]>(
   Array.isArray(props.modelValue)
     ? [...props.modelValue]
@@ -26,7 +25,6 @@ const tempValue = ref<number[]>(
       : [props.min ?? 0, props.max ?? 100],
 )
 
-// Synchronise tempValue quand modelValue change de l'extérieur
 watch(
   () => props.modelValue,
   (newVal) => {
@@ -36,14 +34,12 @@ watch(
   },
 )
 
-// Mise à jour des valeurs temporaires pendant le drag
 const onTempUpdate = (value: number[] | undefined) => {
   if (value) {
     tempValue.value = value
   }
 }
 
-// Émet la valeur finale au relâchement (valueCommit)
 const onValueCommit = (value: number[] | undefined) => {
   if (value) {
     emits('update:modelValue', value)
@@ -66,18 +62,16 @@ const maxValue = computed(() => {
 
 <template>
   <div class="w-full space-y-3">
-    <div
-      class="text-muted-foreground flex items-center justify-between text-sm"
-    >
+    <div class="flex items-center justify-between text-sm">
       <span
         v-if="minValue"
-        class="font-medium"
+        class="font-medium text-[#555]"
       >
         {{ formatDisplayValue(minValue) }}
       </span>
       <span
         v-if="maxValue"
-        class="font-medium"
+        class="font-medium text-[#C8A97E]"
       >
         {{ formatDisplayValue(maxValue) }}
       </span>
@@ -99,11 +93,11 @@ const maxValue = computed(() => {
     >
       <SliderTrack
         data-slot="slider-track"
-        class="bg-muted relative grow cursor-pointer overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+        class="relative grow cursor-pointer overflow-hidden bg-[#1E1E1E] data-[orientation=horizontal]:h-1 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
       >
         <SliderRange
           data-slot="slider-range"
-          class="bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+          class="absolute bg-[#C8A97E] data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
         />
       </SliderTrack>
 
@@ -111,7 +105,7 @@ const maxValue = computed(() => {
         v-for="(_, key) in modelValue"
         :key="key"
         data-slot="slider-thumb"
-        class="border-primary ring-ring/50 block size-4 shrink-0 cursor-grab rounded-full border bg-white shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden active:cursor-grabbing disabled:pointer-events-none disabled:opacity-50"
+        class="block size-4 shrink-0 cursor-grab border border-[#C8A97E] bg-[#0A0A0A] shadow-sm transition-[color,box-shadow] hover:ring-2 hover:ring-[#C8A97E]/40 focus-visible:ring-2 focus-visible:ring-[#C8A97E]/40 focus-visible:outline-hidden active:cursor-grabbing disabled:pointer-events-none disabled:opacity-50"
       />
     </SliderRoot>
   </div>

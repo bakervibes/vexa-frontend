@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
 import { useAuth } from '@/composables/useAuth'
 import { env } from '@/env'
 import { generateVueHelpers } from '@uploadthing/vue'
@@ -10,7 +9,6 @@ import { toast } from 'vue-sonner'
 
 const { user, accessToken, fetchUserProfile } = useAuth()
 
-// Generate uploadthing helpers with your backend URL
 const { useUploadThing } = generateVueHelpers({
   url: `${env.VITE_API_URL}/uploadthing`,
 })
@@ -30,7 +28,6 @@ const userInitials = computed(() => {
 
 const { startUpload } = useUploadThing('profileImage', {
   headers: (): Record<string, string> => {
-    // Include the authorization header with JWT token
     const token = accessToken
     if (token) {
       return { Authorization: `Bearer ${token}` }
@@ -39,8 +36,6 @@ const { startUpload } = useUploadThing('profileImage', {
   },
   onClientUploadComplete: async () => {
     isUploading.value = false
-    // The backend already updates the user image in onUploadComplete
-    // We just need to refresh the user data in the store
     await fetchUserProfile()
     toast.success('Profile image updated successfully!')
   },
@@ -65,13 +60,11 @@ const handleFileChange = async (event: Event) => {
   const file = files[0]
   if (!file) return
 
-  // Validate file type
   if (!file.type.startsWith('image/')) {
     toast.error('Please select an image file')
     return
   }
 
-  // Validate file size (max 4MB)
   if (file.size > 4 * 1024 * 1024) {
     toast.error('Image must be less than 4MB')
     return
@@ -84,7 +77,6 @@ const handleFileChange = async (event: Event) => {
     toast.error('Failed to upload image')
   }
 
-  // Reset input
   target.value = ''
 }
 
@@ -92,32 +84,32 @@ const isLoading = computed(() => isUploading.value)
 </script>
 
 <template>
-  <div class="flex flex-col items-center">
+  <div
+    class="flex flex-col items-center border border-[#1E1E1E] bg-[#0A0A0A] p-8"
+  >
     <div class="relative">
-      <Avatar class="h-24 w-24">
+      <Avatar class="h-28 w-28 border-2 border-[#1E1E1E]">
         <AvatarImage
           v-if="user?.image"
           :src="user.image"
           :alt="user?.name || 'User'"
         />
-        <AvatarFallback class="bg-primary text-2xl font-medium text-white">
+        <AvatarFallback class="bg-surface text-2xl font-medium text-[#C8A97E]">
           {{ userInitials }}
         </AvatarFallback>
       </Avatar>
 
-      <!-- Loading overlay -->
       <div
         v-if="isLoading"
-        class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50"
+        class="absolute inset-0 flex items-center justify-center rounded-full bg-[#0A0A0A]/80"
       >
-        <Loader2Icon class="h-6 w-6 animate-spin text-white" />
+        <Loader2Icon class="h-6 w-6 animate-spin text-[#C8A97E]" />
       </div>
 
-      <!-- Upload button -->
       <button
         v-else
         @click="handleAvatarClick"
-        class="absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center rounded-full bg-black text-white transition-colors hover:bg-gray-800"
+        class="bg-surface absolute right-0 bottom-0 flex h-8 w-8 items-center justify-center border border-[#C8A97E]/40 text-[#C8A97E] transition-colors hover:bg-[#C8A97E] hover:text-[#0A0A0A]"
         aria-label="Change profile picture"
       >
         <CameraIcon class="h-4 w-4" />
@@ -132,21 +124,19 @@ const isLoading = computed(() => isUploading.value)
       />
     </div>
 
-    <h2 class="mt-4 text-lg font-semibold">
+    <h2 class="mt-5 text-lg font-medium text-[#E8E8E8]">
       {{ user?.name || 'Guest' }}
     </h2>
-    <p class="text-sm text-gray-500">{{ user?.email }}</p>
+    <p class="text-text-muted text-sm">{{ user?.email }}</p>
 
-    <Button
-      variant="outline"
-      size="sm"
-      class="mt-3"
+    <button
       :disabled="isLoading"
       @click="handleAvatarClick"
+      class="mt-4 border border-[#C8A97E]/40 px-4 py-2 text-xs tracking-widest text-[#C8A97E] uppercase transition-colors hover:bg-[#C8A97E] hover:text-[#0A0A0A] disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <CameraIcon class="mr-2 h-4 w-4" />
+      <CameraIcon class="mr-2 inline h-4 w-4" />
       {{ isLoading ? 'Uploading...' : 'Change photo' }}
-    </Button>
+    </button>
   </div>
 </template>
 

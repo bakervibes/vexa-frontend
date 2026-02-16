@@ -1,51 +1,56 @@
 <script lang="ts" setup>
-import { BanknoteIcon, LockIcon, PhoneIcon, TruckIcon } from 'lucide-vue-next'
+import {
+  CreditCardIcon,
+  HeadphonesIcon,
+  ShieldCheckIcon,
+  TruckIcon,
+} from 'lucide-vue-next'
+
+const features = [
+  {
+    icon: TruckIcon,
+    title: 'Livraison gratuite',
+    desc: 'Pour toute commande supérieure à 50 000 XOF',
+  },
+  {
+    icon: ShieldCheckIcon,
+    title: 'Garantie qualité',
+    desc: 'Satisfait ou remboursé pendant 30 jours',
+  },
+  {
+    icon: CreditCardIcon,
+    title: 'Paiement sécurisé',
+    desc: 'Transactions cryptées et protégées',
+  },
+  {
+    icon: HeadphonesIcon,
+    title: 'Support dédié',
+    desc: 'Assistance disponible 7j/7',
+  },
+]
 </script>
 
 <template>
-  <section
-    class="mx-auto grid w-full max-w-7xl grid-cols-2 gap-3 px-4 py-6 sm:gap-4 sm:py-8 md:grid-cols-4 lg:gap-6 lg:py-10"
-  >
-    <div class="flex flex-col gap-1.5 bg-gray-50 p-4 sm:p-5 lg:p-6">
-      <TruckIcon class="size-12 stroke-1 sm:size-14 lg:size-16" />
-      <span class="text-sm font-bold sm:text-base lg:text-lg">
-        Free shipping
-      </span>
-      <span class="text-xs text-black/60 sm:text-sm lg:text-base">
-        For all orders over $100
-      </span>
-    </div>
-
-    <div class="flex flex-col gap-1.5 bg-gray-50 p-4 sm:p-5 lg:p-6">
-      <BanknoteIcon class="size-12 stroke-1 sm:size-14 lg:size-16" />
-      <span class="text-sm font-bold sm:text-base lg:text-lg">
-        Money back guarantee
-      </span>
-      <span class="text-xs text-black/60 sm:text-sm lg:text-base">
-        30 days warranty
-      </span>
-    </div>
-
-    <div class="flex flex-col gap-1.5 bg-gray-50 p-4 sm:p-5 lg:p-6">
-      <LockIcon class="size-12 stroke-1 sm:size-14 lg:size-16" />
-      <span class="text-sm font-bold sm:text-base lg:text-lg">
-        Secure payment
-      </span>
-      <span class="text-xs text-black/60 sm:text-sm lg:text-base">
-        Secured by Moonero
-      </span>
-    </div>
-
-    <div class="flex flex-col gap-1.5 bg-gray-50 p-4 sm:p-5 lg:p-6">
-      <PhoneIcon class="size-12 stroke-1 sm:size-14 lg:size-16" />
-      <span class="text-sm font-bold sm:text-base lg:text-lg">
-        24/7 Support
-      </span>
-      <span class="text-xs text-black/60 sm:text-sm lg:text-base">
-        Phone and email support
-      </span>
+  <section class="border-border-noir bg-border-noir border-y">
+    <div
+      class="mx-auto grid max-w-6xl grid-cols-2 gap-px px-6 py-16 md:grid-cols-4"
+    >
+      <div
+        v-for="(feature, i) in features"
+        :key="i"
+        class="flex flex-col items-start gap-4 bg-[#0D0D0D] p-6"
+      >
+        <component
+          :is="feature.icon"
+          class="text-gold size-8"
+        />
+        <h3 class="font-display text-text text-lg font-light">
+          {{ feature.title }}
+        </h3>
+        <p class="text-xs leading-relaxed text-[#555]">
+          {{ feature.desc }}
+        </p>
+      </div>
     </div>
   </section>
 </template>
-
-<style scoped></style>

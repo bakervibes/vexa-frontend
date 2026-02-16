@@ -4,56 +4,48 @@ import { ChevronRightIcon } from 'lucide-vue-next'
 
 <template>
   <section
-    class="relative flex h-[calc(100vh-3rem)] flex-col justify-start text-black md:h-[calc(100vh-4rem)] md:flex-row"
+    class="text-text bg-noir relative flex min-h-[50vh] flex-col items-center justify-center px-6"
   >
-    <!-- IMAGE EN BACKGROUND SUR DESKTOP, EN BLOC SUR MOBILE -->
-    <div class="absolute inset-0 h-full w-full overflow-hidden">
-      <img
-        src="/shop/shop-bg.png"
-        alt="Shop Background"
-        class="hidden h-full w-full object-cover md:block"
-      />
-      <img
-        src="/shop/shop-bg-mobile.png"
-        alt="Shop Background Mobile"
-        class="block h-full w-full object-cover md:hidden"
-      />
-    </div>
+    <div class="flex flex-col items-center justify-center gap-8">
+      <div class="flex items-center gap-3">
+        <RouterLink
+          to="/"
+          class="hover:text-gold text-xs tracking-widest text-[#555] uppercase transition-colors"
+        >
+          Accueil
+        </RouterLink>
 
-    <!-- CONTENU -->
-    <div
-      class="relative z-10 flex h-full w-full flex-col justify-center gap-8 px-6 pb-12 md:px-24 md:pb-0"
-    >
-      <div class="flex flex-col items-center justify-center gap-8">
-        <div class="flex items-center gap-4">
-          <RouterLink
-            to="/"
-            class="w-fit px-4 text-black/80 transition-all hover:font-medium hover:text-black"
-          >
-            Home
-          </RouterLink>
+        <ChevronRightIcon
+          :size="12"
+          class="text-[#555]"
+        />
 
-          <ChevronRightIcon
-            :size="16"
-            class="text-black/40"
-          />
-
-          <RouterLink
-            to="/shop"
-            class="w-fit px-4 text-black/80 transition-all hover:font-medium hover:text-black"
-          >
-            Shop
-          </RouterLink>
-        </div>
-
-        <h1 class="text-center text-3xl font-black md:text-6xl">Shop page</h1>
-
-        <p class="text-center text-base md:text-start md:text-lg">
-          Let's design the place you always imagined.
-        </p>
+        <RouterLink
+          to="/shop"
+          class="text-gold text-xs tracking-widest uppercase"
+        >
+          Boutique
+        </RouterLink>
       </div>
+
+      <div class="text-gold mb-6 text-xs tracking-[0.3em] uppercase">
+        Collection
+      </div>
+
+      <h1
+        class="font-display text-center text-5xl font-light md:text-6xl lg:text-7xl"
+      >
+        Notre
+        <span class="italic">boutique</span>
+      </h1>
+
+      <div class="bg-gold/60 mx-auto my-8 h-px w-16" />
+
+      <p
+        class="mx-auto max-w-lg text-center text-sm leading-relaxed text-[#555] md:text-base"
+      >
+        Découvrez notre sélection exclusive de produits premium.
+      </p>
     </div>
   </section>
 </template>
-
-<style scoped></style>

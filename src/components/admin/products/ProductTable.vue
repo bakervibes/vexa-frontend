@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { ProductWithDetails } from '@/types'
 import { formatPrice } from '@/utils'
-import { Edit, Eye, MoreHorizontal, Trash2 } from 'lucide-vue-next'
+import { Edit, Eye, MoreHorizontal, Package, Trash2 } from 'lucide-vue-next'
 
 interface Props {
   products: ProductWithDetails[]
@@ -23,6 +23,7 @@ const emit = defineEmits<{
   (e: 'view', product: ProductWithDetails): void
   (e: 'edit', product: ProductWithDetails): void
   (e: 'delete', product: ProductWithDetails): void
+  (e: 'adjustStock', product: ProductWithDetails): void
 }>()
 
 function getStockBadge(stock: number): {
@@ -147,10 +148,7 @@ function getMinimalPrice(product: ProductWithDetails): string {
                   {{ product.name.slice(0, 2).toUpperCase() }}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <p class="font-medium">{{ product.name }}</p>
-                <p class="text-muted-foreground text-sm">{{ product.slug }}</p>
-              </div>
+              <p class="font-medium">{{ product.name }}</p>
             </div>
           </td>
           <td class="p-4 text-center">
@@ -168,9 +166,8 @@ function getMinimalPrice(product: ProductWithDetails): string {
               </p>
               <p
                 v-if="product.basePrice && product.basePrice !== product.price"
-                class="text-sm"
                 :class="{
-                  'text-muted-foreground line-through':
+                  'text-muted-foreground text-sm line-through':
                     product.price && product.basePrice !== product.price,
                 }"
               >
@@ -180,7 +177,8 @@ function getMinimalPrice(product: ProductWithDetails): string {
                 v-else-if="!product.price && !product.basePrice"
                 class="text-muted-foreground"
               >
-                À partir de {{ getMinimalPrice(product) }}
+                <span class="text-sm">À partir de</span>
+                {{ getMinimalPrice(product) }}
               </p>
             </div>
           </td>
@@ -212,6 +210,10 @@ function getMinimalPrice(product: ProductWithDetails): string {
                 <DropdownMenuItem @click="emit('edit', product)">
                   <Edit class="mr-2 h-4 w-4" />
                   Modifier
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="emit('adjustStock', product)">
+                  <Package class="mr-2 h-4 w-4" />
+                  Ajuster le stock
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   class="text-destructive focus:text-destructive"
